@@ -1,0 +1,15 @@
+# Deploy the Vite SPA under frontend/ — build output is frontend/dist
+
+[build]
+  command = "cd frontend && npm ci && npm run build"
+  publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# React Router (SPA): serve index.html for all client-side routes e.g. /dashboard, /incidents/INV-2042
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

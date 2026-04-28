@@ -255,6 +255,36 @@ frontend/
 
 ---
 
+## Deploy ZeroDashboard on Netlify (frontend only)
+
+The repo root includes **[`netlify.toml`](./netlify.toml)** so Netlify can build **`frontend/`** and publish **`frontend/dist`**.
+
+### One-time setup
+
+1. Push this repository to GitHub (or GitLab / Bitbucket) if it is not there yet.
+2. In [Netlify](https://app.netlify.com), choose **Add new site → Import an existing project** and authorize your Git provider.
+3. Pick the repo. Netlify will read **`netlify.toml`** and set:
+   - **Build command:** `cd frontend && npm ci && npm run build`
+   - **Publish directory:** `frontend/dist`
+   - **Node:** 22.x (via `NODE_VERSION` in [`netlify.toml`](./netlify.toml))
+4. Click **Deploy site**.
+
+### Environment variables (`VITE_*`)
+
+Vite bakes **`VITE_...`** variables in at **build** time (not runtime). Before or after connecting the backend, open **Site configuration → Environment variables** and add, for production:
+
+| Variable | Example | Purpose |
+|---------|---------|---------|
+| `VITE_API_BASE_URL` | `https://your-api.example.com` | REST base URL for Sprint 2+ API calls |
+
+Redeploy the site after changing env vars so a new bundle is built.
+
+### Client-side routing
+
+[`netlify.toml`](./netlify.toml) redirects **`/*`** → **`/index.html`** with status **200** so URLs like **`/dashboard`** or **`/incidents/INV-2042`** work on refresh (SPA behavior).
+
+---
+
 ## Security
 
 - Do **not** commit `.env` or production credentials.
