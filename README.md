@@ -257,17 +257,19 @@ frontend/
 
 ## Deploy ZeroDashboard on Netlify (frontend only)
 
-The repo root includes **[`netlify.toml`](./netlify.toml)** so Netlify can build **`frontend/`** and publish **`frontend/dist`**.
+The repo root includes **[`netlify.toml`](./netlify.toml)** with **`base = "frontend"`** so installs and builds run **inside** **`frontend/`** and the site is published from **`frontend/dist`** (configured as **`publish = "dist"`** relative to that base).
 
 ### One-time setup
 
 1. Push this repository to GitHub (or GitLab / Bitbucket) if it is not there yet.
 2. In [Netlify](https://app.netlify.com), choose **Add new site → Import an existing project** and authorize your Git provider.
-3. Pick the repo. Netlify will read **`netlify.toml`** and set:
-   - **Build command:** `cd frontend && npm ci && npm run build`
-   - **Publish directory:** `frontend/dist`
+3. Pick the repo. Netlify reads **`netlify.toml`**:
+   - **Base directory:** `frontend` (from file)
+   - **Build command:** `npm ci && npm run build` (no `cd frontend` — the base dir is already `frontend`)
+   - **Publish directory:** `dist` (output folder inside `frontend` → **`frontend/dist`** on disk)
    - **Node:** 22.x (via `NODE_VERSION` in [`netlify.toml`](./netlify.toml))
-4. Click **Deploy site**.
+4. Under **Configure**, avoid mixing paths: if **Base directory** is **`frontend`**, set **Publish** to **`dist`**, never **`frontend/dist`** (that would resolve to **`frontend/frontend/dist`** and fail).
+5. Click **Deploy site**.
 
 ### Environment variables (`VITE_*`)
 

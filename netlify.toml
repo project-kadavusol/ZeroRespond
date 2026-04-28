@@ -1,8 +1,10 @@
-# Deploy the Vite SPA under frontend/ — build output is frontend/dist
+# ZeroDashboard SPA: build runs from frontend/ — no "cd frontend" (Netlify already uses base).
+# Output is frontend/dist relative to repo root.
 
 [build]
-  command = "cd frontend && npm ci && npm run build"
-  publish = "frontend/dist"
+  base = "frontend"
+  command = "npm ci && npm run build"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
