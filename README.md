@@ -34,7 +34,7 @@ Many Indian SMBs, colleges, hospitals, and NGOs have no documented IR playbook, 
 | Detection engine | Wazuh 4.x + indexer (OpenSearch) |
 | Backend API | Python 3.11, FastAPI, SQLAlchemy, Alembic |
 | Database | PostgreSQL 15 |
-| Frontend | React 18, Tailwind CSS, Vite (charts e.g., Recharts) |
+| Frontend | React + **Vite**; **Tailwind CSS**; **react-router-dom**; **Recharts** (see `frontend/package.json` for exact versions) |
 | Reporting | Jinja2 HTML → PDF (WeasyPrint primary; optional fallback) |
 | Deployment | Docker and Docker Compose (single-host) |
 
@@ -46,7 +46,7 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
-├── frontend/                  # ZeroDashboard UI (React)
+├── frontend/                  # ZeroDashboard (Vite + React; `frontend/.env.example`)
 ├── backend/                   # FastAPI app, PostgreSQL migrations
 │   └── app/reports/templates/ # Jinja2 layouts for incident PDFs
 ├── detection/
@@ -65,6 +65,7 @@ Wazuh stack services (`wazuh-indexer`, `wazuh-manager`, optional dashboard) rema
 
 ## Prerequisites
 
+- **Node.js** 20+ and npm (for `frontend/` development; see **Frontend — Module 5** below)
 - Docker Engine and Docker Compose v2
 - Recommended target: Ubuntu 22.04 LTS (or equivalent) with enough RAM for indexer + manager (consult Wazuh sizing guides as you scale)
 
@@ -91,12 +92,21 @@ Implementations land incrementally across modules. Until all services build:
    docker compose up -d zerorespond-db
    ```
 
-4. Full stack (**after** Dockerfiles exist for backend, frontend, Wazuh, alert processor):
+4. **Frontend (ZeroDashboard) — local dev**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   Open the URL shown in the terminal (default **http://127.0.0.1:5173**).
+
+5. Full stack (**after** Dockerfiles exist for backend, frontend, Wazuh, alert processor):
+
    ```bash
    docker compose up -d
    ```
 
-5. **First-run**: When the backend ships, configure organization profile (`org_profile`-style endpoints) once per deployment, then ingest agents and alerts per detection module docs.
+6. **First-run**: When the backend ships, configure organization profile (`org_profile`-style endpoints) once per deployment, then ingest agents and alerts per detection module docs.
 
 ---
 
@@ -109,7 +119,113 @@ Implementations land incrementally across modules. Until all services build:
 | **M4** | DPDP-oriented PDF pipeline, Compose, backups, deployment docs | Report + DevOps |
 | **M5** | ZeroDashboard | Frontend |
 
-**Team Zero (Kumaraguru College of Technology):** Naveen Kumar · Ragul · Manikandan · Prithiv Raj
+**Team Zero (Kumaraguru College of Technology):** Naveen Kumar · Ragul · **Manikandan** (Frontend, Module 5) · Prithiv Raj
+
+---
+
+## Frontend — Module 5 (ZeroDashboard) — Manikandan
+
+Per the project specification, Module 5 is the **central real-time UI** (**ZeroDashboard**): incident list, case detail, playbook step-through, live **WebSocket** alert feed, severity visualization, **MTTD/MTTR** and related charts. The UI should stay **clear under stress**, favour **non-expert admins** (minimal unexplained jargon), and remain **responsive** from about 768px width (tablet) upward.
+
+### Scope and deliverables (from project document)
+
+| Area | What you build |
+|------|----------------|
+| **Routing** | `react-router-dom` routes: `/dashboard`, `/incidents/:id`, `/alerts`, `/metrics` |
+| **Main incident list** | Table: Case ID, severity, attack type, assignee, opened time, status → opens case detail |
+| **Case detail** | Alert summary, timeline, playbook + step checklist, evidence list, notes |
+| **Playbook step-through** | Numbered steps, Linux/Windows commands, expected outcome, **Mark complete** (+ timestamps via API) |
+| **Alert feed** | Real-time Wazuh-backed alerts via **WebSocket**; **Create case** action |
+| **Metrics** | MTTD / MTTR time series, incidents per month, severity mix, calendar-style heatmap (**Recharts**) |
+| **UX** | Large severity badges, straightforward critical actions, tooltips on technical terms |
+
+### Sprint checklist (two-week sprints)
+
+| Sprint | Focus | Deliverables (spec) |
+|--------|--------|----------------------|
+| **1** | Tooling + layout | Vite + React + **Tailwind**; routes above; static layouts for dashboard + case detail; **Recharts** installed; component structure |
+| **2** | Cases API | Wire list + detail to `GET /cases`, `GET /cases/:id`; severity badges; status updates; evidence list; loading/error states |
+| **3** | Playbooks + alerts | Step-through + step completion API; alert list via **WebSocket**; reconnect + status indicator |
+| **4** | Metrics + polish | All charts; responsive 768px+; empty/loading states; cross-browser smoke (Chrome, Firefox, Edge) |
+
+### Stack in this repository
+
+| Piece | Package / tool |
+|------|----------------|
+| Build | **Vite** (`npm run dev` / `npm run build`) |
+| UI | **React** (current template: React 19.x with Vite 8; matches React 18 patterns from the doc) |
+| Styling | **Tailwind CSS v4** via `@tailwindcss/vite` |
+| Routing | **react-router-dom** |
+| Charts | **recharts** |
+
+### Prerequisites
+
+- **Node.js** 20.x or newer (LTS recommended) and **npm** 10+, for local development under `frontend/`.
+
+### Installing dependencies
+
+From repository root:
+
+```bash
+cd frontend
+npm install
+```
+
+Copy environment template (optional for local API base URL):
+
+```bash
+cp .env.example .env.local
+# Edit VITE_API_BASE_URL if the FastAPI backend is not at http://localhost:8000
+```
+
+### npm scripts (dependency commands)
+
+Run these **inside `frontend/`** after `npm install`:
+
+| Command | Purpose |
+|---------|---------|
+| `npm run dev` | Start Vite dev server (default **http://127.0.0.1:5173**) with HMR |
+| `npm run build` | Typecheck (`tsc -b`) + production bundle to `frontend/dist/` |
+| `npm run preview` | Serve the production build locally for smoke testing |
+| `npm run lint` | ESLint over the project |
+
+### One-time setup commands (already applied in this repo)
+
+The app was scaffolded with **Vite’s React + TypeScript** template, then these dependencies were added (for reproducibility or recreating from scratch):
+
+```bash
+cd frontend
+npm create vite@latest . -- --template react-ts
+npm install
+npm install -D tailwindcss @tailwindcss/vite
+npm install react-router-dom recharts
+```
+
+Tailwind is enabled in `vite.config.ts` via the `@tailwindcss/vite` plugin; global styles use `@import 'tailwindcss'` in `src/index.css`.
+
+### Frontend layout (current)
+
+```
+frontend/
+├── .env.example          # VITE_API_BASE_URL for FastAPI
+├── index.html
+├── package.json
+├── vite.config.ts
+├── public/
+└── src/
+    ├── index.css         # Tailwind entry
+    ├── main.tsx          # BrowserRouter
+    ├── App.tsx           # Route table
+    ├── components/
+    │   └── SeverityBadge.tsx
+    ├── layouts/
+    │   └── MainLayout.tsx
+    └── pages/
+        ├── DashboardPage.tsx      # /dashboard
+        ├── IncidentDetailPage.tsx # /incidents/:id
+        ├── AlertsPage.tsx         # /alerts
+        └── MetricsPage.tsx        # /metrics (sample Recharts line chart)
+```
 
 ---
 
