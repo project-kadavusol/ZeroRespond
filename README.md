@@ -46,7 +46,7 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
-├── frontend/                  # ZeroDashboard (Vite + React; `frontend/.env.example`)
+├── frontend/                  # ZeroDashboard: Vite + React + mock data (`frontend/src/mock/`)
 ├── backend/                   # FastAPI app, PostgreSQL migrations
 │   └── app/reports/templates/ # Jinja2 layouts for incident PDFs
 ├── detection/
@@ -143,10 +143,21 @@ Per the project specification, Module 5 is the **central real-time UI** (**ZeroD
 
 | Sprint | Focus | Deliverables (spec) |
 |--------|--------|----------------------|
-| **1** | Tooling + layout | Vite + React + **Tailwind**; routes above; static layouts for dashboard + case detail; **Recharts** installed; component structure |
+| **1** **(done)** | Tooling + layout | Vite + React + **Tailwind**; routes above; **static mockups** for all four screens (dashboard, case **`INV-2042`** demo with playbook UX, alerts, metrics + heatmap sketch); **Recharts** wired; **`src/mock/fixtures`** + layered components |
 | **2** | Cases API | Wire list + detail to `GET /cases`, `GET /cases/:id`; severity badges; status updates; evidence list; loading/error states |
 | **3** | Playbooks + alerts | Step-through + step completion API; alert list via **WebSocket**; reconnect + status indicator |
 | **4** | Metrics + polish | All charts; responsive 768px+; empty/loading states; cross-browser smoke (Chrome, Firefox, Edge) |
+
+### Sprint 1 — completed (fixture-driven UI)
+
+- **Shell:** `MainLayout` adds top header stripe (status pill + contextual title per route) beside the sidebar; footer note reminds teammates this sprint is offline-only.
+- **Dashboard (`/dashboard`):** incident table (+ search/toolbar scaffolding), five mock rows sourced from **`MOCK_INCIDENTS`**, `SeverityBadge` styling.
+- **Case detail (`/incidents/:id`):** **`INV-2042`** shows full static story — alert synopsis, immutable timeline shell, playbook with platform toggle & local “Mark complete”, evidence filenames, responder notes textarea.
+- **Alerts (`/alerts`):** stacked cards with **`LiveAlertCard`**, **Create case** stub linking back to backlog until backend hook exists (Sprint 3 websocket).
+- **Metrics (`/metrics`):** paired MTTD/MTTR line charts, incidents-per-month bar chart, severity donut, and `IncidentDensityHeatmap` grid for future calendar analytics.
+- **Conventions:** React function components in **PascalCase** files; shared mock data in **`src/mock/fixtures.ts`**; presentational pieces under **`components/<area>/`**.
+
+See `frontend/` tree below for authoritative paths after Sprint 1.
 
 ### Stack in this repository
 
@@ -207,24 +218,39 @@ Tailwind is enabled in `vite.config.ts` via the `@tailwindcss/vite` plugin; glob
 
 ```
 frontend/
-├── .env.example          # VITE_API_BASE_URL for FastAPI
+├── .env.example
 ├── index.html
 ├── package.json
 ├── vite.config.ts
 ├── public/
 └── src/
-    ├── index.css         # Tailwind entry
-    ├── main.tsx          # BrowserRouter
-    ├── App.tsx           # Route table
+    ├── mock/
+    │   └── fixtures.ts       # Incident/alert/playbook/metrics stubs
+    ├── index.css             # Tailwind entry
+    ├── main.tsx              # BrowserRouter bootstrap
+    ├── App.tsx               # Route table
     ├── components/
-    │   └── SeverityBadge.tsx
+    │   ├── SeverityBadge.tsx
+    │   ├── alerts/
+    │   │   └── LiveAlertCard.tsx
+    │   ├── case/
+    │   │   ├── AlertSummaryCard.tsx
+    │   │   ├── CaseTimeline.tsx
+    │   │   ├── EvidenceList.tsx
+    │   │   ├── PlaybookStepList.tsx
+    │   │   └── ResponderNotes.tsx
+    │   ├── dashboard/
+    │   │   ├── IncidentTable.tsx
+    │   │   └── IncidentToolbar.tsx
+    │   └── metrics/
+    │       └── IncidentDensityHeatmap.tsx
     ├── layouts/
-    │   └── MainLayout.tsx
+    │   └── MainLayout.tsx   # Sidebar + top chrome
     └── pages/
-        ├── DashboardPage.tsx      # /dashboard
-        ├── IncidentDetailPage.tsx # /incidents/:id
-        ├── AlertsPage.tsx         # /alerts
-        └── MetricsPage.tsx        # /metrics (sample Recharts line chart)
+        ├── DashboardPage.tsx       # /dashboard
+        ├── IncidentDetailPage.tsx  # /incidents/:id (full mock on INV-2042)
+        ├── AlertsPage.tsx          # /alerts
+        └── MetricsPage.tsx         # /metrics + charts
 ```
 
 ---

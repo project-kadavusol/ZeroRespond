@@ -1,20 +1,24 @@
+import { LiveAlertCard } from '../components/alerts/LiveAlertCard'
+import { MOCK_LIVE_ALERTS } from '../mock/fixtures'
+
 export function AlertsPage() {
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-6">
       <header>
-        <h1 className="text-xl font-semibold text-white">Live alert feed</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          WebSocket connection to{' '}
-          <code className="rounded bg-zinc-900 px-1 py-0.5 text-zinc-300">
-            zerorespond-api
-          </code>{' '}
-          will populate this feed (project Module 1 integration). Connection
-          status + auto-reconnect in Sprint 3.
+        <h1 className="text-xl font-semibold text-white md:text-2xl">
+          Live alert feed
+        </h1>
+        <p className="mt-1 max-w-prose text-sm text-zinc-400">
+          Simulated Wazuh-style queue — WebSocket push + connection pill ships in
+          Sprint&nbsp;3. Each card borrows layout from the project&apos;s stress-proof
+          guidance.
         </p>
       </header>
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-8 text-center text-sm text-zinc-500">
-        No alerts yet — waiting for Alert Processor · Wazuh pipeline.
-      </div>
+      <ul className="space-y-4">
+        {MOCK_LIVE_ALERTS.map((a) => (
+          <LiveAlertCard key={a.id} alert={a} />
+        ))}
+      </ul>
     </div>
   )
 }
