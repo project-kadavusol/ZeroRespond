@@ -1,0 +1,66 @@
+# ZeroRespond — full stack (stub)
+# Replace image names and volumes with official Wazuh 4.x / project Dockerfiles as implementations land.
+#
+# Intended services (project spec):
+#   - wazuh-indexer (OpenSearch-backed)
+#   - wazuh-manager
+#   - wazuh-dashboard (optional UI for Wazuh)
+#   - zerorespond-db — PostgreSQL 15
+#   - zerorespond-api — FastAPI backend
+#   - zerorespond-frontend — React ZeroDashboard (static or dev server)
+#   - zerorespond-alert-processor — optional separate container for polling Wazuh API
+#
+# Example skeleton (additional services uncommented when Dockerfiles exist):
+
+services:
+  zerorespond-db:
+    image: postgres:15-alpine
+    container_name: zerorespond-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-zerorespond}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-zerorespond}
+    volumes:
+      - zerorespond_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-zerorespond} -d ${POSTGRES_DB:-zerorespond}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - zerorespond
+
+  # Uncomment and configure when Dockerfiles exist:
+  #
+  # zerorespond-api:
+  #   build: ./backend
+  #   container_name: zerorespond-api
+  #   env_file: .env
+  #   depends_on:
+  #     zerorespond-db:
+  #       condition: service_healthy
+  #   ports:
+  #     - "8000:8000"
+  #   networks:
+  #     - zerorespond
+
+  # zerorespond-frontend:
+  #   build: ./frontend
+  #   container_name: zerorespond-frontend
+  #   ports:
+  #     - "5173:5173"
+  #   networks:
+  #     - zerorespond
+
+  # --- Wazuh stack (see https://documentation.wazuh.com/) ---
+  # wazuh-indexer:
+  # wazuh-manager:
+  # wazuh-dashboard:
+
+networks:
+  zerorespond:
+    driver: bridge
+
+volumes:
+  zerorespond_pgdata:

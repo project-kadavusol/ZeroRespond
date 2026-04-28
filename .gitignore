@@ -1,0 +1,49 @@
+# Environment (never commit .env)
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Backend / testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Alembic / local DB
+*.db
+
+# Node / frontend
+node_modules/
+dist/
+.parcel-cache/
+.vite/
+
+# Evidence and generated reports
+**/evidence_store/
+**/reports_output/
+reports/*.pdf
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Docker overrides (optional local)
+docker-compose.override.yml
