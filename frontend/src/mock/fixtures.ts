@@ -62,6 +62,8 @@ export type TimelineEntry = {
 }
 
 export const MOCK_ALERT_SUMMARY = {
+  plainSummary:
+    'Many shared files were renamed with a .locked extension on fin-srv-03 — a pattern that often indicates ransomware.',
   ruleId: 'RULE-92011',
   ruleName: 'Mass file rename (ransomware indicator)',
   host: 'fin-srv-03.campus.edu',
@@ -165,6 +167,8 @@ export const MOCK_EVIDENCE: EvidenceItem[] = [
 export type LiveAlertFixture = {
   id: string
   severity: Severity
+  plainSummary: string
+  ruleId: string
   ruleName: string
   host: string
   timestamp: string
@@ -174,25 +178,47 @@ export const MOCK_LIVE_ALERTS: LiveAlertFixture[] = [
   {
     id: 'ALRT-98211',
     severity: 'critical',
-    ruleName: 'RULE-92011 · ransomware mass rename',
+    plainSummary:
+      'Unusual mass file renames on fin-srv-03 — treat as possible ransomware until ruled out.',
+    ruleId: 'RULE-92011',
+    ruleName: 'Ransomware mass rename',
     host: 'fin-srv-03',
     timestamp: '02:47:11',
   },
   {
     id: 'ALRT-98206',
     severity: 'high',
-    ruleName: 'RULE-81102 · brute force SSH (>500 fails)',
+    plainSummary:
+      'More than 500 failed SSH logins on edge-gw — likely a brute-force attempt from the network.',
+    ruleId: 'RULE-81102',
+    ruleName: 'Brute force SSH',
     host: 'edge-gw',
     timestamp: '02:12:54',
   },
   {
     id: 'ALRT-98193',
     severity: 'medium',
-    ruleName: 'RULE-44021 · TOR exit egress',
+    plainSummary:
+      'Traffic to a known Tor exit node from lab-win-07 — may be policy bypass or unwanted software.',
+    ruleId: 'RULE-44021',
+    ruleName: 'Tor exit egress',
     host: 'lab-win-07',
     timestamp: '01:41:07',
   },
 ]
+
+/** High-level case lifecycle for the phase strip (currentIndex = active step). */
+export const MOCK_INCIDENT_PHASE_STRIP = {
+  phases: [
+    { id: 'detected', label: 'Detected' },
+    { id: 'opened', label: 'Case opened' },
+    { id: 'playbook', label: 'Playbook' },
+    { id: 'containment', label: 'Containment' },
+    { id: 'resolved', label: 'Resolved' },
+  ] as const,
+  /** 0-based; playbook step is in progress for the demo timeline. */
+  currentIndex: 2,
+}
 
 export const MOCK_MTTD_DAYS = [
   { day: 'Mon', minutes: 5.8 },

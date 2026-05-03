@@ -29,7 +29,7 @@ export function MainLayout() {
             Respond
           </div>
           <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
-            ZeroDashboard UI
+            Incident cockpit
           </div>
         </div>
         <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
@@ -47,7 +47,7 @@ export function MainLayout() {
           </NavLink>
         </nav>
         <div className="mt-auto pt-8 text-[10px] leading-snug text-zinc-600">
-          Sprint&nbsp;1 static mock&nbsp;mode — no APIs or WebSockets.
+          Preview uses sample data; connect APIs when your stack is ready.
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -58,14 +58,14 @@ export function MainLayout() {
                 {titleFor(pathname)}
               </p>
               <p className="text-xs text-zinc-400">
-                Self-hosted incident response cockpit (layout mock · Module&nbsp;5)
+                Self-hosted incident response — guided playbooks and queues
               </p>
             </div>
             <span
               className="rounded-full border border-amber-800/70 bg-amber-950/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
-              title="Green when WebSocket/API healthy in Sprint 3"
+              title="Demo mode: sample data only until backend is connected"
             >
-              Offline · fixtures
+              Demo data
             </span>
           </div>
         </header>

@@ -5,11 +5,8 @@ export function EvidenceList({ items }: { items: EvidenceItem[] }) {
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
       <h2 className="text-sm font-semibold text-zinc-200">Evidence</h2>
       <p className="mt-1 text-xs text-zinc-500">
-        Filenames placeholder — uploads via{' '}
-        <code className="rounded bg-zinc-950 px-1 py-px text-zinc-400">
-          POST /cases/:id/evidence
-        </code>
-        .
+        Files linked to this case. With a live server, uploads would appear here
+        automatically.
       </p>
       <ul className="mt-4 divide-y divide-zinc-800 rounded-md border border-zinc-800">
         {items.map((f) => (

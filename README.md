@@ -46,6 +46,7 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
+├── package.json               # npm workspaces — `npm install` + `npm run dev` from root
 ├── frontend/                  # ZeroDashboard: Vite + React + mock data (`frontend/src/mock/`)
 ├── backend/                   # FastAPI app, PostgreSQL migrations
 │   └── app/reports/templates/ # Jinja2 layouts for incident PDFs
@@ -93,11 +94,24 @@ Implementations land incrementally across modules. Until all services build:
    ```
 
 4. **Frontend (ZeroDashboard) — local dev**
+
+   From the **repository root** (recommended — uses npm workspaces):
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+   Or run Vite only inside `frontend/`:
+
    ```bash
    cd frontend
    npm install
    npm run dev
    ```
+
+   If `npm` complains that `package.json` is missing, confirm your shell’s current directory is **`ZeroRespond`** (not the parent `Downloads` folder). Use `cd` into the cloned repo first.
+
    Open the URL shown in the terminal (default **http://127.0.0.1:5173**).
 
 5. Full stack (**after** Dockerfiles exist for backend, frontend, Wazuh, alert processor):
@@ -175,7 +189,13 @@ See `frontend/` tree below for authoritative paths after Sprint 1.
 
 ### Installing dependencies
 
-From repository root:
+From repository root (installs the `frontend` workspace):
+
+```bash
+npm install
+```
+
+Or only the dashboard package:
 
 ```bash
 cd frontend
@@ -185,13 +205,13 @@ npm install
 Copy environment template (optional for local API base URL):
 
 ```bash
-cp .env.example .env.local
+cp frontend/.env.example frontend/.env.local
 # Edit VITE_API_BASE_URL if the FastAPI backend is not at http://localhost:8000
 ```
 
 ### npm scripts (dependency commands)
 
-Run these **inside `frontend/`** after `npm install`:
+From **repository root** after `npm install` (workspaces):
 
 | Command | Purpose |
 |---------|---------|
@@ -199,6 +219,8 @@ Run these **inside `frontend/`** after `npm install`:
 | `npm run build` | Typecheck (`tsc -b`) + production bundle to `frontend/dist/` |
 | `npm run preview` | Serve the production build locally for smoke testing |
 | `npm run lint` | ESLint over the project |
+
+You can run the same four scripts inside `frontend/` if dependencies were installed only there.
 
 ### One-time setup commands (already applied in this repo)
 

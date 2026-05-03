@@ -3,11 +3,10 @@ import type { TimelineEntry } from '../../mock/fixtures'
 export function CaseTimeline({ entries }: { entries: TimelineEntry[] }) {
   return (
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-      <h2 className="text-sm font-semibold text-zinc-200">Case timeline</h2>
+      <h2 className="text-sm font-semibold text-zinc-200">Activity log</h2>
       <p className="mt-1 text-xs text-zinc-500">
-        Immutable chronological log (
-        <span title="POST /cases/:id events in Sprint 2">API-backed later</span>
-        ).
+        Chronological events for this case. With a live server, new entries
+        appear here automatically.
       </p>
       <ol className="relative mt-4 border-l border-zinc-700 pl-6">
         {entries.map((e, idx) => (

@@ -9,7 +9,7 @@ export function ResponderNotes() {
     <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
       <h2 className="text-sm font-semibold text-zinc-200">Responder notes</h2>
       <p className="mt-1 text-xs text-zinc-500">
-        Local draft only in Sprint 1 — persist with case API in Sprint 2.
+        Notes stay in this browser until a case API is connected.
       </p>
       <textarea
         value={text}

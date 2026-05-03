@@ -9,9 +9,8 @@ export function AlertsPage() {
           Live alert feed
         </h1>
         <p className="mt-1 max-w-prose text-sm text-zinc-400">
-          Simulated Wazuh-style queue — WebSocket push + connection pill ships in
-          Sprint&nbsp;3. Each card borrows layout from the project&apos;s stress-proof
-          guidance.
+          Incoming detections in plain language, similar to what you&apos;d see
+          from a SIEM queue — here shown with static sample alerts.
         </p>
       </header>
       <ul className="space-y-4">

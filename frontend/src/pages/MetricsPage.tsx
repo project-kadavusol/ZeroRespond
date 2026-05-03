@@ -38,10 +38,9 @@ export function MetricsPage() {
           Operational metrics
         </h1>
         <p className="mt-1 max-w-prose text-sm text-zinc-400">
-          Four chart families + calendar heat prototype — aligns with Sprint&nbsp;4
-          polish milestones; values are fixtures only (
-          <span title="Rolling windows & API aggregation">MTTD&nbsp;/&nbsp;MTTR semantics</span>
-          ).
+          Sample charts for mean time to detect and respond, incident volume, and
+          severity mix — numbers are placeholders until your analytics pipeline is
+          connected.
         </p>
       </header>
 
