@@ -1,10 +1,9 @@
-# ZeroDashboard SPA: build runs from frontend/ — no "cd frontend" (Netlify already uses base).
-# Output is frontend/dist relative to repo root.
+# Build from repo root so npm workspaces + lockfile apply (pins Vite 6 — avoids Rolldown native bindings on Linux CI).
+# Publish the Vite output under frontend/dist.
 
 [build]
-  base = "frontend"
   command = "npm ci && npm run build"
-  publish = "dist"
+  publish = "frontend/dist"
 
 [build.environment]
   NODE_VERSION = "22"
