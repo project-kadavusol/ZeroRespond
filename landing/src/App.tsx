@@ -171,7 +171,7 @@ export default function App() {
       <section id="problem">
         <div className="section-inner">
           <div className="section-label reveal">The Problem</div>
-          <h2 className="section-title section-title--prose reveal d100">When an attack hits, most organizations<br />panic, improvise, and go silent.</h2>
+          <h2 className="section-title reveal d100">When an attack hits, most organizations<br />panic, improvise, and go silent.</h2>
           <div className="problem-grid">
             <div className="problem-stats reveal d200">
               <div className="problem-card">
