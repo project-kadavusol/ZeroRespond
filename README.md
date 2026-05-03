@@ -279,18 +279,18 @@ frontend/
 
 ## Deploy ZeroDashboard on Netlify (frontend only)
 
-The repo root **[`netlify.toml`](./netlify.toml)** runs **`npm ci && npm run build`** from the **repository root** (npm **workspaces**). That installs the `frontend` workspace and pins **Vite 6** via **`overrides`**, avoiding **Vite 8 / Rolldown** native bindings that can break on Netlify’s Linux builders. The site is published from **`frontend/dist`**.
+The repo root **[`netlify.toml`](./netlify.toml)** sets **`base = "frontend"`**, **`publish = "dist"`** (so the deploy folder is **`frontend/dist`**), and runs **`cd .. && npm ci && npm run build`** from the repo root so **npm workspaces**, the root **`package-lock.json`**, and the **Vite 6** override still apply.
 
 ### One-time setup
 
 1. Push this repository to GitHub (or GitLab / Bitbucket) if it is not there yet.
 2. In [Netlify](https://app.netlify.com), choose **Add new site → Import an existing project** and authorize your Git provider.
 3. Pick the repo. Netlify reads **`netlify.toml`**:
-   - **Base directory:** leave **empty** (repo root), unless you override the build — the config is meant for root.
-   - **Build command:** `npm ci && npm run build` (already in `netlify.toml`).
-   - **Publish directory:** `frontend/dist`
+   - **`base`** is set to **`frontend`** in the file so the published folder is **`dist`** inside that directory (i.e. **`frontend/dist`** on disk). Do **not** set **Publish directory** in the UI to **`frontend/dist`** when **Base** is also **`frontend`** — that path is interpreted relative to base and becomes **`frontend/frontend/dist`**.
+   - **Build command:** `cd .. && npm ci && npm run build` (runs the **root** workspace install, then builds the `frontend` app).
+   - **Publish directory:** leave unset in the UI if possible so `netlify.toml` **`publish = "dist"`** applies (relative to **`base`** → **`frontend/dist`**).
    - **Node:** 22.x (via `NODE_VERSION` in [`netlify.toml`](./netlify.toml))
-4. If the Netlify UI shows an old **Base directory** of `frontend`, clear it so the workspace install and root lockfile are used.
+4. In the Netlify UI, under **Build settings**, clear **Base directory** if it duplicates what’s in `netlify.toml`, or ensure **Publish** is only **`dist`** (not **`frontend/dist`**) when the base is **`frontend`**.
 5. Click **Deploy site**.
 
 ### Environment variables (`VITE_*`)
