@@ -46,7 +46,7 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
-├── landing/                   # Marketing site: Vite + React (port 5174 in dev; Netlify → `landing/dist`)
+├── landing/                   # Marketing site: Vite + React; Dockerfile + nginx (Compose → port 5174)
 ├── netlify.toml               # `npm run build -w landing`, publish `landing/dist`
 ├── package.json               # npm workspaces — `frontend` + `landing`
 ├── frontend/                  # ZeroDashboard: Vite + React + mock data; Dockerfile + nginx
@@ -59,7 +59,7 @@ ZeroRespond/
 │   ├── wazuh/decoders/        # Optional decoders
 │   └── alert_processor/       # Polls Wazuh API → backend / PostgreSQL alerts
 ├── scripts/                   # Backup, restore, maintenance helpers (as added)
-├── docker-compose.yml         # DB + ZeroDashboard (nginx on port 5173)
+├── docker-compose.yml         # DB, ZeroDashboard (:5173), landing (:5174)
 ├── .env.example               # Required env vars template
 └── README.md
 ```
@@ -137,6 +137,20 @@ Implementations land incrementally across modules. Until all services build:
    ```
 
    Open **http://localhost:5173** (nginx serves the built SPA).
+
+   **Landing page in Docker** (marketing site, nginx static build):
+
+   ```bash
+   docker compose up -d --build zerorespond-landing
+   ```
+
+   Open **http://localhost:5174**.
+
+   **Dashboard + landing together:**
+
+   ```bash
+   docker compose up -d --build zerorespond-frontend zerorespond-landing
+   ```
 
    **Database only** (optional):
 
@@ -321,7 +335,7 @@ frontend/
 
 **Netlify UI:** Set **Base directory** to empty (repo root), or leave it unset so `netlify.toml` wins. Do **not** set base to `frontend` — workspaces live at the root, and `landing/` is not under `frontend/`. Clear any custom **Publish directory** that points at `frontend/landing/dist`.
 
-The marketing site is a **Vite + React** build (add `VITE_*` in Netlify only if you introduce env-based config later). The **ZeroDashboard** app is **not** deployed on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**.
+The marketing site is a **Vite + React** build (add `VITE_*` in Netlify only if you introduce env-based config later). The **ZeroDashboard** app is **not** deployed on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**. Run the marketing site in Docker with **`docker compose up zerorespond-landing`** (see Quick start).
 
 To host the dashboard on Netlify separately, add another site that runs `npm ci && npm run build -w frontend` and publishes `frontend/dist`, with SPA redirects — optional and independent of the marketing deploy.
 
