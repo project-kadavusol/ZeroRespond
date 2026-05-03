@@ -46,8 +46,12 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
+├── landing/                   # Static marketing site (Netlify publish target)
+├── netlify.toml               # Publishes `landing/` — no SPA build
 ├── package.json               # npm workspaces — `npm install` + `npm run dev` from root
-├── frontend/                  # ZeroDashboard: Vite + React + mock data (`frontend/src/mock/`)
+├── frontend/                  # ZeroDashboard: Vite + React + mock data; Dockerfile + nginx
+│   ├── Dockerfile             # Multi-stage: workspace build → nginx static
+│   └── nginx.conf             # SPA try_files for /dashboard etc.
 ├── backend/                   # FastAPI app, PostgreSQL migrations
 │   └── app/reports/templates/ # Jinja2 layouts for incident PDFs
 ├── detection/
@@ -55,7 +59,7 @@ ZeroRespond/
 │   ├── wazuh/decoders/        # Optional decoders
 │   └── alert_processor/       # Polls Wazuh API → backend / PostgreSQL alerts
 ├── scripts/                   # Backup, restore, maintenance helpers (as added)
-├── docker-compose.yml         # Turns up DB + placeholder for full stack
+├── docker-compose.yml         # DB + ZeroDashboard (nginx on port 5173)
 ├── .env.example               # Required env vars template
 └── README.md
 ```
@@ -88,12 +92,10 @@ Implementations land incrementally across modules. Until all services build:
    # Edit .env — use strong passwords and secrets; never commit .env
    ```
 
-3. **Database only (currently defined in compose)**
-   ```bash
-   docker compose up -d zerorespond-db
-   ```
+3. **Public marketing site (Netlify)**  
+   The [`landing/`](./landing/) folder is the static home page. [`netlify.toml`](./netlify.toml) uses **`publish = "landing"`** and a no-op build — no Node/Vite step on Netlify.
 
-4. **Frontend (ZeroDashboard) — local dev**
+4. **ZeroDashboard — local dev (mock UI)**
 
    From the **repository root** (recommended — uses npm workspaces):
 
@@ -102,7 +104,7 @@ Implementations land incrementally across modules. Until all services build:
    npm run dev
    ```
 
-   Or run Vite only inside `frontend/`:
+   Or run inside `frontend/` only:
 
    ```bash
    cd frontend
@@ -110,17 +112,31 @@ Implementations land incrementally across modules. Until all services build:
    npm run dev
    ```
 
-   If `npm` complains that `package.json` is missing, confirm your shell’s current directory is **`ZeroRespond`** (not the parent `Downloads` folder). Use `cd` into the cloned repo first.
+   If `npm` complains that `package.json` is missing, confirm your current directory is **`ZeroRespond`**.
 
    Open the URL shown in the terminal (default **http://127.0.0.1:5173**).
 
-5. Full stack (**after** Dockerfiles exist for backend, frontend, Wazuh, alert processor):
+5. **ZeroDashboard — Docker**
+
+   ```bash
+   docker compose up -d --build zerorespond-frontend
+   ```
+
+   Open **http://localhost:5173** (nginx serves the built SPA).
+
+   **Database only** (optional):
+
+   ```bash
+   docker compose up -d zerorespond-db
+   ```
+
+6. **Full stack** (when remaining Dockerfiles exist: backend, Wazuh, alert processor):
 
    ```bash
    docker compose up -d
    ```
 
-6. **First-run**: When the backend ships, configure organization profile (`org_profile`-style endpoints) once per deployment, then ingest agents and alerts per detection module docs.
+7. **First-run**: When the backend ships, configure organization profile once per deployment, then ingest agents and alerts per detection module docs.
 
 ---
 
@@ -244,6 +260,8 @@ frontend/
 ├── index.html
 ├── package.json
 ├── vite.config.ts
+├── Dockerfile             # Workspace build → nginx image (see docker-compose)
+├── nginx.conf             # SPA routing for containerized dashboard
 ├── public/
 └── src/
     ├── mock/
@@ -277,35 +295,20 @@ frontend/
 
 ---
 
-## Deploy ZeroDashboard on Netlify (frontend only)
+## Public site on Netlify (marketing)
 
-The repo root **[`netlify.toml`](./netlify.toml)** sets **`base = "frontend"`**, **`publish = "dist"`** (so the deploy folder is **`frontend/dist`**), and runs **`cd .. && npm ci && npm run build`** from the repo root so **npm workspaces**, the root **`package-lock.json`**, and the **Vite 6** override still apply.
+[`netlify.toml`](./netlify.toml) publishes the **static** [`landing/`](./landing/) directory:
 
-### One-time setup
+| Setting | Value |
+|---------|--------|
+| Build command | `true` (no-op) |
+| Publish directory | `landing` |
 
-1. Push this repository to GitHub (or GitLab / Bitbucket) if it is not there yet.
-2. In [Netlify](https://app.netlify.com), choose **Add new site → Import an existing project** and authorize your Git provider.
-3. Pick the repo. Netlify reads **`netlify.toml`**:
-   - **`base`** is set to **`frontend`** in the file so the published folder is **`dist`** inside that directory (i.e. **`frontend/dist`** on disk). Do **not** set **Publish directory** in the UI to **`frontend/dist`** when **Base** is also **`frontend`** — that path is interpreted relative to base and becomes **`frontend/frontend/dist`**.
-   - **Build command:** `cd .. && npm ci && npm run build` (runs the **root** workspace install, then builds the `frontend` app).
-   - **Publish directory:** leave unset in the UI if possible so `netlify.toml` **`publish = "dist"`** applies (relative to **`base`** → **`frontend/dist`**).
-   - **Node:** 22.x (via `NODE_VERSION` in [`netlify.toml`](./netlify.toml))
-4. In the Netlify UI, under **Build settings**, clear **Base directory** if it duplicates what’s in `netlify.toml`, or ensure **Publish** is only **`dist`** (not **`frontend/dist`**) when the base is **`frontend`**.
-5. Click **Deploy site**.
+**Netlify UI:** Clear **Base directory** and any custom **Publish** override so the file in the repo controls the deploy.
 
-### Environment variables (`VITE_*`)
+The marketing page is plain HTML/CSS — **no** `VITE_*` build variables. The **ZeroDashboard** React app is **not** on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**.
 
-Vite bakes **`VITE_...`** variables in at **build** time (not runtime). Before or after connecting the backend, open **Site configuration → Environment variables** and add, for production:
-
-| Variable | Example | Purpose |
-|---------|---------|---------|
-| `VITE_API_BASE_URL` | `https://your-api.example.com` | REST base URL for Sprint 2+ API calls |
-
-Redeploy the site after changing env vars so a new bundle is built.
-
-### Client-side routing
-
-[`netlify.toml`](./netlify.toml) redirects **`/*`** → **`/index.html`** with status **200** so URLs like **`/dashboard`** or **`/incidents/INV-2042`** work on refresh (SPA behavior).
+To host the built SPA on Netlify separately, add another site (or branch) that runs `npm ci && npm run build` and publishes `frontend/dist`, with SPA redirects — optional and independent of the marketing deploy.
 
 ---
 

@@ -31,6 +31,17 @@ services:
     networks:
       - zerorespond
 
+  zerorespond-frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: zerorespond-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - zerorespond
+
   # Uncomment and configure when Dockerfiles exist:
   #
   # zerorespond-api:
@@ -42,14 +53,6 @@ services:
   #       condition: service_healthy
   #   ports:
   #     - "8000:8000"
-  #   networks:
-  #     - zerorespond
-
-  # zerorespond-frontend:
-  #   build: ./frontend
-  #   container_name: zerorespond-frontend
-  #   ports:
-  #     - "5173:5173"
   #   networks:
   #     - zerorespond
 

@@ -1,22 +1,9 @@
-# ZeroDashboard SPA
-#
-# Netlify may have "Base directory" = frontend in the site UI. Publish paths are
-# relative to that base, so use publish = "dist" (outputs to repo/frontend/dist),
-# NOT "frontend/dist" (would become repo/frontend/frontend/dist).
-#
-# Workspace lockfile + Vite 6 overrides live at repo root — build runs via cd ..
+# Public marketing site: static files only (no Vite build).
+# ZeroDashboard (React) runs locally or via Docker — see README.
 
 [build]
-  base = "frontend"
-  command = "cd .. && npm ci && npm run build"
-  publish = "dist"
+  command = "true"
+  publish = "landing"
 
 [build.environment]
   NODE_VERSION = "22"
-
-# React Router (SPA): serve index.html for all client-side routes e.g. /dashboard, /incidents/INV-2042
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
