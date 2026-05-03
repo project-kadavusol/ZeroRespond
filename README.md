@@ -311,18 +311,19 @@ frontend/
 
 ## Public site on Netlify (marketing)
 
-[`netlify.toml`](./netlify.toml) publishes the **static** [`landing/`](./landing/) directory:
+[`netlify.toml`](./netlify.toml) builds the **React** app in [`landing/`](./landing/) and publishes the Vite output:
 
 | Setting | Value |
 |---------|--------|
-| Build command | `true` (no-op) |
-| Publish directory | `landing` |
+| Base directory | Repo root (`base = "."` in `netlify.toml`) |
+| Build command | `npm install && npm run build -w landing` |
+| Publish directory | `landing/dist` |
 
-**Netlify UI:** Clear **Base directory** and any custom **Publish** override so the file in the repo controls the deploy.
+**Netlify UI:** Set **Base directory** to empty (repo root), or leave it unset so `netlify.toml` wins. Do **not** set base to `frontend` — workspaces live at the root, and `landing/` is not under `frontend/`. Clear any custom **Publish directory** that points at `frontend/landing/dist`.
 
-The marketing page is plain HTML/CSS — **no** `VITE_*` build variables. The **ZeroDashboard** React app is **not** on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**.
+The marketing site is a **Vite + React** build (add `VITE_*` in Netlify only if you introduce env-based config later). The **ZeroDashboard** app is **not** deployed on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**.
 
-To host the built SPA on Netlify separately, add another site (or branch) that runs `npm ci && npm run build` and publishes `frontend/dist`, with SPA redirects — optional and independent of the marketing deploy.
+To host the dashboard on Netlify separately, add another site that runs `npm ci && npm run build -w frontend` and publishes `frontend/dist`, with SPA redirects — optional and independent of the marketing deploy.
 
 ---
 

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import './landing.css'
 
 export default function App() {
-  const navRef = useRef<HTMLNavElement | null>(null)
+  const navRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     const nav = navRef.current

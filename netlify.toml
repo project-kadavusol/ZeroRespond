@@ -1,7 +1,12 @@
 # Public marketing site: Vite + React in `landing/`.
 # ZeroDashboard (React) runs locally or via Docker — see README.
+#
+# `base` must be the repo root so `npm run build -w landing` sees workspaces.
+# If Netlify UI has "Base directory" = frontend, remove it — this file overrides
+# when committed, but mismatched UI publish paths confuse debugging.
 
 [build]
+  base = "."
   command = "npm install && npm run build -w landing"
   publish = "landing/dist"
 
