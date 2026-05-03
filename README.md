@@ -46,9 +46,9 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
-├── landing/                   # Static marketing site (Netlify publish target)
-├── netlify.toml               # Publishes `landing/` — no SPA build
-├── package.json               # npm workspaces — `npm install` + `npm run dev` from root
+├── landing/                   # Marketing site: Vite + React (port 5174 in dev; Netlify → `landing/dist`)
+├── netlify.toml               # `npm run build -w landing`, publish `landing/dist`
+├── package.json               # npm workspaces — `frontend` + `landing`
 ├── frontend/                  # ZeroDashboard: Vite + React + mock data; Dockerfile + nginx
 │   ├── Dockerfile             # Multi-stage: workspace build → nginx static
 │   └── nginx.conf             # SPA try_files for /dashboard etc.
@@ -92,8 +92,16 @@ Implementations land incrementally across modules. Until all services build:
    # Edit .env — use strong passwords and secrets; never commit .env
    ```
 
-3. **Public marketing site (Netlify)**  
-   The [`landing/`](./landing/) folder is the static home page. [`netlify.toml`](./netlify.toml) uses **`publish = "landing"`** and a no-op build — no Node/Vite step on Netlify.
+3. **Public marketing site (local)**  
+   From the repo root after `npm install`:
+
+   ```bash
+   npm run dev:landing
+   ```
+
+   Open **http://127.0.0.1:5174** (Vite dev server for the React landing page).
+
+   **Netlify:** [`netlify.toml`](./netlify.toml) runs `npm install` and **`npm run build -w landing`**, then publishes **`landing/dist`**.
 
 4. **ZeroDashboard — local dev (mock UI)**
 
@@ -102,6 +110,12 @@ Implementations land incrementally across modules. Until all services build:
    ```bash
    npm install
    npm run dev
+   ```
+
+   Shorthand for the dashboard only:
+
+   ```bash
+   npm run dev:dashboard
    ```
 
    Or run inside `frontend/` only:
