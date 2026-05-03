@@ -52,8 +52,8 @@ export default function App() {
   return (
     <>
       <nav id="navbar" ref={navRef}>
-        <a href="#" className="nav-logo">
-          <span className="logo-mark">Z<span className="logo-slash"></span>ero<span className="respond">Respond</span></span>
+        <a href="#" className="nav-logo" aria-label="ZeroRespond home">
+          <img src="/logo.png" alt="" className="logo-img" />
         </a>
         <ul className="nav-links">
           <li><a href="#problem">Problem</a></li>
@@ -392,7 +392,7 @@ export default function App() {
         <div className="footer-inner">
           <div className="footer-top">
             <div className="footer-brand">
-              <span className="logo-mark">Z<span className="logo-slash"></span>ero<span className="respond">Respond</span></span>
+              <img src="/logo.png" alt="ZeroRespond" className="footer-logo-img" />
               <p className="footer-desc">India's first open-source, self-hostable Incident Response platform for organizations with no security team and no enterprise budget. DPDP Act 2023 aligned and CERT-In ready.</p>
               <span className="footer-dpdp">⚖️ DPDP Act 2023 Compliant</span>
             </div>
