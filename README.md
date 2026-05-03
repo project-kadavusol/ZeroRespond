@@ -211,16 +211,16 @@ cp frontend/.env.example frontend/.env.local
 
 ### npm scripts (dependency commands)
 
-From **repository root** after `npm install` (workspaces):
+From **repository root** after `npm install`:
 
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Start Vite dev server (default **http://127.0.0.1:5173**) with HMR |
-| `npm run build` | Typecheck (`tsc -b`) + production bundle to `frontend/dist/` |
+| `npm run build` | Typecheck + production bundle to `frontend/dist/` |
 | `npm run preview` | Serve the production build locally for smoke testing |
 | `npm run lint` | ESLint over the project |
 
-You can run the same four scripts inside `frontend/` if dependencies were installed only there.
+Workspace installs hoist tooling to the repo root. The **`frontend`** scripts call **`node ../node_modules/...`** so **Windows** reliably finds **vite**, **tsc**, and **eslint** without relying on `PATH`. If you see **`vite` is not recognized**, run **`npm install`** from the **repository root** (not only `frontend/`).
 
 ### One-time setup commands (already applied in this repo)
 
