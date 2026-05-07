@@ -17,20 +17,20 @@ type TermLineSpec = { text: string; cls?: string; newline?: boolean }
 
 const TERM_LINES: TermLineSpec[] = [
   { text: '[02:47:03] ', cls: 't-time', newline: true },
-  { text: 'WAZUH  ', cls: 't-detect' },
-  { text: 'Bulk file rename detected — 847 files in 12s', cls: '' },
+  { text: 'WAZUH  ', cls: 't-detect', newline: true },
+  { text: 'Bulk file rename detected — 847 files in 12s', cls: '', newline: true },
   { text: '', newline: true },
   { text: '[02:47:04] ', cls: 't-time', newline: true },
-  { text: 'ALERT  ', cls: 't-alert' },
-  { text: 'Rule 92200 — Possible Ransomware Activity ', cls: '' },
-  { text: 'CRITICAL', cls: 'term-badge tbg-red' },
+  { text: 'ALERT  ', cls: 't-alert', newline: true },
+  { text: 'Rule 92200 — Possible Ransomware Activity ', cls: '', newline: true },
+  { text: 'CRITICAL', cls: 'term-badge tbg-red', newline: true },
   { text: '', newline: true },
   { text: '[02:47:05] ', cls: 't-time', newline: true },
-  { text: 'CASE   ', cls: 't-case' },
-  { text: '#IR-2024-001 auto-created · Playbook assigned', cls: '' },
+  { text: 'CASE   ', cls: 't-case', newline: true },
+  { text: '#IR-2024-001 auto-created · Playbook assigned', cls: '', newline: true },
   { text: '', newline: true },
   { text: 'PLAYBOOK ', cls: 't-play', newline: true },
-  { text: 'Ransomware Response — 6 steps loaded', cls: '' },
+  { text: 'Ransomware Response — 6 steps loaded', cls: '', newline: true },
   { text: '', newline: true },
   { text: '  ├ Step 1 → Isolate host', cls: 't-cmd', newline: true },
   { text: '  │  $ iptables -I INPUT -j DROP', cls: 't-cmd', newline: true },
@@ -39,10 +39,10 @@ const TERM_LINES: TermLineSpec[] = [
   { text: '  └ Steps 4–6 complete ✓', cls: 't-done', newline: true },
   { text: '', newline: true },
   { text: 'REPORT  ', cls: 't-report', newline: true },
-  { text: 'Generating DPDP Section 8(6) PDF...', cls: '' },
+  { text: 'Generating DPDP Section 8(6) PDF...', cls: '', newline: true },
   { text: '', newline: true },
   { text: 'METRIC  ', cls: 't-metric', newline: true },
-  { text: 'MTTD: 4.2 min · MTTR: 22 min · FP: 12%', cls: '' },
+  { text: 'MTTD: 4.2 min · MTTR: 22 min · FP: 12%', cls: '', newline: true },
   { text: '', newline: true },
   { text: '✓ Case resolved · Report ready · ', cls: 't-done', newline: true },
   { text: '82% faster than manual response', cls: 't-done', newline: true },
@@ -62,31 +62,99 @@ function buildLineGroups(lines: TermLineSpec[]) {
   return lineGroups
 }
 
+function rowHasRenderableParts(group: TermLineSpec[]) {
+  return group.some((item) => item.text || item.cls)
+}
+
+/** Pause before this row appears — feels like a command completing / stdout arriving. */
+function delayBeforeRow(group: TermLineSpec[]): number {
+  if (!rowHasRenderableParts(group)) return 100
+  const text = group.map((p) => p.text).join('')
+  if (text.includes('$')) return 650
+  if (/[├└│]/.test(text)) return 520
+  if (text.includes('Step')) return 520
+  if (group.some((p) => p.cls?.includes('t-report'))) return 680
+  if (group.some((p) => p.cls?.includes('t-metric'))) return 620
+  if (group.some((p) => p.cls?.includes('t-play'))) return 560
+  if (group.some((p) => p.cls === 't-time')) return 440
+  if (group.some((p) => p.cls?.includes('term-badge'))) return 580
+  return 480
+}
+
 function TerminalAnimation() {
   const lineGroups = useMemo(() => buildLineGroups(TERM_LINES), [])
-  const cycleMs = lineGroups.length * 280 + 3000
-  const [cycle, setCycle] = useState(0)
+  const [visibleCount, setVisibleCount] = useState(0)
+  const timeoutsRef = useRef<number[]>([])
+  const runIdRef = useRef(0)
 
   useEffect(() => {
-    const id = window.setInterval(() => setCycle((c) => c + 1), cycleMs)
-    return () => window.clearInterval(id)
-  }, [cycleMs])
+    const clearAllTimeouts = () => {
+      timeoutsRef.current.forEach((id) => window.clearTimeout(id))
+      timeoutsRef.current = []
+    }
+
+    const prefersReduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+
+    if (prefersReduced) {
+      setVisibleCount(lineGroups.length)
+      return
+    }
+
+    const runSeq = () => {
+      clearAllTimeouts()
+      const run = ++runIdRef.current
+      setVisibleCount(0)
+
+      let cumulative = 0
+      for (let gi = 0; gi < lineGroups.length; gi++) {
+        cumulative += delayBeforeRow(lineGroups[gi])
+        const id = window.setTimeout(() => {
+          if (runIdRef.current !== run) return
+          setVisibleCount(gi + 1)
+        }, cumulative)
+        timeoutsRef.current.push(id)
+      }
+
+      const pauseAfterMs = 3200
+      const resetId = window.setTimeout(() => {
+        if (runIdRef.current !== run) return
+        runSeq()
+      }, cumulative + pauseAfterMs)
+      timeoutsRef.current.push(resetId)
+    }
+
+    runSeq()
+
+    return () => {
+      runIdRef.current++
+      clearAllTimeouts()
+    }
+  }, [lineGroups])
 
   return (
-    <div className="term-body" key={cycle}>
-      {lineGroups.map((group, gi) => (
-        <div key={gi} className="term-row term-row-inner" style={{ animationDelay: `${gi * 0.08}s` }}>
-          {group.map((item, ii) => {
-            if (!item.text && !item.cls) return null
-            return (
-              <span key={ii} className={item.cls || undefined}>
-                {item.text}
-              </span>
-            )
-          })}
-        </div>
-      ))}
-      <span className="cursor" aria-hidden />
+    <div className="term-body">
+      {lineGroups.slice(0, visibleCount).map((group, gi) => {
+        if (!rowHasRenderableParts(group)) {
+          return <div key={gi} className="term-row term-row-spacer" aria-hidden />
+        }
+        return (
+          <div key={gi} className="term-row term-row-live">
+            {group.map((item, ii) => {
+              if (!item.text && !item.cls) return null
+              return (
+                <span key={ii} className={item.cls || undefined}>
+                  {item.text}
+                </span>
+              )
+            })}
+          </div>
+        )
+      })}
+      <div className="term-row" style={{ minHeight: 18 }}>
+        <span className="cursor" aria-hidden />
+      </div>
     </div>
   )
 }
