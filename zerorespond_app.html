@@ -29,9 +29,10 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:14p
 /* ── TOPBAR ── */
 #topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;flex-shrink:0;z-index:50}
 .topbar-left{display:flex;align-items:center;gap:0;height:100%}
-.logo-area{width:var(--sidebar);height:100%;display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid var(--border);flex-shrink:0}
-.logo-mark{width:28px;height:28px;border-radius:6px;flex-shrink:0;display:block;object-fit:contain}
-.logo-txt{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)}
+.logo-area{width:var(--sidebar);height:100%;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:flex-start;gap:10px;padding:0 20px;border-right:1px solid var(--border);flex-shrink:0;text-decoration:none;color:inherit}
+.logo-area:hover{text-decoration:none;color:inherit}
+.logo-mark{width:28px;height:28px;border-radius:6px;flex:0 0 28px;display:block;object-fit:contain;object-position:center;position:relative;top:-1px}
+.logo-txt{font-family:var(--mono);font-size:14px;font-weight:700;line-height:1;display:inline-flex;align-items:center;color:var(--txt)}
 .logo-txt span{color:var(--accent)}
 .topbar-breadcrumb{padding:0 20px;font-size:13px;color:var(--muted2)}
 .topbar-breadcrumb span{color:var(--muted)}

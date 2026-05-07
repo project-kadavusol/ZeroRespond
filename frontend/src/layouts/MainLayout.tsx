@@ -12,6 +12,10 @@ function breadcrumbSegments(pathname: string): string {
   if (pathname === '/alerts') return 'Live Alerts'
   if (pathname === '/metrics') return 'Metrics'
   if (pathname === '/playbooks') return 'Playbooks'
+  if (pathname === '/evidence') return 'Evidence'
+  if (pathname === '/reports') return 'Reports'
+  if (pathname === '/org-profile') return 'Org profile'
+  if (pathname === '/settings') return 'Settings'
   return 'Dashboard'
 }
 
@@ -24,7 +28,7 @@ export function MainLayout() {
       <header className="zr-topbar">
         <div className="topbar-left">
           <Link to="/dashboard" className="logo-area" aria-label="ZeroRespond home">
-            <img className="logo-mark" src="/logo_icon.png" alt="" width={28} height={28} />
+            <img className="logo-mark" src="/logo_icon.png" alt="" />
             <span className="logo-txt">
               Zero<span>Respond</span>
             </span>
@@ -89,34 +93,34 @@ export function MainLayout() {
               <span>Playbooks</span>
               <span className="ni-badge green">5</span>
             </NavLink>
-            <span className="nav-item nav-item-disabled">
+            <NavLink to="/evidence" className={({ isActive }) => navItemClass(isActive)}>
               <span className="ni-icon" aria-hidden>
                 📁
               </span>
               <span>Evidence</span>
-            </span>
-            <span className="nav-item nav-item-disabled">
+            </NavLink>
+            <NavLink to="/reports" className={({ isActive }) => navItemClass(isActive)}>
               <span className="ni-icon" aria-hidden>
                 📄
               </span>
               <span>Reports</span>
-            </span>
+            </NavLink>
           </div>
 
           <div className="sidebar-section">
             <div className="sidebar-label">Settings</div>
-            <span className="nav-item nav-item-disabled">
+            <NavLink to="/org-profile" className={({ isActive }) => navItemClass(isActive)}>
               <span className="ni-icon" aria-hidden>
                 🏢
               </span>
-              <span>Org Profile</span>
-            </span>
-            <span className="nav-item nav-item-disabled">
+              <span>Org profile</span>
+            </NavLink>
+            <NavLink to="/settings" className={({ isActive }) => navItemClass(isActive)}>
               <span className="ni-icon" aria-hidden>
                 ⚙️
               </span>
               <span>Settings</span>
-            </span>
+            </NavLink>
           </div>
 
           <div className="sidebar-bottom">

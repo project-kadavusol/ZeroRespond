@@ -73,30 +73,50 @@ nav.scrolled {
 }
 
 .nav-logo {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  color: inherit;
 }
 
 .logo-mark {
   width: 32px;
   height: 32px;
-  flex-shrink: 0;
+  flex: 0 0 32px;
   display: block;
   object-fit: contain;
+  object-position: center;
   border-radius: 6px;
+  /* Optical vertical center with display wordmark (box metrics sit low vs cap height) */
+  position: relative;
+  top: -2px;
 }
 
 .logo-text {
   font-family: var(--font-display);
   font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   color: var(--txt);
   letter-spacing: 0.5px;
 }
 
 .logo-text span {
   color: var(--accent);
+}
+
+/* Footer wordmark slightly smaller — scale mark to match cap height */
+.footer-brand .logo-mark {
+  width: 27px;
+  height: 27px;
+  flex: 0 0 27px;
+  top: -1px;
+}
+
+.footer-brand .logo-text {
+  font-size: 20px;
 }
 
 .nav-links {

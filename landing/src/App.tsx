@@ -444,7 +444,7 @@ export default function App() {
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }}
         >
-          <img className="logo-mark" src="/logo_icon.png" alt="" width={32} height={32} />
+          <img className="logo-mark" src="/logo_icon.png" alt="" />
           <span className="logo-text">
             Zero<span>Respond</span>
           </span>
@@ -1242,8 +1242,8 @@ export default function App() {
                 window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
             >
-              <img className="logo-mark" src="/logo_icon.png" alt="" width={32} height={32} />
-              <span className="logo-text" style={{ fontSize: '20px' }}>
+              <img className="logo-mark" src="/logo_icon.png" alt="" />
+              <span className="logo-text">
                 Zero<span>Respond</span>
               </span>
             </a>

@@ -28,10 +28,12 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font-body);font-siz
 
 /* ── NAV ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;height:64px;background:rgba(7,8,15,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:all .3s}
-.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:block;object-fit:contain}
-.logo-text{font-family:var(--font-display);font-size:22px;color:var(--txt);letter-spacing:.5px}
+.nav-logo{display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+.logo-mark{width:32px;height:32px;border-radius:6px;flex:0 0 32px;display:block;object-fit:contain;object-position:center;position:relative;top:-2px}
+.logo-text{font-family:var(--font-display);font-size:22px;line-height:1;display:inline-flex;align-items:center;color:var(--txt);letter-spacing:.5px}
 .logo-text span{color:var(--accent)}
+.footer-brand .logo-mark{width:27px;height:27px;flex:0 0 27px;top:-1px}
+.footer-brand .logo-text{font-size:20px}
 .nav-links{display:flex;gap:32px;list-style:none}
 .nav-links a{color:var(--muted2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
 .nav-links a:hover{color:var(--txt)}
@@ -720,7 +722,7 @@ footer{padding:48px 5vw 32px;border-top:1px solid var(--border)}
     <div class="footer-brand">
       <a class="nav-logo" href="#" style="text-decoration:none">
         <img class="logo-mark" src="logo_icon.png" alt="">
-        <span class="logo-text" style="font-size:20px">Zero<span>Respond</span></span>
+        <span class="logo-text">Zero<span>Respond</span></span>
       </a>
       <p>Incident Response for every organization. Open source, self-hosted, DPDP-compliant — built by Team Zero at Kumaraguru College of Technology.</p>
     </div>

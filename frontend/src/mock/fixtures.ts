@@ -164,6 +164,145 @@ export const MOCK_EVIDENCE: EvidenceItem[] = [
   },
 ]
 
+/** Global evidence locker — artefacts linked across cases (Sprint 1 demo). */
+export type EvidenceVaultRow = {
+  id: string
+  filename: string
+  incidentId: string
+  kind: string
+  sizeKb: number
+  sha256short: string
+  addedAt: string
+}
+
+export const MOCK_EVIDENCE_VAULT: EvidenceVaultRow[] = [
+  {
+    id: 'EVD-9912',
+    filename: 'memory_fin-srv-03_20260426.lz4',
+    incidentId: 'INV-2042',
+    kind: 'Memory image',
+    sizeKb: 2048000,
+    sha256short: 'a91f…c883',
+    addedAt: 'Apr 26, 2026 · 03:12',
+  },
+  {
+    id: 'EVD-9908',
+    filename: 'wazuh_alert_92200.json',
+    incidentId: 'INV-2042',
+    kind: 'Alert export',
+    sizeKb: 3,
+    sha256short: '74be…019a',
+    addedAt: 'Apr 26, 2026 · 02:49',
+  },
+  {
+    id: 'EVD-9891',
+    filename: 'edge-gw_ssh_auth_failures.pcap.gz',
+    incidentId: 'INV-2038',
+    kind: 'Network capture',
+    sizeKb: 18420,
+    sha256short: 'c3d4…eef0',
+    addedAt: 'Apr 25, 2026 · 22:41',
+  },
+  {
+    id: 'EVD-9822',
+    filename: 'powershell_transcript_prefetch.txt',
+    incidentId: 'INV-2042',
+    kind: 'Host artefact',
+    sizeKb: 12,
+    sha256short: '11aa…4499',
+    addedAt: 'Apr 26, 2026 · 03:05',
+  },
+  {
+    id: 'EVD-9755',
+    filename: 'lab-win-07_prefetch_efdr.zip',
+    incidentId: 'INV-2034',
+    kind: 'Forensic bundle',
+    sizeKb: 98200,
+    sha256short: 'ffb0…12cd',
+    addedAt: 'Apr 23, 2026 · 18:06',
+  },
+]
+
+export type ReportVaultRow = {
+  id: string
+  title: string
+  type: 'Executive' | 'DPDP' | 'Technical' | 'Lessons learned'
+  incidentId: string | null
+  createdAt: string
+  pages: number
+}
+
+export const MOCK_REPORTS_VAULT: ReportVaultRow[] = [
+  {
+    id: 'RPT-0488',
+    title: 'DPDP breach notification draft — ransomware cluster',
+    type: 'DPDP',
+    incidentId: 'INV-2042',
+    createdAt: 'Apr 26, 2026 · 11:40',
+    pages: 7,
+  },
+  {
+    id: 'RPT-0487',
+    title: 'Executive summary · Q2 IR posture',
+    type: 'Executive',
+    incidentId: null,
+    createdAt: 'Apr 26, 2026 · 09:05',
+    pages: 3,
+  },
+  {
+    id: 'RPT-0472',
+    title: 'Technical timeline & IOC package',
+    type: 'Technical',
+    incidentId: 'INV-2038',
+    createdAt: 'Apr 25, 2026 · 16:21',
+    pages: 12,
+  },
+  {
+    id: 'RPT-0461',
+    title: 'Post-incident review · phishing wave',
+    type: 'Lessons learned',
+    incidentId: 'INV-2041',
+    createdAt: 'Apr 24, 2026 · 14:08',
+    pages: 5,
+  },
+]
+
+export const MOCK_ORG_PROFILE = {
+  legalName: 'Kumaraguru College of Technology',
+  tradingAs: 'KCT IT Dept',
+  industry: 'Education',
+  timezone: 'Asia/Kolkata',
+  dpdpNominee: 'dpo@kct.ac.in',
+  dataRegion: 'India (primary workloads)',
+  supportEmail: 'soc@campus.edu',
+  retentionEvidenceDays: '365',
+  slackWebhookMasked: 'https://hooks.slack.com/services/····/····',
+}
+
+export type IntegrationStatus = 'connected' | 'paused'
+
+export const MOCK_SETTINGS_INTEGRATIONS: {
+  name: string
+  detail: string
+  status: IntegrationStatus
+}[] = [
+  {
+    name: 'Wazuh manager',
+    detail: 'Ingest RULE-81102, RULE-92011 · 50+ decoder rules · 9200/tcp',
+    status: 'connected',
+  },
+  {
+    name: 'Outbound email (SOC)',
+    detail: 'Playbook notifications · incident owners',
+    status: 'connected',
+  },
+  {
+    name: 'Slack escalation',
+    detail: MOCK_ORG_PROFILE.slackWebhookMasked,
+    status: 'paused',
+  },
+]
+
 export type LiveAlertFixture = {
   id: string
   severity: Severity

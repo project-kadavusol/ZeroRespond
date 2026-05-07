@@ -93,27 +93,42 @@ body,
 .zr-app .logo-area {
   width: var(--sidebar);
   height: 100%;
-  display: flex;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
   gap: 10px;
   padding: 0 20px;
   border-right: 1px solid var(--border);
   flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.zr-app .logo-area:hover {
+  text-decoration: none;
+  color: inherit;
 }
 
 .zr-app .logo-mark {
   width: 28px;
   height: 28px;
-  flex-shrink: 0;
+  flex: 0 0 28px;
   display: block;
   object-fit: contain;
+  object-position: center;
   border-radius: 6px;
+  position: relative;
+  top: -1px;
 }
 
 .zr-app .logo-txt {
   font-family: var(--mono);
   font-size: 14px;
   font-weight: 700;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   color: var(--txt);
 }
 
@@ -993,6 +1008,76 @@ body,
 
 .zr-muted-panel a {
   color: var(--accent);
+}
+
+.zr-upload-zone {
+  border: 2px dashed var(--border2);
+  border-radius: 10px;
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted2);
+  font-size: 13px;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.zr-upload-zone:hover {
+  border-color: var(--accent);
+  background: rgba(0, 229, 176, 0.03);
+}
+
+.zr-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 880px;
+}
+
+.zr-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.zr-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.zr-fields-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.zr-app .zr-labeled-field label {
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: var(--mono);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.zr-app .zr-labeled-field input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--txt);
+  font-size: 13px;
+  font-family: var(--font);
+  box-sizing: border-box;
+}
+
+.zr-app .zr-labeled-field input:read-only {
+  opacity: 0.92;
+  cursor: default;
 }
 
 .zr-detail-split {
