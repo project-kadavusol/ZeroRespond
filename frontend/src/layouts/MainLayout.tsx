@@ -1,75 +1,145 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, Link } from 'react-router-dom'
 
-function navClass({ isActive }: { isActive: boolean }) {
-  return [
-    'block rounded-md px-3 py-2 text-sm font-medium transition-colors',
-    isActive
-      ? 'bg-zinc-800 text-white'
-      : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-100',
-  ].join(' ')
+function navItemClass(active: boolean) {
+  return ['nav-item', active ? 'active' : ''].filter(Boolean).join(' ')
 }
 
-function titleFor(pathname: string) {
-  if (pathname.startsWith('/incidents/')) return 'Case workspace'
-  if (pathname === '/dashboard') return 'Incident list'
-  if (pathname === '/alerts') return 'Live alert feed'
-  if (pathname === '/metrics') return 'Operational metrics'
-  return 'ZeroDashboard'
+/** Breadcrumb tail label (paths without a dedicated sidebar item collapse to contextual labels). */
+function breadcrumbSegments(pathname: string): string {
+  if (pathname === '/dashboard') return 'Dashboard'
+  if (pathname === '/incidents') return 'Incidents'
+  if (pathname.startsWith('/incidents/')) return 'Case detail'
+  if (pathname === '/alerts') return 'Live Alerts'
+  if (pathname === '/metrics') return 'Metrics'
+  if (pathname === '/playbooks') return 'Playbooks'
+  return 'Dashboard'
 }
 
 export function MainLayout() {
   const { pathname } = useLocation()
+  const tail = breadcrumbSegments(pathname)
 
   return (
-    <div className="flex min-h-screen bg-zinc-950 text-zinc-100">
-      <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-800 p-3 md:w-56 md:p-4">
-        <div className="mb-5 md:mb-6">
-          <div className="font-semibold tracking-tight">
-            <span className="text-teal-400">Zero</span>
-            Respond
+    <div className="zr-app">
+      <header className="zr-topbar">
+        <div className="topbar-left">
+          <Link to="/dashboard" className="logo-area" aria-label="ZeroRespond home">
+            <div className="logo-mark">ZR</div>
+            <span className="logo-txt">
+              Zero<span>Respond</span>
+            </span>
+          </Link>
+          <span className="topbar-breadcrumb">
+            <span className="topbar-breadcrumb-muted">ZeroRespond</span>
+            &nbsp;/&nbsp;{tail}
+          </span>
+        </div>
+        <div className="topbar-right">
+          <Link to="/alerts" className="topbar-badge">
+            <span className="dot" aria-hidden />
+            3 Live Alerts
+          </Link>
+          <div className="topbar-org">
+            Org: <strong>KCT IT Dept</strong>
           </div>
-          <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-zinc-600">
-            Incident cockpit
+          <div className="avatar" title="Admin">
+            A
           </div>
         </div>
-        <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-zinc-500">
-          Navigate
-        </p>
-        <nav className="flex flex-col gap-0.5" aria-label="Primary">
-          <NavLink to="/dashboard" className={navClass} end>
-            Incidents
-          </NavLink>
-          <NavLink to="/alerts" className={navClass}>
-            Alert feed
-          </NavLink>
-          <NavLink to="/metrics" className={navClass}>
-            Metrics
-          </NavLink>
-        </nav>
-        <div className="mt-auto pt-8 text-[10px] leading-snug text-zinc-600">
-          Preview uses sample data; connect APIs when your stack is ready.
-        </div>
-      </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="border-b border-zinc-800 bg-zinc-950/95 px-4 py-3 md:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-500">
-                {titleFor(pathname)}
-              </p>
-              <p className="text-xs text-zinc-400">
-                Self-hosted incident response — guided playbooks and queues
-              </p>
-            </div>
-            <span
-              className="rounded-full border border-amber-800/70 bg-amber-950/50 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-100"
-              title="Demo mode: sample data only until backend is connected"
-            >
-              Demo data
+      </header>
+
+      <div className="zr-layout">
+        <nav className="zr-sidebar" aria-label="Primary">
+          <div className="sidebar-section">
+            <div className="sidebar-label">Core</div>
+            <NavLink to="/dashboard" end className={({ isActive }) => navItemClass(isActive)}>
+              <span className="ni-icon" aria-hidden>
+                📊
+              </span>
+              <span>Dashboard</span>
+            </NavLink>
+            <NavLink to="/incidents" className={({ isActive }) => navItemClass(isActive)}>
+              <span className="ni-icon" aria-hidden>
+                🗂️
+              </span>
+              <span>Incidents</span>
+              <span className="ni-badge amber">2</span>
+            </NavLink>
+            <NavLink to="/alerts" className={({ isActive }) => navItemClass(isActive)}>
+              <span className="ni-icon" aria-hidden>
+                ⚡
+              </span>
+              <span>Live Alerts</span>
+              <span className="ni-badge">3</span>
+            </NavLink>
+            <NavLink to="/metrics" className={({ isActive }) => navItemClass(isActive)}>
+              <span className="ni-icon" aria-hidden>
+                📈
+              </span>
+              <span>Metrics</span>
+            </NavLink>
+          </div>
+
+          <div className="sidebar-section">
+            <div className="sidebar-label">Tools</div>
+            <NavLink to="/playbooks" className={({ isActive }) => navItemClass(isActive)}>
+              <span className="ni-icon" aria-hidden>
+                📖
+              </span>
+              <span>Playbooks</span>
+              <span className="ni-badge green">5</span>
+            </NavLink>
+            <span className="nav-item nav-item-disabled">
+              <span className="ni-icon" aria-hidden>
+                📁
+              </span>
+              <span>Evidence</span>
+            </span>
+            <span className="nav-item nav-item-disabled">
+              <span className="ni-icon" aria-hidden>
+                📄
+              </span>
+              <span>Reports</span>
             </span>
           </div>
-        </header>
-        <main className="min-w-0 flex-1 p-4 md:p-6 lg:px-10 lg:pb-10 lg:pt-6">
+
+          <div className="sidebar-section">
+            <div className="sidebar-label">Settings</div>
+            <span className="nav-item nav-item-disabled">
+              <span className="ni-icon" aria-hidden>
+                🏢
+              </span>
+              <span>Org Profile</span>
+            </span>
+            <span className="nav-item nav-item-disabled">
+              <span className="ni-icon" aria-hidden>
+                ⚙️
+              </span>
+              <span>Settings</span>
+            </span>
+          </div>
+
+          <div className="sidebar-bottom">
+            <div className="status-chip">
+              <div>
+                <span className="sc-dot" aria-hidden />
+                <span className="sc-txt">Wazuh Active</span>
+              </div>
+              <div
+                style={{
+                  fontSize: '10px',
+                  color: 'var(--muted)',
+                  marginTop: '4px',
+                  fontFamily: 'var(--mono)',
+                }}
+              >
+                50+ rules · 4 agents
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <main id="zr-main-scroll" className="zr-main">
           <Outlet />
         </main>
       </div>

@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroRespond — Incident Response for Every Organization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080F;--bg2:#0C0E1A;--card:#0F1320;--card2:#131826;
+  --border:#1C2236;--border2:#252D47;
+  --accent:#00E5B0;--accent2:#3B7CFF;--amber:#FFB300;--red:#FF4555;--purple:#9B6DFF;
+  --txt:#E8EEFF;--muted:#5C6B8A;--muted2:#8895B3;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-body:'Outfit',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--txt);font-family:var(--font-body);font-size:16px;line-height:1.6;overflow-x:hidden}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── NAV ── */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;height:64px;background:rgba(7,8,15,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:all .3s}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:14px;color:#000;letter-spacing:-1px;flex-shrink:0}
+.logo-text{font-family:var(--font-display);font-size:22px;color:var(--txt);letter-spacing:.5px}
+.logo-text span{color:var(--accent)}
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{color:var(--muted2);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.nav-links a:hover{color:var(--txt)}
+.nav-cta{display:flex;gap:12px;align-items:center}
+.btn-outline{padding:8px 20px;border:1px solid var(--border2);color:var(--txt);border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;background:transparent;text-decoration:none;transition:all .2s;font-family:var(--font-body)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.btn-primary{padding:8px 20px;background:var(--accent);color:#000;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .2s;font-family:var(--font-body)}
+.btn-primary:hover{background:#00ffca;transform:translateY(-1px)}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:60px;padding:120px 5vw 80px;position:relative;overflow:hidden}
+.hero-bg{position:absolute;inset:0;pointer-events:none;z-index:0}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,176,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,176,.04) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%)}
+.hero-glow1{position:absolute;top:-200px;right:-100px;width:700px;height:700px;background:radial-gradient(circle,rgba(0,229,176,.08) 0%,transparent 65%);border-radius:50%}
+.hero-glow2{position:absolute;bottom:-200px;left:-100px;width:500px;height:500px;background:radial-gradient(circle,rgba(59,124,255,.07) 0%,transparent 65%);border-radius:50%}
+.hero-left{position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,229,176,.08);border:1px solid rgba(0,229,176,.2);border-radius:100px;padding:6px 14px;font-size:12px;color:var(--accent);font-weight:600;margin-bottom:28px;font-family:var(--font-mono)}
+.hero-badge::before{content:'';width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+h1.hero-title{font-family:var(--font-display);font-size:clamp(52px,6vw,80px);line-height:1;color:var(--txt);margin-bottom:24px;letter-spacing:.5px}
+h1.hero-title .accent{color:var(--accent)}
+h1.hero-title .line2{display:block;color:var(--muted2)}
+.hero-sub{font-size:18px;color:var(--muted2);line-height:1.7;margin-bottom:36px;max-width:520px;font-weight:400}
+.hero-sub strong{color:var(--txt);font-weight:600}
+.hero-ctas{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:48px}
+.btn-hero{padding:14px 28px;font-size:15px;font-weight:700;border-radius:8px;cursor:pointer;text-decoration:none;transition:all .25s;display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body)}
+.btn-hero-primary{background:var(--accent);color:#000;border:none}
+.btn-hero-primary:hover{background:#00ffca;transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,229,176,.3)}
+.btn-hero-secondary{background:transparent;color:var(--txt);border:1px solid var(--border2)}
+.btn-hero-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.hero-stats{display:flex;gap:32px;flex-wrap:wrap}
+.hero-stat{display:flex;flex-direction:column}
+.hero-stat .val{font-family:var(--font-mono);font-size:24px;font-weight:700;color:var(--accent)}
+.hero-stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.hero-stat-div{width:1px;background:var(--border);align-self:stretch}
+
+/* ── TERMINAL ── */
+.hero-right{position:relative;z-index:1}
+.terminal{background:var(--card);border:1px solid var(--border2);border-radius:12px;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.6),0 0 0 1px rgba(0,229,176,.05);font-family:var(--font-mono);font-size:13px}
+.term-header{background:#0A0C15;padding:12px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.term-dots{display:flex;gap:6px}
+.term-dot{width:11px;height:11px;border-radius:50%}
+.td1{background:#FF5F57}.td2{background:#FFBD2E}.td3{background:#28C840}
+.term-title{flex:1;text-align:center;font-size:11px;color:var(--muted);margin-left:-40px}
+.term-body{padding:16px;display:flex;flex-direction:column;gap:6px;min-height:400px}
+.term-line{opacity:0;transform:translateX(-6px);animation:term-reveal .3s forwards}
+@keyframes term-reveal{to{opacity:1;transform:none}}
+.term-time{color:var(--muted)}
+.t-detect{color:#FF7043}
+.t-alert{color:var(--amber)}
+.t-case{color:var(--accent2)}
+.t-play{color:var(--purple)}
+.t-step{color:var(--txt)}
+.t-done{color:var(--accent)}
+.t-report{color:var(--amber)}
+.t-cmd{color:var(--muted2);padding-left:16px}
+.t-metric{color:#64B5F6}
+.cursor{display:inline-block;width:8px;height:14px;background:var(--accent);animation:blink .7s infinite;vertical-align:middle}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.term-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;margin-left:4px}
+.tbg-red{background:rgba(255,69,85,.15);color:#FF4555}
+.tbg-green{background:rgba(0,229,176,.12);color:var(--accent)}
+.tbg-blue{background:rgba(59,124,255,.15);color:var(--accent2)}
+
+/* ── TRUST BAR ── */
+.trust-bar{padding:24px 5vw;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2)}
+.trust-inner{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted2)}
+.trust-item svg{opacity:.5}
+.trust-div{width:1px;height:20px;background:var(--border2)}
+.trust-badge{display:flex;align-items:center;gap:6px;background:rgba(0,229,176,.06);border:1px solid rgba(0,229,176,.15);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--accent);font-family:var(--font-mono)}
+
+/* ── SECTION COMMON ── */
+section{padding:100px 5vw}
+.section-label{font-family:var(--font-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+.section-title{font-family:var(--font-display);font-size:clamp(38px,4.5vw,60px);line-height:1.05;color:var(--txt);margin-bottom:20px;letter-spacing:.3px}
+.section-sub{font-size:17px;color:var(--muted2);max-width:580px;line-height:1.7}
+
+/* ── PROBLEM ── */
+.problem{background:var(--bg2)}
+.problem-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin-top:64px}
+.problem-cards{display:flex;flex-direction:column;gap:16px}
+.prob-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 24px;display:flex;align-items:flex-start;gap:16px;transition:border-color .2s}
+.prob-card:hover{border-color:var(--border2)}
+.prob-icon{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px}
+.pi-red{background:rgba(255,69,85,.1)}
+.pi-amber{background:rgba(255,179,0,.1)}
+.pi-purple{background:rgba(155,109,255,.1)}
+.pi-blue{background:rgba(59,124,255,.1)}
+.prob-text h4{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.prob-text p{font-size:13px;color:var(--muted2);line-height:1.5}
+.problem-right{display:flex;flex-direction:column;gap:28px}
+.problem-right blockquote{font-family:var(--font-display);font-size:clamp(28px,3vw,40px);color:var(--txt);line-height:1.2;border-left:3px solid var(--accent);padding-left:20px}
+.problem-right blockquote em{color:var(--accent);font-style:normal}
+.crisis-stat{background:rgba(255,69,85,.06);border:1px solid rgba(255,69,85,.2);border-radius:10px;padding:20px 24px}
+.crisis-stat .cs-num{font-family:var(--font-display);font-size:52px;color:var(--red);line-height:1}
+.crisis-stat .cs-txt{font-size:14px;color:var(--muted2);margin-top:4px}
+.crisis-stat .cs-src{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:8px}
+
+/* ── SOLUTION ── */
+.solution-flow{display:flex;align-items:stretch;gap:0;margin:60px 0 48px;background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.flow-step{flex:1;padding:32px 28px;position:relative;transition:background .2s}
+.flow-step:hover{background:var(--card2)}
+.flow-step::after{content:'→';position:absolute;right:-14px;top:50%;transform:translateY(-50%);font-size:22px;color:var(--border2);z-index:1}
+.flow-step:last-child::after{display:none}
+.flow-step+.flow-step{border-left:1px solid var(--border)}
+.fs-num{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-bottom:16px}
+.fs-icon{width:44px;height:44px;border-radius:10px;margin-bottom:16px;display:flex;align-items:center;justify-content:center;font-size:20px}
+.fi-green{background:rgba(0,229,176,.1)}
+.fi-blue{background:rgba(59,124,255,.1)}
+.fi-purple{background:rgba(155,109,255,.1)}
+.fi-amber{background:rgba(255,179,0,.1)}
+.fs-title{font-size:17px;font-weight:700;color:var(--txt);margin-bottom:8px}
+.fs-sub{font-size:13px;color:var(--muted2);line-height:1.5}
+.solution-moat{background:rgba(0,229,176,.04);border:1px solid rgba(0,229,176,.15);border-radius:10px;padding:24px 28px;text-align:center}
+.solution-moat p{font-size:16px;color:var(--txt);font-style:italic}
+.solution-moat p strong{color:var(--accent)}
+
+/* ── MODULES ── */
+.modules{background:var(--bg2)}
+.modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:60px}
+.mod-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;position:relative;overflow:hidden;transition:all .25s;cursor:default}
+.mod-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--mod-color,var(--accent));opacity:.6;transition:opacity .2s}
+.mod-card:hover{border-color:var(--mod-color,var(--accent));transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,.4)}
+.mod-card:hover::before{opacity:1}
+.mod-num{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-bottom:16px;letter-spacing:1px}
+.mod-icon{font-size:28px;margin-bottom:16px}
+.mod-title{font-size:17px;font-weight:700;color:var(--txt);margin-bottom:10px}
+.mod-desc{font-size:13px;color:var(--muted2);line-height:1.6}
+.mod-usp{margin-top:14px;display:inline-block;font-family:var(--font-mono);font-size:10px;color:var(--mod-color,var(--accent));background:rgba(0,0,0,.3);padding:4px 8px;border-radius:4px}
+.mod-card:nth-child(1){--mod-color:var(--accent)}
+.mod-card:nth-child(2){--mod-color:var(--accent2)}
+.mod-card:nth-child(3){--mod-color:var(--amber)}
+.mod-card:nth-child(4){--mod-color:var(--purple)}
+.mod-card:nth-child(5){--mod-color:#FF7043;grid-column:span 1}
+/* Last card full width on last row */
+.modules-grid .mod-card:last-child:nth-child(3n+2){grid-column:span 2}
+
+/* ── COMPARISON ── */
+.compare-table{width:100%;border-collapse:collapse;margin-top:60px;font-size:14px}
+.compare-table th{padding:14px 20px;text-align:left;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:2px solid var(--border)}
+.compare-table th:first-child{width:260px}
+.compare-table th.us{color:var(--accent);font-family:var(--font-mono)}
+.compare-table td{padding:14px 20px;border-bottom:1px solid var(--border);vertical-align:middle}
+.compare-table tr:hover td{background:rgba(255,255,255,.01)}
+.compare-table tr.our-row td{background:rgba(0,229,176,.03)}
+.compare-table tr.our-row td:first-child{border-left:2px solid var(--accent)}
+.tool-name{font-weight:700;color:var(--txt);font-size:15px}
+.tool-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:2px}
+.chk-yes{color:var(--accent);font-size:18px}
+.chk-no{color:var(--red);font-size:16px}
+.chk-part{color:var(--amber);font-size:16px}
+.price-chip{display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;font-family:var(--font-mono);font-weight:700}
+.pc-free{background:rgba(0,229,176,.1);color:var(--accent)}
+.pc-paid{background:rgba(255,69,85,.1);color:var(--red)}
+.pc-high{background:rgba(255,179,0,.1);color:var(--amber)}
+
+/* ── DPDP ── */
+.dpdp{background:var(--bg2)}
+.dpdp-inner{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;margin-top:64px}
+.dpdp-law{background:rgba(155,109,255,.06);border:1px solid rgba(155,109,255,.2);border-radius:12px;padding:28px}
+.dpdp-law .law-title{font-family:var(--font-mono);font-size:12px;color:var(--purple);letter-spacing:1px;margin-bottom:14px}
+.dpdp-law blockquote{font-size:14px;color:var(--txt);line-height:1.7;border-left:2px solid var(--purple);padding-left:14px;font-style:italic}
+.dpdp-law .law-ref{font-family:var(--font-mono);font-size:11px;color:var(--muted);margin-top:12px}
+.dpdp-fields{display:flex;flex-direction:column;gap:10px}
+.dpdp-field{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:14px}
+.df-num{font-family:var(--font-mono);font-size:11px;color:var(--muted);min-width:24px}
+.df-name{font-size:14px;font-weight:600;color:var(--txt);flex:1}
+.df-how{font-size:12px;color:var(--muted2);font-family:var(--font-mono)}
+.dpdp-sla{background:rgba(0,229,176,.05);border:1px solid rgba(0,229,176,.2);border-radius:10px;padding:20px 24px;margin-top:20px;display:flex;align-items:center;gap:16px}
+.sla-num{font-family:var(--font-display);font-size:40px;color:var(--accent);line-height:1}
+.sla-txt h4{font-size:15px;font-weight:700;color:var(--txt)}
+.sla-txt p{font-size:12px;color:var(--muted2)}
+
+/* ── HOW IT WORKS ── */
+.how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:60px;counter-reset:how-counter}
+.how-step{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:32px;position:relative;overflow:hidden;counter-increment:how-counter}
+.how-step::before{content:counter(how-counter,decimal-leading-zero);position:absolute;top:20px;right:24px;font-family:var(--font-display);font-size:64px;color:rgba(255,255,255,.03);line-height:1}
+.hs-icon{font-size:32px;margin-bottom:20px}
+.hs-title{font-size:17px;font-weight:700;color:var(--txt);margin-bottom:10px}
+.hs-desc{font-size:14px;color:var(--muted2);line-height:1.6}
+.hs-tag{margin-top:16px;font-family:var(--font-mono);font-size:11px;color:var(--accent)}
+
+/* ── METRICS ── */
+.metrics-band{padding:60px 5vw;background:linear-gradient(135deg,rgba(0,229,176,.04) 0%,transparent 50%,rgba(59,124,255,.04) 100%);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.metrics-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2px;background:var(--border);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.metric-item{background:var(--bg2);padding:32px 28px;text-align:center}
+.metric-val{font-family:var(--font-display);font-size:52px;line-height:1;margin-bottom:6px}
+.metric-lbl{font-size:13px;color:var(--muted2);font-weight:500}
+.metric-sub{font-size:11px;color:var(--muted);font-family:var(--font-mono);margin-top:4px}
+.mv-green{color:var(--accent)}
+.mv-blue{color:var(--accent2)}
+.mv-amber{color:var(--amber)}
+.mv-purple{color:var(--purple)}
+
+/* ── DEPLOY CTA ── */
+.deploy{background:var(--bg2)}
+.deploy-inner{text-align:center;max-width:700px;margin:0 auto}
+.deploy-inner .section-sub{margin:0 auto 40px}
+.deploy-cmd{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 28px;display:flex;align-items:center;gap:16px;margin:32px 0;text-align:left}
+.deploy-cmd code{font-family:var(--font-mono);font-size:14px;color:var(--accent);flex:1}
+.copy-btn{padding:8px 16px;background:rgba(0,229,176,.1);border:1px solid rgba(0,229,176,.2);border-radius:6px;color:var(--accent);font-size:12px;cursor:pointer;transition:all .2s;font-family:var(--font-body)}
+.copy-btn:hover{background:rgba(0,229,176,.2)}
+.deploy-badges{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:40px}
+.dbadge{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid var(--border2);border-radius:100px;font-size:12px;color:var(--muted2);font-family:var(--font-mono)}
+.dbadge svg{opacity:.6}
+
+/* ── FOOTER ── */
+footer{padding:48px 5vw 32px;border-top:1px solid var(--border)}
+.footer-top{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
+.footer-brand p{font-size:14px;color:var(--muted2);max-width:280px;margin-top:12px;line-height:1.6}
+.footer-col h5{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:16px}
+.footer-col a{display:block;font-size:14px;color:var(--muted2);text-decoration:none;margin-bottom:10px;transition:color .2s}
+.footer-col a:hover{color:var(--accent)}
+.footer-bottom{display:flex;align-items:center;justify-content:space-between;padding-top:24px;border-top:1px solid var(--border)}
+.footer-bottom p{font-size:13px;color:var(--muted)}
+.footer-bottom p a{color:var(--muted2);text-decoration:none}
+.footer-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ftag{font-family:var(--font-mono);font-size:11px;color:var(--muted);background:var(--card);border:1px solid var(--border);padding:4px 10px;border-radius:4px}
+
+/* ── ANIMATIONS ── */
+.fade-up{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease}
+.fade-up.visible{opacity:1;transform:none}
+.delay-1{transition-delay:.1s}
+.delay-2{transition-delay:.2s}
+.delay-3{transition-delay:.3s}
+.delay-4{transition-delay:.4s}
+
+/* ── MOBILE ── */
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding-top:100px}
+  .hero-right{display:none}
+  .problem-grid,.dpdp-inner{grid-template-columns:1fr}
+  .modules-grid{grid-template-columns:1fr 1fr}
+  .modules-grid .mod-card:last-child:nth-child(3n+2){grid-column:span 1}
+  .compare-table{font-size:12px}
+  .how-grid{grid-template-columns:1fr}
+  .metrics-grid{grid-template-columns:1fr 1fr}
+  .footer-top{grid-template-columns:1fr 1fr}
+  .nav-links{display:none}
+  .solution-flow{flex-direction:column}
+  .flow-step::after{display:none}
+  .flow-step+.flow-step{border-left:none;border-top:1px solid var(--border)}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+  <a class="nav-logo" href="#">
+    <div class="logo-mark">ZR</div>
+    <span class="logo-text">Zero<span>Respond</span></span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#solution">Solution</a></li>
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#dpdp">DPDP</a></li>
+    <li><a href="#deploy">Deploy</a></li>
+  </ul>
+  <div class="nav-cta">
+    <a href="https://github.com/team-zero/zerorespond" class="btn-outline">GitHub</a>
+    <a href="#deploy" class="btn-primary">Get Started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="hero-grid"></div>
+    <div class="hero-glow1"></div>
+    <div class="hero-glow2"></div>
+  </div>
+
+  <div class="hero-left">
+    <div class="hero-badge">● v1.0 — Self-Hostable · Free · India-First</div>
+    <h1 class="hero-title">
+      INCIDENT<br>
+      RESPONSE<br>
+      <span class="accent">FOR EVERYONE</span>
+    </h1>
+    <p class="hero-sub">
+      When a cyberattack hits — <strong>most Indian organizations panic, go dark, and lose everything.</strong><br>
+      ZeroRespond gives them a structured, DPDP-compliant path through any incident. No security team needed.
+    </p>
+    <div class="hero-ctas">
+      <a href="#deploy" class="btn-hero btn-hero-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Deploy with Docker
+      </a>
+      <a href="#solution" class="btn-hero btn-hero-secondary">
+        See How It Works
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="val">4.2 min</span><span class="lbl">Mean Time to Detect</span></div>
+      <div class="hero-stat-div"></div>
+      <div class="hero-stat"><span class="val">82%</span><span class="lbl">Faster Response</span></div>
+      <div class="hero-stat-div"></div>
+      <div class="hero-stat"><span class="val">50+</span><span class="lbl">Rules Validated</span></div>
+      <div class="hero-stat-div"></div>
+      <div class="hero-stat"><span class="val">₹0</span><span class="lbl">Licensing Cost</span></div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="terminal" id="terminal">
+      <div class="term-header">
+        <div class="term-dots">
+          <div class="term-dot td1"></div>
+          <div class="term-dot td2"></div>
+          <div class="term-dot td3"></div>
+        </div>
+        <span class="term-title">zerorespond — live incident: #IR-2024-001</span>
+      </div>
+      <div class="term-body" id="termBody">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-inner">
+    <div class="trust-badge">🎓 Kumaraguru College of Technology</div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      DPDP Act 2023 · Section 8(6) Mapped
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      ISO 27035 Aligned IR Workflow
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+      Tested on 50+ Simulated Alerts
+    </div>
+    <div class="trust-div"></div>
+    <div class="trust-item">
+      <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2c2.09 0 4.02.713 5.565 1.898L5.898 17.565A7.952 7.952 0 014 12c0-4.411 3.589-8 8-8zm0 16a7.97 7.97 0 01-5.565-2.102L18.102 6.435A7.97 7.97 0 0120 12c0 4.411-3.589 8-8 8z"/></svg>
+      CERT-In 6-Hour Notification SLA
+    </div>
+  </div>
+</div>
+
+<!-- METRICS BAND -->
+<div class="metrics-band">
+  <div class="metrics-grid fade-up">
+    <div class="metric-item">
+      <div class="metric-val mv-green">4.2 min</div>
+      <div class="metric-lbl">Mean Time to Detect</div>
+      <div class="metric-sub">avg across 50 simulated alerts</div>
+    </div>
+    <div class="metric-item">
+      <div class="metric-val mv-blue">22 min</div>
+      <div class="metric-lbl">Mean Time to Respond</div>
+      <div class="metric-sub">with playbook guidance</div>
+    </div>
+    <div class="metric-item">
+      <div class="metric-val mv-amber">82%</div>
+      <div class="metric-lbl">Faster than Manual</div>
+      <div class="metric-sub">22 min vs 2 hrs without tool</div>
+    </div>
+    <div class="metric-item">
+      <div class="metric-val mv-purple">12%</div>
+      <div class="metric-lbl">False Positive Rate</div>
+      <div class="metric-sub">after Wazuh tuning (default 28%)</div>
+    </div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="section-label">The Problem</div>
+  <div class="section-title fade-up">Most organizations have<br>zero plan when attacked</div>
+  <div class="section-sub fade-up delay-1">They panic. Go dark. Lose data. Face legal exposure.<br>And it keeps happening — because nothing changes after.</div>
+
+  <div class="problem-grid">
+    <div class="problem-cards">
+      <div class="prob-card fade-up">
+        <div class="prob-icon pi-red">🚫</div>
+        <div class="prob-text">
+          <h4>No Security Team</h4>
+          <p>Colleges, hospitals, NGOs, and startups have zero dedicated security staff. When attacked, there is no one who knows what to do.</p>
+        </div>
+      </div>
+      <div class="prob-card fade-up delay-1">
+        <div class="prob-icon pi-amber">📵</div>
+        <div class="prob-text">
+          <h4>No Incident Plan</h4>
+          <p>Response is ad-hoc — usually a panicked WhatsApp group. No documentation. No structure. No way to know what was compromised.</p>
+        </div>
+      </div>
+      <div class="prob-card fade-up delay-2">
+        <div class="prob-icon pi-purple">⚖️</div>
+        <div class="prob-text">
+          <h4>DPDP Act 2023 Exposure</h4>
+          <p>India now mandates breach notification within 6 hours. Most organizations don't know this — and have zero infrastructure to comply.</p>
+        </div>
+      </div>
+      <div class="prob-card fade-up delay-3">
+        <div class="prob-icon pi-blue">👁️‍🗨️</div>
+        <div class="prob-text">
+          <h4>No Visibility After Attack</h4>
+          <p>No timeline of what happened. No forensic evidence. No metrics. No way to prevent it happening again next month.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="problem-right fade-up delay-1">
+      <blockquote>"When a cyberattack hits — they panic, go dark, and <em>lose everything</em>."</blockquote>
+      <div class="crisis-stat">
+        <div class="cs-num">63M+</div>
+        <div class="cs-txt">Small and medium businesses in India — most with zero incident response capability</div>
+        <div class="cs-src">// DPDP Act 2023 applies to all of them</div>
+      </div>
+      <div class="crisis-stat" style="background:rgba(255,179,0,.05);border-color:rgba(255,179,0,.2)">
+        <div class="cs-num" style="color:var(--amber)">₹50K+</div>
+        <div class="cs-txt">Splunk costs $50,000+/year. CrowdStrike. IBM QRadar. Completely inaccessible to SMBs, colleges, and NGOs.</div>
+        <div class="cs-src">// ZeroRespond costs ₹0 and runs on your own server</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section id="solution">
+  <div class="section-label">The Solution</div>
+  <div class="section-title fade-up">Detect. Respond.<br>Report. <span style="color:var(--accent)">Repeat.</span></div>
+  <div class="section-sub fade-up delay-1">ZeroRespond is the only tool that connects all three layers of incident response in one self-hostable, zero-cost platform — purpose-built for India.</div>
+
+  <div class="solution-flow fade-up delay-2">
+    <div class="flow-step">
+      <div class="fs-num">01 // DETECT</div>
+      <div class="fs-icon fi-green">🔍</div>
+      <div class="fs-title">Threat Detection</div>
+      <div class="fs-sub">Wazuh-powered log ingestion from Windows, Linux, firewalls, and web servers. Anomaly detection with 50+ custom rules.</div>
+    </div>
+    <div class="flow-step">
+      <div class="fs-num">02 // RESPOND</div>
+      <div class="fs-icon fi-blue">⚡</div>
+      <div class="fs-title">Guided Response</div>
+      <div class="fs-sub">Step-by-step actionable playbooks — real commands, not generic advice. Non-security staff can handle incidents with confidence.</div>
+    </div>
+    <div class="flow-step">
+      <div class="fs-num">03 // REPORT</div>
+      <div class="fs-icon fi-amber">📋</div>
+      <div class="fs-title">DPDP Report</div>
+      <div class="fs-sub">Auto-generated PDF with all DPDP Act Section 8(6) fields: breach timeline, data categories, CERT-In notification template.</div>
+    </div>
+    <div class="flow-step">
+      <div class="fs-num">04 // TRACK</div>
+      <div class="fs-icon fi-purple">📊</div>
+      <div class="fs-title">Metrics Dashboard</div>
+      <div class="fs-sub">MTTD, MTTR, false positive rates, incident heatmaps. Show your organization's real security posture over time.</div>
+    </div>
+  </div>
+
+  <div class="solution-moat fade-up">
+    <p>The combination of <strong>Detect → Guided Respond → DPDP-Compliant Report</strong> in one zero-cost self-hostable tool for Indian SMBs — <strong>this combination does not exist anywhere else.</strong></p>
+  </div>
+</section>
+
+<!-- MODULES -->
+<section class="modules" id="modules">
+  <div class="section-label">Platform Modules</div>
+  <div class="section-title fade-up">5 modules.<br>One complete workflow.</div>
+
+  <div class="modules-grid">
+    <div class="mod-card fade-up">
+      <div class="mod-num">M1 // DETECTION</div>
+      <div class="mod-icon">🕵️</div>
+      <div class="mod-title">Threat Detection Feed</div>
+      <div class="mod-desc">Real-time log ingestion from Windows Event Logs, Linux syslogs, firewall logs, and web server logs. Powered by Wazuh 4.7 with 50+ custom correlation rules covering ransomware, brute force, C2 beacons, data exfiltration, and web attacks.</div>
+      <span class="mod-usp">MTTD: 4.2 min avg</span>
+    </div>
+    <div class="mod-card fade-up delay-1">
+      <div class="mod-num">M2 // CASES</div>
+      <div class="mod-icon">📁</div>
+      <div class="mod-title">Incident Case Manager</div>
+      <div class="mod-desc">Structured workspace per incident. Log findings, assign tasks, upload evidence files, track timeline, mark resolution status. Auto-created when Wazuh fires a critical alert — no manual trigger needed.</div>
+      <span class="mod-usp">Auto-created on alert</span>
+    </div>
+    <div class="mod-card fade-up delay-2">
+      <div class="mod-num">M3 // PLAYBOOKS ⭐</div>
+      <div class="mod-icon">📖</div>
+      <div class="mod-title">Playbook Engine</div>
+      <div class="mod-desc">Command-level step-by-step playbooks for Ransomware, Phishing, Unauthorized Access, Data Exfiltration, and Insider Threats. Each step shows Linux + Windows commands, goal, and blocking flag. The core differentiator — non-experts can respond correctly.</div>
+      <span class="mod-usp">5 attack types covered</span>
+    </div>
+    <div class="mod-card fade-up delay-1">
+      <div class="mod-num">M4 // REPORTS</div>
+      <div class="mod-icon">📄</div>
+      <div class="mod-title">Incident Report Generator</div>
+      <div class="mod-desc">Auto-generates DPDP Act 2023 compliant PDF reports with all 8 mandatory fields: breach type, data categories, affected persons, timeline, actions taken, and pre-filled CERT-In notification template with 6-hour SLA tracking.</div>
+      <span class="mod-usp">DPDP S.8(6) native</span>
+    </div>
+    <div class="mod-card fade-up delay-2">
+      <div class="mod-num">M5 // DASHBOARD</div>
+      <div class="mod-icon">📊</div>
+      <div class="mod-title">ZeroDashboard</div>
+      <div class="mod-desc">Central visibility into your security posture. Live alert feed, incident heatmap by day/hour, MTTD and MTTR trend lines, incident counts by type, sprint progress and team hours. Shows management what they need without a SOC background.</div>
+      <span class="mod-usp">MTTD · MTTR · Heatmap</span>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARISON -->
+<section id="compare">
+  <div class="section-label">vs. Existing Tools</div>
+  <div class="section-title fade-up">Why not just use<br>Wazuh or TheHive?</div>
+  <div class="section-sub fade-up delay-1">Each existing tool solves one layer. ZeroRespond stitches the entire workflow together — at zero cost, with India-first design.</div>
+
+  <div class="fade-up delay-2" style="overflow-x:auto;margin-top:60px">
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Detection</th>
+        <th>Guided Playbooks</th>
+        <th>Case Manager</th>
+        <th>DPDP Reports</th>
+        <th>Self-Hostable</th>
+        <th>Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="our-row">
+        <td><div class="tool-name" style="color:var(--accent)">ZeroRespond</div><div class="tool-sub">// Team Zero</div></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="price-chip pc-free">₹0 Free</span></td>
+      </tr>
+      <tr>
+        <td><div class="tool-name">Wazuh</div><div class="tool-sub">// Detection only</div></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="price-chip pc-free">Free</span></td>
+      </tr>
+      <tr>
+        <td><div class="tool-name">TheHive</div><div class="tool-sub">// Case management</div></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="price-chip pc-free">Free</span></td>
+      </tr>
+      <tr>
+        <td><div class="tool-name">DFIR-IRIS</div><div class="tool-sub">// Enterprise forensics</div></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-part">~</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="price-chip pc-free">Free</span></td>
+      </tr>
+      <tr>
+        <td><div class="tool-name">Splunk</div><div class="tool-sub">// Enterprise SIEM</div></td>
+        <td><span class="chk-yes">✓</span></td>
+        <td><span class="chk-part">~</span></td>
+        <td><span class="chk-part">~</span></td>
+        <td><span class="chk-no">✗</span></td>
+        <td><span class="chk-part">~</span></td>
+        <td><span class="price-chip pc-high">$50K+/yr</span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- DPDP -->
+<section class="dpdp" id="dpdp">
+  <div class="section-label">Compliance</div>
+  <div class="section-title fade-up">DPDP Act 2023 —<br><span style="color:var(--purple)">Built in, not bolted on.</span></div>
+  <div class="section-sub fade-up delay-1">India's Digital Personal Data Protection Act 2023 Section 8(6) mandates organizations notify CERT-In and affected individuals of a data breach. ZeroRespond auto-generates the exact required format.</div>
+
+  <div class="dpdp-inner">
+    <div class="fade-up delay-1">
+      <div class="dpdp-law" style="margin-bottom:20px">
+        <div class="law-title">DPDP ACT 2023 — SECTION 8(6)</div>
+        <blockquote>"A Data Fiduciary shall notify the Board and each affected Data Principal of a personal data breach in such form and manner and within such period as may be prescribed."</blockquote>
+        <div class="law-ref">// notification window: 6 hours from discovery · to: incident@cert-in.org.in</div>
+      </div>
+      <div class="dpdp-sla">
+        <div class="sla-num">6h</div>
+        <div class="sla-txt">
+          <h4>CERT-In Notification SLA</h4>
+          <p>ZeroRespond tracks time-from-detection and shows a green / red badge. Auto-generates pre-filled notification form.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="fade-up delay-2">
+      <p style="font-size:13px;color:var(--muted);font-family:var(--font-mono);margin-bottom:16px">// 8 fields ZeroRespond auto-fills in every report</p>
+      <div class="dpdp-fields">
+        <div class="dpdp-field"><span class="df-num">01</span><span class="df-name">Breach Type</span><span class="df-how">dropdown → db</span></div>
+        <div class="dpdp-field"><span class="df-num">02</span><span class="df-name">Data Categories Affected</span><span class="df-how">tags in case</span></div>
+        <div class="dpdp-field"><span class="df-num">03</span><span class="df-name">Approx. Persons Affected</span><span class="df-how">number field</span></div>
+        <div class="dpdp-field"><span class="df-num">04</span><span class="df-name">Date & Time of Discovery</span><span class="df-how">wazuh timestamp</span></div>
+        <div class="dpdp-field"><span class="df-num">05</span><span class="df-name">Date & Time of Breach (est.)</span><span class="df-how">analyst entry</span></div>
+        <div class="dpdp-field"><span class="df-num">06</span><span class="df-name">Actions Taken</span><span class="df-how">from playbook steps</span></div>
+        <div class="dpdp-field"><span class="df-num">07</span><span class="df-name">CERT-In Notification</span><span class="df-how">pre-filled template</span></div>
+        <div class="dpdp-field"><span class="df-num">08</span><span class="df-name">DPO Contact Details</span><span class="df-how">org profile → auto</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-label">How It Works</div>
+  <div class="section-title fade-up">From zero to incident<br>response in 3 steps</div>
+
+  <div class="how-grid">
+    <div class="how-step fade-up">
+      <div class="hs-icon">🐳</div>
+      <div class="hs-title">1. Deploy with Docker</div>
+      <div class="hs-desc">Clone the repo, copy .env.example to .env, run docker compose up -d. All services start: backend, frontend, PostgreSQL, Wazuh connection. No manual setup.</div>
+      <div class="hs-tag">// 1 command · works on any Linux server</div>
+    </div>
+    <div class="how-step fade-up delay-1">
+      <div class="hs-icon">🔗</div>
+      <div class="hs-title">2. Connect Your Systems</div>
+      <div class="hs-desc">Install Wazuh agents on your servers (5-minute process). ZeroRespond starts receiving logs and firing detection rules immediately. No configuration required for basic usage.</div>
+      <div class="hs-tag">// Windows + Linux + firewalls + web logs</div>
+    </div>
+    <div class="how-step fade-up delay-2">
+      <div class="hs-icon">🛡️</div>
+      <div class="hs-title">3. Respond to Incidents</div>
+      <div class="hs-desc">When an attack is detected, ZeroRespond opens a case, assigns the correct playbook, and walks your team through each step. Then auto-generates the DPDP report.</div>
+      <div class="hs-tag">// detect → case → playbook → PDF report</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOY CTA -->
+<section class="deploy" id="deploy">
+  <div class="deploy-inner fade-up">
+    <div class="section-label" style="text-align:center">Get Started</div>
+    <h2 class="section-title" style="font-size:clamp(40px,5vw,68px);text-align:center">Your first line of<br>cyber defence.<br><span style="color:var(--accent)">Starts today.</span></h2>
+    <p class="section-sub" style="text-align:center;margin:0 auto 40px">Self-hosted. Open source. Zero licensing cost. DPDP-compliant out of the box.<br>Built for organizations that can't afford enterprise tools.</p>
+
+    <div class="deploy-cmd">
+      <code id="deployCmd">git clone https://github.com/team-zero/zerorespond && cd zerorespond && cp .env.example .env && docker compose up -d</code>
+      <button class="copy-btn" onclick="copyCmd()">Copy</button>
+    </div>
+
+    <div class="deploy-badges">
+      <div class="dbadge">
+        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Open Source
+      </div>
+      <div class="dbadge">🐳 Docker Ready</div>
+      <div class="dbadge">🇮🇳 India-First</div>
+      <div class="dbadge">⚡ DPDP Compliant</div>
+      <div class="dbadge">🔒 Self-Hosted</div>
+    </div>
+
+    <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+      <a href="#" class="btn-hero btn-hero-primary">
+        🐳 Docker Deploy Guide
+      </a>
+      <a href="#" class="btn-hero btn-hero-secondary">
+        📖 Documentation
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <a class="nav-logo" href="#" style="text-decoration:none">
+        <div class="logo-mark">ZR</div>
+        <span class="logo-text" style="font-size:20px">Zero<span>Respond</span></span>
+      </a>
+      <p>Incident Response for every organization. Open source, self-hosted, DPDP-compliant — built by Team Zero at Kumaraguru College of Technology.</p>
+    </div>
+    <div class="footer-col">
+      <h5>Platform</h5>
+      <a href="#">Detection Feed</a>
+      <a href="#">Case Manager</a>
+      <a href="#">Playbook Engine</a>
+      <a href="#">Report Generator</a>
+      <a href="#">ZeroDashboard</a>
+    </div>
+    <div class="footer-col">
+      <h5>Docs</h5>
+      <a href="#">Quick Start</a>
+      <a href="#">Docker Setup</a>
+      <a href="#">API Reference</a>
+      <a href="#">DPDP Compliance</a>
+      <a href="#">Playbook Guide</a>
+    </div>
+    <div class="footer-col">
+      <h5>Team Zero</h5>
+      <a href="#">GitHub</a>
+      <a href="#">Sprint Plan</a>
+      <a href="#">Architecture</a>
+      <a href="#">Contact</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p>© 2026 Team Zero · Kumaraguru College of Technology · Batch 2023–2027 · <a href="https://zerorespond.netlify.app">zerorespond.netlify.app</a></p>
+    <div class="footer-tags">
+      <span class="ftag">Wazuh 4.7</span>
+      <span class="ftag">FastAPI</span>
+      <span class="ftag">React 18</span>
+      <span class="ftag">PostgreSQL</span>
+      <span class="ftag">Docker</span>
+      <span class="ftag">ISO 27035</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── TERMINAL ANIMATION ──
+const lines = [
+  {delay:0,   cls:'t-time',    txt:'[02:47:03] '},
+  {delay:0,   cls:'t-detect',  txt:'WAZUH  '},    append:true,
+  {delay:0,   cls:'',          txt:'Bulk file rename detected — 847 files in 12s', append:true},
+  {delay:600, cls:'t-time',    txt:'[02:47:04] '},
+  {delay:600, cls:'t-alert',   txt:'ALERT  ', append:true},
+  {delay:600, cls:'',          txt:'Rule 92200 — Possible Ransomware Activity', append:true},
+  {delay:600, cls:'',          txt:'<span class="term-badge tbg-red">CRITICAL</span>', append:true},
+  {delay:1400,cls:'t-time',    txt:'[02:47:05] '},
+  {delay:1400,cls:'t-case',    txt:'CASE   ', append:true},
+  {delay:1400,cls:'',          txt:'#IR-2024-001 auto-created · Playbook: Ransomware', append:true},
+  {delay:2200,cls:'t-play',    txt:'PLAYBOOK Ransomware Response — 6 steps loaded'},
+  {delay:3000,cls:'t-cmd',     txt:'Step 1 → Isolate host from network'},
+  {delay:3000,cls:'t-cmd',     txt:'  $ sudo iptables -I INPUT -j DROP'},
+  {delay:3800,cls:'t-step',    txt:'  ✓ Host isolated'},
+  {delay:3800,cls:'term-badge tbg-green', txt:'', wrap:true},
+  {delay:4400,cls:'t-cmd',     txt:'Step 2 → Kill ransomware process (PID 3847)'},
+  {delay:4400,cls:'t-cmd',     txt:'  $ sudo kill -9 3847'},
+  {delay:5200,cls:'t-cmd',     txt:'Step 3 → Block C2 IP 185.220.x.x at firewall'},
+  {delay:6000,cls:'t-done',    txt:'Step 4-6 completed · All steps done ✓'},
+  {delay:6800,cls:'t-report',  txt:'REPORT Generating DPDP PDF report...'},
+  {delay:7600,cls:'t-metric',  txt:'METRIC MTTD: 4.2 min · MTTR: 22 min · 82% faster'},
+  {delay:8200,cls:'t-done',    txt:'✓ Case #IR-2024-001 resolved · Report generated'},
+];
+
+const termBody = document.getElementById('termBody');
+const termLines = [
+  {text:'[02:47:03] ', cls:'t-time', newline:true},
+  {text:'WAZUH  ', cls:'t-detect'},
+  {text:'Bulk file rename detected — 847 files in 12s', cls:''},
+  {text:'', newline:true},
+  {text:'[02:47:04] ', cls:'t-time', newline:true},
+  {text:'ALERT  ', cls:'t-alert'},
+  {text:'Rule 92200 — Possible Ransomware Activity ', cls:''},
+  {text:'CRITICAL', cls:'term-badge tbg-red'},
+  {text:'', newline:true},
+  {text:'[02:47:05] ', cls:'t-time', newline:true},
+  {text:'CASE   ', cls:'t-case'},
+  {text:'#IR-2024-001 auto-created · Playbook assigned', cls:''},
+  {text:'', newline:true},
+  {text:'PLAYBOOK ', cls:'t-play', newline:true},
+  {text:'Ransomware Response — 6 steps loaded', cls:''},
+  {text:'', newline:true},
+  {text:'  ├ Step 1 → Isolate host', cls:'t-cmd', newline:true},
+  {text:'  │  $ iptables -I INPUT -j DROP', cls:'t-cmd', newline:true},
+  {text:'  ├ Step 2 → Kill process PID 3847', cls:'t-cmd', newline:true},
+  {text:'  ├ Step 3 → Block C2 IP 185.220.x.x', cls:'t-cmd', newline:true},
+  {text:'  └ Steps 4–6 complete ✓', cls:'t-done', newline:true},
+  {text:'', newline:true},
+  {text:'REPORT  ', cls:'t-report', newline:true},
+  {text:'Generating DPDP Section 8(6) PDF...', cls:''},
+  {text:'', newline:true},
+  {text:'METRIC  ', cls:'t-metric', newline:true},
+  {text:'MTTD: 4.2 min · MTTR: 22 min · FP: 12%', cls:''},
+  {text:'', newline:true},
+  {text:'✓ Case resolved · Report ready · ', cls:'t-done', newline:true},
+  {text:'82% faster than manual response', cls:'t-done', newline:true},
+];
+
+let groups = [];
+let current = [];
+termLines.forEach(l => {
+  if(l.newline && current.length > 0){
+    groups.push({items:[...current], start:l});
+    current = [];
+    if(l.text) current.push(l);
+  } else {
+    current.push(l);
+  }
+});
+if(current.length) groups.push({items:current});
+
+// Merge into proper line groups
+const lineGroups = [];
+let cg = [];
+termLines.forEach(l => {
+  cg.push(l);
+  if(l.newline){lineGroups.push([...cg]);cg=[];}
+});
+if(cg.length) lineGroups.push(cg);
+
+function renderLines(){
+  termBody.innerHTML='';
+  lineGroups.forEach((group,gi)=>{
+    const div = document.createElement('div');
+    div.style.opacity='0';
+    div.style.transform='translateX(-4px)';
+    div.style.transition='opacity .25s ease, transform .25s ease';
+    div.style.transitionDelay=(gi*0.28)+'s';
+    div.style.minHeight='18px';
+    div.style.display='flex';
+    div.style.alignItems='center';
+    div.style.flexWrap='wrap';
+    div.style.gap='0';
+    group.forEach(item=>{
+      if(!item.text && !item.cls) return;
+      const span = document.createElement('span');
+      span.className = item.cls||'';
+      span.textContent = item.text||'';
+      div.appendChild(span);
+    });
+    termBody.appendChild(div);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      div.style.opacity='1';
+      div.style.transform='none';
+    }));
+  });
+  // Add cursor at end
+  setTimeout(()=>{
+    const cursor = document.createElement('span');
+    cursor.className='cursor';
+    termBody.appendChild(cursor);
+  }, lineGroups.length*280+200);
+}
+
+renderLines();
+setInterval(()=>{
+  termBody.innerHTML='';
+  setTimeout(renderLines, 400);
+}, lineGroups.length*280+3000);
+
+// ── SCROLL ANIMATIONS ──
+const observer = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible')}});
+},{threshold:.1});
+document.querySelectorAll('.fade-up').forEach(el=>observer.observe(el));
+
+// ── COPY CMD ──
+function copyCmd(){
+  navigator.clipboard.writeText(document.getElementById('deployCmd').textContent);
+  const btn = document.querySelector('.copy-btn');
+  btn.textContent='Copied!';
+  btn.style.color='var(--accent)';
+  setTimeout(()=>{btn.textContent='Copy';btn.style.color='';},2000);
+}
+
+// ── NAV SCROLL ──
+window.addEventListener('scroll',()=>{
+  const nav = document.getElementById('navbar');
+  nav.style.background = window.scrollY>50 ? 'rgba(7,8,15,.95)' : 'rgba(7,8,15,.85)';
+});
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ import {
   MOCK_RANSOMWARE_PLAYBOOK,
   MOCK_TIMELINE,
 } from '../mock/fixtures'
+import { incidentStatusBadgeClass } from '../lib/incidentDisplay'
 
 const DEMO_CASE_ID = 'INV-2042'
 
@@ -22,79 +23,92 @@ export function IncidentDetailPage() {
   const richDemo = caseId.trim().toUpperCase() === DEMO_CASE_ID
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <nav className="text-sm text-zinc-400" aria-label="Breadcrumb">
-        <Link to="/dashboard" className="hover:text-teal-400">
-          Incident list
+    <div className="zr-page">
+      <nav style={{ marginBottom: '20px', fontSize: '13px', color: 'var(--muted2)' }} aria-label="Breadcrumb">
+        <Link to="/incidents" style={{ color: 'var(--accent2)', textDecoration: 'none' }}>
+          Incidents
         </Link>
-        <span className="mx-2 text-zinc-600">/</span>
-        <span className="font-mono text-zinc-200">{caseId || 'unknown'}</span>
+        <span style={{ margin: '0 8px', color: 'var(--muted)' }}>/</span>
+        <span style={{ fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{caseId || 'unknown'}</span>
       </nav>
 
-      <header>
-        <h1 className="text-xl font-semibold text-white md:text-2xl">
-          Case workspace
-        </h1>
-        {!richDemo ? (
-          <p className="mt-3 max-w-prose rounded-md border border-zinc-800 bg-zinc-900/50 p-4 text-sm text-zinc-400">
-            The full guided playbook demo is available for{' '}
-            <span className="font-mono text-teal-400">INV-2042</span>. Open that
-            case from the incident queue to explore the sample workflow.
-          </p>
-        ) : null}
-      </header>
-
       {!richDemo ? (
-        <section className="rounded-lg border border-dashed border-zinc-700 p-10 text-center text-sm text-zinc-500">
-          Select <span className="font-mono text-zinc-300">INV-2042</span> from
-          the queue to preview the playbook, timeline, and evidence layout.
-          <div className="mt-4">
-            <Link
-              to="/incidents/INV-2042"
-              className="text-teal-400 underline-offset-4 hover:underline"
-            >
-              Open INV-2042 demo
-            </Link>
+        <>
+          <header style={{ marginBottom: '24px' }}>
+            <div className="zr-page-title">Case workspace</div>
+            <p style={{ marginTop: '12px', color: 'var(--muted2)', fontSize: '14px', maxWidth: '40rem', lineHeight: 1.6 }}>
+              The full guided playbook demo is available for{' '}
+              <span style={{ fontFamily: 'var(--mono)', color: 'var(--accent)' }}>{DEMO_CASE_ID}</span>.
+            </p>
+          </header>
+
+          <div className="zr-muted-panel">
+            Select{' '}
+            <span style={{ fontFamily: 'var(--mono)', color: 'var(--txt)' }}>{DEMO_CASE_ID}</span> from the
+            queue to preview the playbook, timeline, and evidence layout.
+            <div style={{ marginTop: '16px' }}>
+              <Link
+                to={`/incidents/${encodeURIComponent(DEMO_CASE_ID)}`}
+                className="btn btn-primary btn-sm"
+                style={{ textDecoration: 'none' }}
+              >
+                Open {DEMO_CASE_ID} demo →
+              </Link>
+            </div>
           </div>
-        </section>
+        </>
       ) : (
         <>
-          <AlertSummaryCard {...MOCK_ALERT_SUMMARY} />
-          <IncidentPhaseStrip
-            phases={MOCK_INCIDENT_PHASE_STRIP.phases}
-            currentIndex={MOCK_INCIDENT_PHASE_STRIP.currentIndex}
-          />
-          <PlaybookStepList
-            playbookName={MOCK_RANSOMWARE_PLAYBOOK.name}
-            steps={MOCK_RANSOMWARE_PLAYBOOK.steps}
-          />
-          <div className="grid gap-6 lg:grid-cols-[1fr,minmax(0,18rem)]">
-            <CaseTimeline entries={MOCK_TIMELINE} />
-            <aside className="lg:sticky lg:top-6 lg:self-start">
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-sm">
-                <p className="font-medium text-zinc-200">Assignments</p>
-                <p className="mt-3 text-xs text-zinc-500">
-                  Owner{' '}
-                  <span className="font-semibold text-zinc-300">IT SOC</span>
+          <div className="zr-alert-panel" style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '12px', fontFamily: 'var(--mono)', fontSize: '12px', color: 'var(--accent2)' }}>
+              {caseId}
+            </div>
+            <AlertSummaryCard {...MOCK_ALERT_SUMMARY} />
+          </div>
+
+          <div style={{ marginBottom: '16px' }}>
+            <IncidentPhaseStrip
+              phases={MOCK_INCIDENT_PHASE_STRIP.phases}
+              currentIndex={MOCK_INCIDENT_PHASE_STRIP.currentIndex}
+            />
+          </div>
+
+          <div className="zr-detail-grid">
+            <div>
+              <PlaybookStepList
+                playbookName={MOCK_RANSOMWARE_PLAYBOOK.name}
+                steps={MOCK_RANSOMWARE_PLAYBOOK.steps}
+              />
+              <div style={{ marginTop: '20px' }}>
+                <CaseTimeline entries={MOCK_TIMELINE} />
+              </div>
+              <div className="zr-detail-split" style={{ marginTop: '20px' }}>
+                <EvidenceList items={MOCK_EVIDENCE} />
+                <ResponderNotes />
+              </div>
+            </div>
+            <aside>
+              <div className="card">
+                <div className="card-title" style={{ marginBottom: '12px' }}>
+                  Assignments
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--muted2)', marginBottom: '16px' }}>
+                  Owner <strong style={{ color: 'var(--txt)' }}>IT SOC</strong>
                 </p>
-                <dl className="mt-4 space-y-3 text-xs">
-                  <div>
-                    <dt className="text-zinc-500">Severity</dt>
-                    <dd className="mt-1">
-                      <SeverityBadge severity="critical" />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-zinc-500">Status</dt>
-                    <dd className="mt-1 text-zinc-300">Investigating</dd>
-                  </div>
-                </dl>
+                <div className="zr-ap-row" style={{ borderBottom: '1px solid var(--border)', padding: '10px 0' }}>
+                  <span className="zr-ap-key">Severity</span>
+                  <span className="zr-ap-val" style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <SeverityBadge severity="critical" />
+                  </span>
+                </div>
+                <div className="zr-ap-row" style={{ padding: '10px 0 0', borderBottom: 'none' }}>
+                  <span className="zr-ap-key">Status</span>
+                  <span className={incidentStatusBadgeClass('Investigating')} style={{ marginLeft: 'auto' }}>
+                    Investigating
+                  </span>
+                </div>
               </div>
             </aside>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <EvidenceList items={MOCK_EVIDENCE} />
-            <ResponderNotes />
           </div>
         </>
       )}

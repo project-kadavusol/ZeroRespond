@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroRespond — Incident Response Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080F;--bg2:#0B0D18;--card:#0F1320;--card2:#131826;--card3:#0D1020;
+  --border:#1C2236;--border2:#252D47;--border3:#303D60;
+  --accent:#00E5B0;--accent2:#3B7CFF;--amber:#FFB300;--red:#FF4555;--purple:#9B6DFF;--orange:#FF7043;--cyan:#00D4E8;
+  --txt:#E8EEFF;--muted:#5C6B8A;--muted2:#8895B3;--muted3:#A0B0D0;
+  --sidebar:200px;
+  --font:'Outfit',sans-serif;--mono:'JetBrains Mono',monospace;
+  --success:#00E5B0;--warn:#FFB300;--danger:#FF4555;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--txt);font-family:var(--font);font-size:14px;display:flex;flex-direction:column}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ── TOPBAR ── */
+#topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px 0 0;flex-shrink:0;z-index:50}
+.topbar-left{display:flex;align-items:center;gap:0;height:100%}
+.logo-area{width:var(--sidebar);height:100%;display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid var(--border);flex-shrink:0}
+.logo-mark{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:12px;color:#000;flex-shrink:0}
+.logo-txt{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)}
+.logo-txt span{color:var(--accent)}
+.topbar-breadcrumb{padding:0 20px;font-size:13px;color:var(--muted2)}
+.topbar-breadcrumb span{color:var(--muted)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-badge{display:flex;align-items:center;gap:6px;background:rgba(255,69,85,.1);border:1px solid rgba(255,69,85,.2);border-radius:100px;padding:4px 12px;font-size:12px;color:var(--red);font-family:var(--mono);cursor:pointer}
+.topbar-badge .dot{width:6px;height:6px;background:var(--red);border-radius:50%;animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.3}}
+.topbar-org{font-size:13px;color:var(--muted2);border-left:1px solid var(--border);padding-left:14px}
+.topbar-org strong{color:var(--txt);font-weight:600}
+.avatar{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;cursor:pointer}
+
+/* ── LAYOUT ── */
+#layout{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar);background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-section{padding:16px 0 8px}
+.sidebar-label{padding:0 16px 8px;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:background .15s,color .15s;color:var(--muted2);font-size:13px;font-weight:500;position:relative;border-radius:0}
+.nav-item:hover{background:rgba(255,255,255,.03);color:var(--txt)}
+.nav-item.active{background:rgba(0,229,176,.07);color:var(--accent);border-right:2px solid var(--accent)}
+.nav-item.active .ni-icon{opacity:1}
+.ni-icon{font-size:15px;opacity:.5;flex-shrink:0;width:18px;text-align:center}
+.nav-item.active .ni-icon{opacity:1}
+.ni-badge{margin-left:auto;background:var(--red);color:#fff;border-radius:100px;padding:1px 7px;font-size:10px;font-family:var(--mono);font-weight:700}
+.ni-badge.amber{background:var(--amber);color:#000}
+.ni-badge.green{background:var(--accent);color:#000}
+.sidebar-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.status-chip{background:rgba(0,229,176,.08);border:1px solid rgba(0,229,176,.15);border-radius:6px;padding:10px;text-align:center}
+.sc-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block;margin-right:6px;animation:pulse-green 2s infinite}
+@keyframes pulse-green{0%,100%{box-shadow:0 0 0 0 rgba(0,229,176,.4)}50%{box-shadow:0 0 0 4px rgba(0,229,176,0)}}
+.sc-txt{font-size:11px;color:var(--accent);font-family:var(--mono)}
+
+/* ── MAIN ── */
+#main{flex:1;overflow-y:auto;background:var(--bg)}
+.page{display:none;padding:28px;animation:fadein .2s ease}
+.page.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.page-header{margin-bottom:28px;display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.page-title{font-size:22px;font-weight:700;color:var(--txt)}
+.page-sub{font-size:13px;color:var(--muted2);margin-top:4px}
+.page-actions{display:flex;gap:10px;align-items:center}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;font-family:var(--font);border:none}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:#00ffca;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--muted2);border:1px solid var(--border2)}
+.btn-ghost:hover{color:var(--txt);border-color:var(--border3)}
+.btn-danger{background:rgba(255,69,85,.1);color:var(--red);border:1px solid rgba(255,69,85,.2)}
+.btn-danger:hover{background:rgba(255,69,85,.2)}
+.btn-sm{padding:5px 12px;font-size:12px}
+
+/* ── CARDS ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px}
+.card-sm{padding:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;font-family:var(--mono)}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .2s}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color)}
+.kpi-card:hover{border-color:var(--kpi-color)}
+.kpi-val{font-family:var(--mono);font-size:32px;font-weight:700;color:var(--kpi-color);line-height:1;margin-bottom:4px}
+.kpi-lbl{font-size:12px;color:var(--muted2);font-weight:500}
+.kpi-sub{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:3px}
+.kpi-delta{position:absolute;top:16px;right:16px;font-size:11px;font-family:var(--mono);display:flex;align-items:center;gap:3px}
+.delta-up{color:var(--accent)}
+.delta-down{color:var(--red)}
+
+/* ── SEVERITY BADGES ── */
+.sev{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;font-family:var(--mono)}
+.sev-crit{background:rgba(255,69,85,.12);color:#FF4555;border:1px solid rgba(255,69,85,.2)}
+.sev-high{background:rgba(255,112,67,.12);color:#FF7043;border:1px solid rgba(255,112,67,.2)}
+.sev-med{background:rgba(255,179,0,.12);color:#FFB300;border:1px solid rgba(255,179,0,.2)}
+.sev-low{background:rgba(100,181,246,.12);color:#64B5F6;border:1px solid rgba(100,181,246,.2)}
+.sev::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+
+/* ── STATUS BADGES ── */
+.status{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:100px;font-size:11px;font-weight:600;font-family:var(--mono)}
+.st-open{background:rgba(255,179,0,.1);color:var(--amber)}
+.st-progress{background:rgba(59,124,255,.1);color:var(--accent2)}
+.st-done{background:rgba(0,229,176,.1);color:var(--accent)}
+.st-blocked{background:rgba(255,69,85,.1);color:var(--red)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+thead th{padding:10px 14px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);font-family:var(--mono);white-space:nowrap}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted3);vertical-align:middle}
+tbody tr:hover td{background:rgba(255,255,255,.015);cursor:pointer}
+tbody tr:last-child td{border-bottom:none}
+.td-id{font-family:var(--mono);color:var(--accent2);font-size:12px}
+.td-title{font-weight:600;color:var(--txt);font-size:13px}
+.td-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── LIVE ALERT FEED ── */
+.alert-feed{display:flex;flex-direction:column;gap:0}
+.af-item{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
+.af-item:hover{background:rgba(255,255,255,.02)}
+.af-item:last-child{border-bottom:none}
+.af-sev-bar{width:3px;height:36px;border-radius:2px;flex-shrink:0}
+.af-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.af-main{flex:1;min-width:0}
+.af-rule{font-weight:600;color:var(--txt);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.af-host{font-size:11px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.af-meta{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.af-time{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.af-new{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:blink-dot 1.5s infinite}
+@keyframes blink-dot{0%,100%{opacity:1}50%{opacity:0}}
+
+/* ── CHART AREA ── */
+.chart-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative}
+.chart-area{position:relative;height:160px;margin-top:16px}
+canvas{display:block}
+
+/* ── HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:40px repeat(24,1fr);gap:2px;margin-top:12px}
+.hm-label{font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.hm-cell{aspect-ratio:1;border-radius:2px;cursor:pointer;transition:transform .15s}
+.hm-cell:hover{transform:scale(1.3);z-index:1}
+.hm-hour-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;grid-row:1}
+.hm-hour-label:first-child{grid-column:2}
+
+/* ── INCIDENT DETAIL ── */
+.detail-grid{display:grid;grid-template-columns:1fr 340px;gap:20px}
+.detail-main{}
+.detail-aside{}
+.detail-header{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px 24px;margin-bottom:16px}
+.dh-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:14px}
+.dh-id{font-family:var(--mono);font-size:12px;color:var(--accent2);background:rgba(59,124,255,.1);padding:3px 10px;border-radius:4px}
+.dh-title{font-size:18px;font-weight:700;color:var(--txt);flex:1}
+.dh-meta{display:flex;gap:16px;flex-wrap:wrap}
+.dh-meta-item{display:flex;flex-direction:column;gap:2px}
+.dh-meta-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+.dh-meta-val{font-size:13px;color:var(--muted2);font-weight:500}
+.timeline{display:flex;flex-direction:column;gap:0;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.tl-item{display:flex;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);position:relative}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.tl-dot-red{background:rgba(255,69,85,.12);color:var(--red)}
+.tl-dot-blue{background:rgba(59,124,255,.12);color:var(--accent2)}
+.tl-dot-amber{background:rgba(255,179,0,.12);color:var(--amber)}
+.tl-dot-green{background:rgba(0,229,176,.12);color:var(--accent)}
+.tl-dot-purple{background:rgba(155,109,255,.12);color:var(--purple)}
+.tl-body{flex:1}
+.tl-title{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:3px}
+.tl-desc{font-size:12px;color:var(--muted2);line-height:1.5}
+.tl-time{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:4px}
+.tl-cmd{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:6px 10px;margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--accent)}
+
+/* ── PLAYBOOK STEPPER ── */
+.playbook-box{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.pb-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pb-title{font-size:14px;font-weight:700;color:var(--txt)}
+.pb-progress{font-family:var(--mono);font-size:11px;color:var(--accent)}
+.pb-prog-bar{height:2px;background:var(--border);margin:0 20px 0}
+.pb-prog-fill{height:100%;background:var(--accent);transition:width .4s ease;border-radius:1px}
+.pb-steps{display:flex;flex-direction:column}
+.pb-step{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;gap:12px;cursor:pointer;transition:background .15s}
+.pb-step:last-child{border-bottom:none}
+.pb-step:hover{background:rgba(255,255,255,.02)}
+.pb-step.done{background:rgba(0,229,176,.03)}
+.pb-step.active{background:rgba(59,124,255,.05);border-left:2px solid var(--accent2)}
+.pbs-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.pbs-num-done{background:rgba(0,229,176,.15);color:var(--accent)}
+.pbs-num-active{background:rgba(59,124,255,.2);color:var(--accent2)}
+.pbs-num-pending{background:rgba(255,255,255,.05);color:var(--muted)}
+.pbs-body{flex:1}
+.pbs-title{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:3px}
+.pbs-step.done .pbs-title{color:var(--accent)}
+.pbs-cmd{font-family:var(--mono);font-size:11px;color:var(--muted2);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:5px 8px;margin-top:6px;display:flex;align-items:center;gap:6px}
+.pbs-cmd-label{font-size:9px;color:var(--muted);background:var(--card2);padding:2px 5px;border-radius:3px;text-transform:uppercase}
+.pbs-goal{font-size:11px;color:var(--muted);margin-top:5px;font-style:italic}
+.pbs-ts{font-family:var(--mono);font-size:10px;color:var(--accent);margin-top:4px}
+.pbs-action{margin-left:auto;flex-shrink:0}
+
+/* ── EVIDENCE ── */
+.evidence-list{display:flex;flex-direction:column;gap:8px}
+.ev-item{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:10px 14px}
+.ev-icon{font-size:16px;width:28px;text-align:center;flex-shrink:0}
+.ev-name{flex:1;font-size:12px;color:var(--muted2);font-family:var(--mono);overflow:hidden;text-overflow:ellipsis}
+.ev-size{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.upload-area{border:1px dashed var(--border2);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s;margin-top:12px}
+.upload-area:hover{border-color:var(--accent);color:var(--accent);background:rgba(0,229,176,.03)}
+
+/* ── METRICS PAGE ── */
+.metrics-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.chart-legend{display:flex;gap:16px;margin-top:12px;flex-wrap:wrap}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted2)}
+.cl-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ── INLINE CHART (SVG-based) ── */
+.svg-chart{width:100%;height:140px}
+
+/* ── ALERT DETAIL PANEL ── */
+.alert-panel{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px}
+.ap-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-family:var(--mono);margin-bottom:12px}
+.ap-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.ap-row:last-child{border-bottom:none}
+.ap-key{font-size:12px;color:var(--muted2)}
+.ap-val{font-size:12px;color:var(--txt);font-family:var(--mono);text-align:right;max-width:200px;overflow:hidden;text-overflow:ellipsis}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  :root{--sidebar:52px}
+  .nav-item span:not(.ni-icon):not(.ni-badge){display:none}
+  .sidebar-label{display:none}
+  .detail-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .metrics-grid-2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <div class="topbar-left">
+    <div class="logo-area">
+      <div class="logo-mark">ZR</div>
+      <span class="logo-txt">Zero<span>Respond</span></span>
+    </div>
+    <span class="topbar-breadcrumb" id="breadcrumb"><span>Dashboard</span></span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-badge" onclick="showPage('alerts')">
+      <div class="dot"></div>
+      3 Live Alerts
+    </div>
+    <div class="topbar-org">
+      Org: <strong>KCT IT Dept</strong>
+    </div>
+    <div class="avatar" title="Admin User">A</div>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Core</div>
+      <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
+        <span class="ni-icon">📊</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="showPage('incidents')" id="nav-incidents">
+        <span class="ni-icon">🗂️</span><span>Incidents</span><span class="ni-badge amber">2</span>
+      </div>
+      <div class="nav-item" onclick="showPage('alerts')" id="nav-alerts">
+        <span class="ni-icon">⚡</span><span>Live Alerts</span><span class="ni-badge">3</span>
+      </div>
+      <div class="nav-item" onclick="showPage('metrics')" id="nav-metrics">
+        <span class="ni-icon">📈</span><span>Metrics</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tools</div>
+      <div class="nav-item" onclick="showPage('playbooks')">
+        <span class="ni-icon">📖</span><span>Playbooks</span><span class="ni-badge green">5</span>
+      </div>
+      <div class="nav-item">
+        <span class="ni-icon">📁</span><span>Evidence</span>
+      </div>
+      <div class="nav-item">
+        <span class="ni-icon">📄</span><span>Reports</span>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Settings</div>
+      <div class="nav-item">
+        <span class="ni-icon">🏢</span><span>Org Profile</span>
+      </div>
+      <div class="nav-item">
+        <span class="ni-icon">⚙️</span><span>Settings</span>
+      </div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="status-chip">
+        <div><span class="sc-dot"></span><span class="sc-txt">Wazuh Active</span></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;font-family:var(--mono)">50+ rules · 4 agents</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main id="main">
+
+    <!-- ═══════════════════════════════════════
+         PAGE 1: DASHBOARD
+    ═══════════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Security Dashboard</div>
+          <div class="page-sub">Live security posture · Updated every 30 seconds · KCT IT Dept</div>
+        </div>
+        <div class="page-actions">
+          <span style="font-size:11px;color:var(--muted);font-family:var(--mono)">Last sync: 2 min ago</span>
+          <button class="btn btn-ghost btn-sm">↻ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="showPage('incidents')">+ New Incident</button>
+        </div>
+      </div>
+
+      <!-- KPI CARDS -->
+      <div class="kpi-grid">
+        <div class="kpi-card" style="--kpi-color:var(--red)">
+          <div class="kpi-val">3</div>
+          <div class="kpi-lbl">Active Incidents</div>
+          <div class="kpi-sub">2 open · 1 in progress</div>
+          <div class="kpi-delta delta-down">▲ +2</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--accent)">
+          <div class="kpi-val">4.2m</div>
+          <div class="kpi-lbl">Mean Time to Detect</div>
+          <div class="kpi-sub">avg across 50 alerts</div>
+          <div class="kpi-delta delta-up">▼ -1.1m</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--accent2)">
+          <div class="kpi-val">22m</div>
+          <div class="kpi-lbl">Mean Time to Respond</div>
+          <div class="kpi-sub">with playbook guidance</div>
+          <div class="kpi-delta delta-up">▼ -8m</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--amber)">
+          <div class="kpi-val">12%</div>
+          <div class="kpi-lbl">False Positive Rate</div>
+          <div class="kpi-sub">after Wazuh tuning</div>
+          <div class="kpi-delta delta-up">▼ -16%</div>
+        </div>
+      </div>
+
+      <!-- TWO-COL GRID -->
+      <div style="display:grid;grid-template-columns:1fr 360px;gap:16px;margin-bottom:16px">
+
+        <!-- INCIDENT TABLE -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div class="card-title" style="margin:0">Recent Incidents</div>
+            <button class="btn btn-ghost btn-sm" onclick="showPage('incidents')">View All →</button>
+          </div>
+          <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>ID</th><th>Title</th><th>Severity</th><th>Status</th><th>MTTD</th>
+            </tr></thead>
+            <tbody>
+              <tr onclick="showPage('detail')">
+                <td class="td-id">#IR-001</td>
+                <td><div class="td-title">Ransomware C2 Communication Detected</div><div class="td-sub">linux-host-01 · 02:47 today</div></td>
+                <td><span class="sev sev-crit">Critical</span></td>
+                <td><span class="status st-progress">In Progress</span></td>
+                <td style="font-family:var(--mono);color:var(--accent)">3.8m</td>
+              </tr>
+              <tr>
+                <td class="td-id">#IR-002</td>
+                <td><div class="td-title">SSH Brute Force from 203.x.x.x</div><div class="td-sub">linux-host-02 · Yesterday</div></td>
+                <td><span class="sev sev-high">High</span></td>
+                <td><span class="status st-open">Open</span></td>
+                <td style="font-family:var(--mono);color:var(--accent)">4.1m</td>
+              </tr>
+              <tr>
+                <td class="td-id">#IR-003</td>
+                <td><div class="td-title">Suspicious Outbound Traffic — Port 4444</div><div class="td-sub">windows-host-01 · 2 days ago</div></td>
+                <td><span class="sev sev-high">High</span></td>
+                <td><span class="status st-open">Open</span></td>
+                <td style="font-family:var(--mono);color:var(--accent)">5.2m</td>
+              </tr>
+              <tr>
+                <td class="td-id">#IR-004</td>
+                <td><div class="td-title">Privilege Escalation — User Added to Sudoers</div><div class="td-sub">linux-host-03 · 3 days ago</div></td>
+                <td><span class="sev sev-med">Medium</span></td>
+                <td><span class="status st-done">Resolved</span></td>
+                <td style="font-family:var(--mono);color:var(--accent)">4.5m</td>
+              </tr>
+              <tr>
+                <td class="td-id">#IR-005</td>
+                <td><div class="td-title">Web Attack — SQL Injection Pattern</div><div class="td-sub">web-server-01 · 4 days ago</div></td>
+                <td><span class="sev sev-med">Medium</span></td>
+                <td><span class="status st-done">Resolved</span></td>
+                <td style="font-family:var(--mono);color:var(--accent)">3.1m</td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+
+        <!-- LIVE ALERT FEED -->
+        <div class="card" style="padding:0;overflow:hidden;display:flex;flex-direction:column;max-height:380px">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+            <div class="card-title" style="margin:0">Live Alert Feed</div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent);font-family:var(--mono)">
+              <span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;animation:pulse-green 1.5s infinite"></span>
+              LIVE
+            </div>
+          </div>
+          <div class="alert-feed" style="overflow-y:auto;flex:1" id="liveFeed">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM CHARTS ROW -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+
+        <!-- MTTD TREND -->
+        <div class="chart-box">
+          <div class="card-title">MTTD Trend (Last 7 Days)</div>
+          <svg class="svg-chart" id="mttdChart" viewBox="0 0 300 120"></svg>
+          <div class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--accent)"></div>MTTD (min)</div>
+          </div>
+        </div>
+
+        <!-- INCIDENTS BY TYPE -->
+        <div class="chart-box">
+          <div class="card-title">Incidents by Type</div>
+          <svg class="svg-chart" id="typeChart" viewBox="0 0 300 120"></svg>
+          <div class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--red)"></div>Ransomware</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--amber)"></div>Brute Force</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--accent2)"></div>Web Attack</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--purple)"></div>Other</div>
+          </div>
+        </div>
+
+        <!-- INCIDENT HEATMAP -->
+        <div class="chart-box">
+          <div class="card-title">Incident Heatmap (Day × Hour)</div>
+          <div id="heatmap" style="margin-top:8px"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         PAGE 2: INCIDENTS LIST
+    ═══════════════════════════════════════ -->
+    <div class="page" id="page-incidents">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Incident Cases</div>
+          <div class="page-sub">All incident cases · Click to open case detail and playbook</div>
+        </div>
+        <div class="page-actions">
+          <select style="background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:7px 12px;border-radius:7px;font-size:13px;font-family:var(--font)">
+            <option>All Sprints</option>
+            <option>Sprint 1</option><option>Sprint 2</option><option>Sprint 3</option>
+          </select>
+          <select style="background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:7px 12px;border-radius:7px;font-size:13px;font-family:var(--font)">
+            <option>All Status</option>
+            <option>Open</option><option>In Progress</option><option>Resolved</option>
+          </select>
+          <button class="btn btn-primary">+ New Case</button>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="tbl-wrap">
+        <table>
+          <thead><tr>
+            <th>Case ID</th><th>Incident</th><th>Severity</th><th>Playbook</th><th>Status</th><th>Agent</th><th>MTTD</th><th>Created</th><th></th>
+          </tr></thead>
+          <tbody>
+            <tr onclick="showPage('detail')">
+              <td class="td-id">#IR-001</td>
+              <td><div class="td-title">Ransomware C2 Communication</div><div class="td-sub">linux-host-01 · 5 steps of 6 done</div></td>
+              <td><span class="sev sev-crit">Critical</span></td>
+              <td style="font-size:12px;color:var(--amber);font-family:var(--mono)">Ransomware</td>
+              <td><span class="status st-progress">In Progress</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">linux-host-01</td>
+              <td style="font-family:var(--mono);color:var(--accent)">3.8m</td>
+              <td style="font-size:12px;color:var(--muted)">Today 02:47</td>
+              <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showPage('detail')">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="td-id">#IR-002</td>
+              <td><div class="td-title">SSH Brute Force Attack</div><div class="td-sub">linux-host-02 · 0 steps done</div></td>
+              <td><span class="sev sev-high">High</span></td>
+              <td style="font-size:12px;color:var(--accent2);font-family:var(--mono)">Brute Force</td>
+              <td><span class="status st-open">Open</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">linux-host-02</td>
+              <td style="font-family:var(--mono);color:var(--accent)">4.1m</td>
+              <td style="font-size:12px;color:var(--muted)">Yesterday</td>
+              <td><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="td-id">#IR-003</td>
+              <td><div class="td-title">Suspicious Outbound — Port 4444</div><div class="td-sub">windows-host-01 · 1 step done</div></td>
+              <td><span class="sev sev-high">High</span></td>
+              <td style="font-size:12px;color:var(--purple);font-family:var(--mono)">C2 Beacon</td>
+              <td><span class="status st-open">Open</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">windows-host-01</td>
+              <td style="font-family:var(--mono);color:var(--accent)">5.2m</td>
+              <td style="font-size:12px;color:var(--muted)">2 days ago</td>
+              <td><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="td-id">#IR-004</td>
+              <td><div class="td-title">Privilege Escalation Detected</div><div class="td-sub">linux-host-03 · All 6 steps done</div></td>
+              <td><span class="sev sev-med">Medium</span></td>
+              <td style="font-size:12px;color:var(--orange);font-family:var(--mono)">Priv. Escal.</td>
+              <td><span class="status st-done">Resolved</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">linux-host-03</td>
+              <td style="font-family:var(--mono);color:var(--accent)">4.5m</td>
+              <td style="font-size:12px;color:var(--muted)">3 days ago</td>
+              <td><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="td-id">#IR-005</td>
+              <td><div class="td-title">SQL Injection Attack — /api/users</div><div class="td-sub">web-server-01 · All 6 steps done</div></td>
+              <td><span class="sev sev-med">Medium</span></td>
+              <td style="font-size:12px;color:var(--red);font-family:var(--mono)">Web Attack</td>
+              <td><span class="status st-done">Resolved</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">web-server-01</td>
+              <td style="font-family:var(--mono);color:var(--accent)">3.1m</td>
+              <td style="font-size:12px;color:var(--muted)">4 days ago</td>
+              <td><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+            <tr>
+              <td class="td-id">#IR-006</td>
+              <td><div class="td-title">Data Exfiltration — Large Upload Detected</div><div class="td-sub">linux-host-01 · 0 steps done</div></td>
+              <td><span class="sev sev-low">Low</span></td>
+              <td style="font-size:12px;color:var(--cyan);font-family:var(--mono)">Exfiltration</td>
+              <td><span class="status st-open">Open</span></td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--muted2)">linux-host-01</td>
+              <td style="font-family:var(--mono);color:var(--accent)">6.7m</td>
+              <td style="font-size:12px;color:var(--muted)">5 days ago</td>
+              <td><button class="btn btn-ghost btn-sm">Open →</button></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- DPDP REPORT NOTICE -->
+      <div style="margin-top:16px;background:rgba(155,109,255,.06);border:1px solid rgba(155,109,255,.2);border-radius:10px;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--purple)">⚖️ DPDP Act 2023 — CERT-In Notification Required</div>
+          <div style="font-size:12px;color:var(--muted2);margin-top:3px">Case #IR-001 detected 3h 12m ago · Notification deadline: <strong style="color:var(--red)">2h 48m remaining</strong></div>
+        </div>
+        <button class="btn btn-sm" style="background:rgba(155,109,255,.15);color:var(--purple);border:1px solid rgba(155,109,255,.3)">Generate DPDP Report →</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         PAGE 3: INCIDENT DETAIL + PLAYBOOK
+    ═══════════════════════════════════════ -->
+    <div class="page" id="page-detail">
+      <div class="page-header">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <button class="btn btn-ghost btn-sm" onclick="showPage('incidents')">← Back</button>
+            <span style="font-family:var(--mono);font-size:12px;color:var(--accent2)">#IR-001</span>
+            <span class="sev sev-crit">Critical</span>
+            <span class="status st-progress">In Progress</span>
+          </div>
+          <div class="page-title">Ransomware C2 Communication Detected</div>
+          <div class="page-sub">linux-host-01 · Detected 02:47:03 · Case opened 02:47:05 · Playbook: Ransomware Response</div>
+        </div>
+        <div class="page-actions">
+          <button class="btn btn-ghost btn-sm">🔗 Share</button>
+          <button class="btn btn-sm" style="background:rgba(155,109,255,.15);color:var(--purple);border:1px solid rgba(155,109,255,.3)">📄 Generate DPDP PDF</button>
+          <button class="btn btn-primary btn-sm">✓ Resolve Case</button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+
+        <!-- MAIN COL -->
+        <div>
+          <!-- Case metadata -->
+          <div class="detail-header">
+            <div class="dh-meta">
+              <div class="dh-meta-item"><div class="dh-meta-label">Agent Host</div><div class="dh-meta-val" style="font-family:var(--mono)">linux-host-01</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">Agent IP</div><div class="dh-meta-val" style="font-family:var(--mono)">192.168.1.42</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">Wazuh Rule</div><div class="dh-meta-val" style="font-family:var(--mono)">92200</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">First Alert</div><div class="dh-meta-val">02:47:03 today</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">Data Categories</div><div class="dh-meta-val">PII, Credentials</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">Persons Affected</div><div class="dh-meta-val">~240 students</div></div>
+              <div class="dh-meta-item"><div class="dh-meta-label">CERT-In SLA</div><div class="dh-meta-val" style="color:var(--red)">2h 48m left ⚠</div></div>
+            </div>
+          </div>
+
+          <!-- Incident Timeline -->
+          <div class="card-title" style="margin-bottom:10px">Incident Timeline</div>
+          <div class="timeline" style="margin-bottom:16px">
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-red">🔴</div>
+              <div class="tl-body">
+                <div class="tl-title">Wazuh detected bulk file rename activity</div>
+                <div class="tl-desc">Rule 92200 fired: 847 files renamed with .locked extension in 12 seconds on /home partition. C2 beacon traffic to 185.220.101.x simultaneously detected.</div>
+                <div class="tl-cmd">Rule 92200 · Level 15 · agent: linux-host-01 · 185.220.101.45:443</div>
+                <div class="tl-time">02:47:03 — MTTD: 3.8 min from first suspicious event</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-blue">📁</div>
+              <div class="tl-body">
+                <div class="tl-title">Case #IR-001 auto-created · Ransomware playbook assigned</div>
+                <div class="tl-desc">Alert Processor caught the Wazuh event, created incident row in PostgreSQL, auto-assigned Ransomware Response playbook (6 steps).</div>
+                <div class="tl-time">02:47:05</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-amber">⚡</div>
+              <div class="tl-body">
+                <div class="tl-title">Step 1 completed — Host isolated from network</div>
+                <div class="tl-cmd">$ sudo iptables -I INPUT -j DROP && iptables -I OUTPUT -j DROP</div>
+                <div class="tl-time">02:49:12 — +2:09 from detection</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-amber">⚡</div>
+              <div class="tl-body">
+                <div class="tl-title">Step 2 completed — Malicious process identified + memory dumped</div>
+                <div class="tl-cmd">$ netstat -antp | grep ESTABLISHED → PID 3847 (./svc_update)</div>
+                <div class="tl-cmd">$ sudo dd if=/dev/mem of=/evidence/mem.dump bs=1M</div>
+                <div class="tl-time">02:53:40</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-green">✓</div>
+              <div class="tl-body">
+                <div class="tl-title">Steps 3–5 completed — Process killed, C2 blocked, persistence removed</div>
+                <div class="tl-desc">Process terminated. C2 IP blocked at firewall. Cron and startup entries cleared. No further encrypted files detected.</div>
+                <div class="tl-time">03:04:22</div>
+              </div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot tl-dot-purple">📄</div>
+              <div class="tl-body">
+                <div class="tl-title">Step 6 in progress — DPDP Report generation pending analyst review</div>
+                <div class="tl-desc">All breach fields auto-populated. Awaiting analyst confirmation of "Persons Affected" count before PDF generation.</div>
+                <div class="tl-time">Current</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="card">
+            <div class="card-title">Analyst Notes</div>
+            <textarea style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px;color:var(--txt);font-family:var(--font);font-size:13px;resize:vertical;min-height:80px;line-height:1.6" placeholder="Add investigation notes here...">Ransomware identified as LockBit variant. Encrypted files limited to /home/students/. Root partition unaffected. Attacker appears to have accessed via weak SSH creds on port 22. Recommended: enforce key-only SSH after resolution.</textarea>
+            <div style="margin-top:10px;display:flex;justify-content:flex-end"><button class="btn btn-ghost btn-sm">Save Note</button></div>
+          </div>
+        </div>
+
+        <!-- ASIDE COL -->
+        <div>
+          <!-- Playbook Stepper -->
+          <div class="playbook-box" style="margin-bottom:16px">
+            <div class="pb-header">
+              <div class="pb-title">📖 Ransomware Response</div>
+              <div class="pb-progress">5 / 6 steps</div>
+            </div>
+            <div class="pb-prog-bar"><div class="pb-prog-fill" style="width:83%"></div></div>
+            <div class="pb-steps">
+              <div class="pb-step done">
+                <div class="pbs-num pbs-num-done">✓</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Isolate Host from Network</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">Linux</span>iptables -I INPUT -j DROP</div>
+                  <div class="pbs-ts">✓ Done · 02:49:12</div>
+                </div>
+              </div>
+              <div class="pb-step done">
+                <div class="pbs-num pbs-num-done">✓</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Identify Malicious Process</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">Linux</span>netstat -antp | grep ESTABLISHED</div>
+                  <div class="pbs-ts">✓ Done · 02:53:40</div>
+                </div>
+              </div>
+              <div class="pb-step done">
+                <div class="pbs-num pbs-num-done">✓</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Preserve Evidence + Kill Process</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">Linux</span>dd if=/dev/mem of=/evidence/mem.dump</div>
+                  <div class="pbs-ts">✓ Done · 02:58:11</div>
+                </div>
+              </div>
+              <div class="pb-step done">
+                <div class="pbs-num pbs-num-done">✓</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Kill Ransomware Process</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">Linux</span>sudo kill -9 3847</div>
+                  <div class="pbs-ts">✓ Done · 03:01:05</div>
+                </div>
+              </div>
+              <div class="pb-step done">
+                <div class="pbs-num pbs-num-done">✓</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Block C2 IP at Firewall</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">Linux</span>sudo ufw deny out to 185.220.101.45</div>
+                  <div class="pbs-ts">✓ Done · 03:04:22</div>
+                </div>
+              </div>
+              <div class="pb-step active" id="pbStep6">
+                <div class="pbs-num pbs-num-active">6</div>
+                <div class="pbs-body">
+                  <div class="pbs-title">Generate DPDP Report</div>
+                  <div class="pbs-cmd"><span class="pbs-cmd-label">ZeroRespond</span>Click "Generate DPDP PDF" above</div>
+                  <div class="pbs-goal">Goal: Breach report ready for CERT-In before 6-hour SLA expires.</div>
+                </div>
+                <div class="pbs-action">
+                  <button class="btn btn-sm btn-primary" onclick="completeStep6()">Mark Done</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Evidence -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title">Evidence Files</div>
+            <div class="evidence-list">
+              <div class="ev-item"><span class="ev-icon">💾</span><span class="ev-name">mem.dump.gz</span><span class="ev-size">412 MB</span></div>
+              <div class="ev-item"><span class="ev-icon">📋</span><span class="ev-name">wazuh_alert_92200.json</span><span class="ev-size">2.1 KB</span></div>
+              <div class="ev-item"><span class="ev-icon">📸</span><span class="ev-name">dashboard_screenshot.png</span><span class="ev-size">384 KB</span></div>
+            </div>
+            <div class="upload-area" onclick="this.querySelector('input').click()">
+              📎 Drop files here or click to upload evidence
+              <input type="file" style="display:none" multiple>
+            </div>
+          </div>
+
+          <!-- Alert Detail -->
+          <div class="alert-panel">
+            <div class="ap-title">Triggering Alert Detail</div>
+            <div class="ap-row"><div class="ap-key">Wazuh Rule ID</div><div class="ap-val">92200</div></div>
+            <div class="ap-row"><div class="ap-key">Rule Name</div><div class="ap-val">Ransomware — Bulk Rename</div></div>
+            <div class="ap-row"><div class="ap-key">Alert Level</div><div class="ap-val" style="color:var(--red)">15 (Critical)</div></div>
+            <div class="ap-row"><div class="ap-key">Agent</div><div class="ap-val">linux-host-01 (192.168.1.42)</div></div>
+            <div class="ap-row"><div class="ap-key">Files Renamed</div><div class="ap-val">847 in 12 seconds</div></div>
+            <div class="ap-row"><div class="ap-key">C2 IP</div><div class="ap-val" style="color:var(--red)">185.220.101.45:443</div></div>
+            <div class="ap-row"><div class="ap-key">Timestamp</div><div class="ap-val">2026-05-07 02:47:03 IST</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         PAGE 4: LIVE ALERTS
+    ═══════════════════════════════════════ -->
+    <div class="page" id="page-alerts">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Live Alert Feed</div>
+          <div class="page-sub">Real-time Wazuh alert stream · 4 agents connected · Polling every 30s</div>
+        </div>
+        <div class="page-actions">
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--accent);font-family:var(--mono)">
+            <span style="width:7px;height:7px;background:var(--accent);border-radius:50%;display:inline-block;animation:pulse-green 1.5s infinite"></span>
+            Connected · 4 agents
+          </div>
+          <select style="background:var(--card);border:1px solid var(--border2);color:var(--muted2);padding:7px 12px;border-radius:7px;font-size:13px;font-family:var(--font)">
+            <option>All Severity</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+          </select>
+          <button class="btn btn-ghost btn-sm">⏸ Pause Feed</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 320px;gap:16px">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+            <div class="card-title" style="margin:0">Incoming Alerts</div>
+            <span style="font-size:11px;color:var(--muted)">Showing last 50 · All agents</span>
+          </div>
+          <div id="fullAlertFeed" style="max-height:calc(100vh - 260px);overflow-y:auto">
+          </div>
+        </div>
+
+        <!-- Agent Status -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card">
+            <div class="card-title">Agent Status</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+                <div><div style="font-size:13px;font-weight:600;color:var(--txt)">linux-host-01</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">192.168.1.42</div></div>
+                <span class="status st-done">Active</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+                <div><div style="font-size:13px;font-weight:600;color:var(--txt)">linux-host-02</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">192.168.1.43</div></div>
+                <span class="status st-done">Active</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+                <div><div style="font-size:13px;font-weight:600;color:var(--txt)">windows-host-01</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">192.168.1.50</div></div>
+                <span class="status st-done">Active</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:7px">
+                <div><div style="font-size:13px;font-weight:600;color:var(--txt)">web-server-01</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">192.168.1.60</div></div>
+                <span class="status st-done">Active</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Alert Stats (Today)</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">Total alerts</span>
+                <span style="font-family:var(--mono);color:var(--txt)">47</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">Critical</span>
+                <span style="font-family:var(--mono);color:var(--red)">3</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">High</span>
+                <span style="font-family:var(--mono);color:var(--orange)">8</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">Medium</span>
+                <span style="font-family:var(--mono);color:var(--amber)">21</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">Low</span>
+                <span style="font-family:var(--mono);color:var(--accent2)">15</span>
+              </div>
+              <div style="height:1px;background:var(--border);margin:4px 0"></div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:13px;color:var(--muted2)">False positives</span>
+                <span style="font-family:var(--mono);color:var(--accent)">12% ↓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════
+         PAGE 5: METRICS
+    ═══════════════════════════════════════ -->
+    <div class="page" id="page-metrics">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Security Metrics</div>
+          <div class="page-sub">MTTD · MTTR · False Positive Rate · Sprint Progress · All from simulated lab data</div>
+        </div>
+        <div class="page-actions">
+          <div style="display:flex;border:1px solid var(--border2);border-radius:7px;overflow:hidden">
+            <button class="btn btn-ghost btn-sm" style="border:none;border-radius:0" id="rangeWk" onclick="setRange('week',this)">Week</button>
+            <button class="btn btn-sm" style="background:rgba(0,229,176,.1);color:var(--accent);border:none;border-radius:0" id="rangeSp" onclick="setRange('sprint',this)">Sprint</button>
+            <button class="btn btn-ghost btn-sm" style="border:none;border-radius:0" id="rangeAll" onclick="setRange('all',this)">All Time</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="kpi-grid" style="margin-bottom:20px">
+        <div class="kpi-card" style="--kpi-color:var(--accent)">
+          <div class="kpi-val">4.2m</div><div class="kpi-lbl">MTTD</div><div class="kpi-sub">50 simulated alerts</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--accent2)">
+          <div class="kpi-val">22m</div><div class="kpi-lbl">MTTR</div><div class="kpi-sub">with playbook guidance</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--amber)">
+          <div class="kpi-val">12%</div><div class="kpi-lbl">False Positive Rate</div><div class="kpi-sub">after Wazuh tuning</div>
+        </div>
+        <div class="kpi-card" style="--kpi-color:var(--purple)">
+          <div class="kpi-val">82%</div><div class="kpi-lbl">Faster than Manual</div><div class="kpi-sub">vs. 2h manual response</div>
+        </div>
+      </div>
+
+      <div class="metrics-grid-2" style="margin-bottom:16px">
+        <!-- MTTD Line Chart -->
+        <div class="chart-box">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="card-title">MTTD Trend — Simulated Lab Runs</div>
+          </div>
+          <svg viewBox="0 0 400 160" style="width:100%;height:150px;margin-top:12px" id="mttdBig"></svg>
+          <div class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--accent)"></div>MTTD per run (minutes)</div>
+            <div class="cl-item"><div class="cl-dot" style="background:rgba(0,229,176,.3)"></div>Target: &lt;5 min</div>
+          </div>
+        </div>
+
+        <!-- Bar: By Attack Type -->
+        <div class="chart-box">
+          <div class="card-title">MTTD by Attack Type</div>
+          <svg viewBox="0 0 400 160" style="width:100%;height:150px;margin-top:12px" id="typeBar"></svg>
+          <div class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--red)"></div>Ransomware: 3.8m</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--amber)"></div>Brute Force: 4.5m</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--accent2)"></div>Web Attack: 3.1m</div>
+            <div class="cl-item"><div class="cl-dot" style="background:var(--purple)"></div>C2 Beacon: 5.2m</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="metrics-grid-2">
+        <!-- FP Rate Over Sprints -->
+        <div class="chart-box">
+          <div class="card-title">False Positive Rate Reduction (Sprint by Sprint)</div>
+          <svg viewBox="0 0 400 160" style="width:100%;height:150px;margin-top:12px" id="fpChart"></svg>
+          <div class="chart-legend">
+            <div class="cl-item"><div class="cl-dot" style="background:var(--red)"></div>FP Rate %</div>
+            <div class="cl-item"><div class="cl-dot" style="background:rgba(255,69,85,.2)"></div>Target: &lt;15%</div>
+          </div>
+        </div>
+
+        <!-- Sprint Progress Table -->
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+            <div class="card-title" style="margin:0">Sprint Completion</div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Sprint</th><th>Phase</th><th>Progress</th><th>Status</th>
+            </tr></thead>
+            <tbody>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S1</td><td style="font-size:12px;color:var(--txt)">Foundation</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--accent);height:100%;border-radius:2px;width:100%"></div></div></td><td><span class="status st-done">Done</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S2</td><td style="font-size:12px;color:var(--txt)">Detection + API</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--accent);height:100%;border-radius:2px;width:100%"></div></div></td><td><span class="status st-done">Done</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S3</td><td style="font-size:12px;color:var(--txt)">Playbooks</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--accent2);height:100%;border-radius:2px;width:85%"></div></div></td><td><span class="status st-progress">Active</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S4</td><td style="font-size:12px;color:var(--txt)">Integration</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--muted);height:100%;border-radius:2px;width:0%"></div></div></td><td><span class="status st-open">Upcoming</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S5</td><td style="font-size:12px;color:var(--txt)">E2E Sim.</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--muted);height:100%;border-radius:2px;width:0%"></div></div></td><td><span class="status st-open">Upcoming</span></td></tr>
+              <tr><td style="font-family:var(--mono);color:var(--accent2);font-size:12px">S6</td><td style="font-size:12px;color:var(--txt)">Deploy</td><td><div style="background:var(--border);border-radius:2px;height:5px;width:100%;min-width:80px"><div style="background:var(--muted);height:100%;border-radius:2px;width:0%"></div></div></td><td><span class="status st-open">Upcoming</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE: PLAYBOOKS LIST -->
+    <div class="page" id="page-playbooks">
+      <div class="page-header">
+        <div class="page-title">Playbook Library</div>
+        <div class="page-sub">5 attack-type playbooks · Each with 6 actionable command-level steps</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+        <div class="card" style="cursor:pointer;border-color:rgba(255,69,85,.2)" onclick="showPage('detail')">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:20px">🔒</div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt)">Ransomware Response</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">6 steps · ~22 min avg response</div></div>
+            <span class="sev sev-crit" style="margin-left:auto">Critical</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);line-height:1.5">Isolate → Identify → Preserve evidence → Kill process → Block C2 → Generate DPDP report</div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm">Use Playbook →</button>
+            <button class="btn btn-ghost btn-sm">Preview</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;border-color:rgba(255,112,67,.2)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:20px">🎣</div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt)">Phishing Response</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">6 steps · ~18 min avg response</div></div>
+            <span class="sev sev-high" style="margin-left:auto">High</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);line-height:1.5">Identify recipient → Quarantine emails → Revoke credentials → Scan endpoints → Notify users → Report</div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm">Use Playbook →</button>
+            <button class="btn btn-ghost btn-sm">Preview</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;border-color:rgba(59,124,255,.2)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:20px">🚪</div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt)">Unauthorized Access</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">6 steps · ~15 min avg response</div></div>
+            <span class="sev sev-high" style="margin-left:auto">High</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);line-height:1.5">Identify session → Terminate access → Rotate credentials → Audit logs → Patch entry point → Report</div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm">Use Playbook →</button>
+            <button class="btn btn-ghost btn-sm">Preview</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;border-color:rgba(0,212,232,.2)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:20px">📤</div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt)">Data Exfiltration</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">6 steps · ~20 min avg response</div></div>
+            <span class="sev sev-med" style="margin-left:auto">Medium</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);line-height:1.5">Identify exfil path → Block outbound → Collect netflow → Identify data scope → Notify → DPDP report</div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm">Use Playbook →</button>
+            <button class="btn btn-ghost btn-sm">Preview</button>
+          </div>
+        </div>
+        <div class="card" style="cursor:pointer;border-color:rgba(155,109,255,.2)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+            <div style="font-size:20px">🕵️</div>
+            <div><div style="font-size:15px;font-weight:700;color:var(--txt)">Insider Threat</div><div style="font-size:11px;color:var(--muted);font-family:var(--mono)">6 steps · ~30 min avg response</div></div>
+            <span class="sev sev-med" style="margin-left:auto">Medium</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted2);line-height:1.5">Preserve audit trail → Suspend account → Interview manager → Forensic review → HR escalation → Report</div>
+          <div style="margin-top:14px;display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm">Use Playbook →</button>
+            <button class="btn btn-ghost btn-sm">Preview</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── PAGE NAVIGATION ──
+const pages = {
+  'dashboard':'Dashboard',
+  'incidents':'Incidents',
+  'alerts':'Live Alerts',
+  'metrics':'Metrics',
+  'detail':'Case #IR-001',
+  'playbooks':'Playbooks'
+};
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const pg = document.getElementById('page-'+name);
+  if(pg) pg.classList.add('active');
+  const nav = document.getElementById('nav-'+name);
+  if(nav) nav.classList.add('active');
+  document.getElementById('breadcrumb').innerHTML = `<span style="color:var(--muted)">ZeroRespond</span>&nbsp;/&nbsp;${pages[name]||name}`;
+  window.scrollTo?window.scrollTo(0,0):null;
+  if(name==='metrics') drawMetricCharts();
+}
+
+// ── ALERT DATA ──
+const ALERTS = [
+  {rule:'92200 — Ransomware bulk file rename detected',host:'linux-host-01',sev:'crit',time:'02:47:03',isNew:true},
+  {rule:'5710 — Multiple SSH authentication failures (50+)',host:'linux-host-02',sev:'high',time:'01:23:41',isNew:true},
+  {rule:'87105 — Suspicious outbound C2 beacon port 4444',host:'windows-host-01',sev:'high',time:'00:58:12',isNew:true},
+  {rule:'5402 — User added to administrators/sudo group',host:'linux-host-03',sev:'med',time:'Yesterday 22:14',isNew:false},
+  {rule:'31168 — SQL injection attempt — /api/users endpoint',host:'web-server-01',sev:'med',time:'Yesterday 18:33',isNew:false},
+  {rule:'40101 — Large outbound data transfer (>100MB)',host:'linux-host-01',sev:'low',time:'Yesterday 14:07',isNew:false},
+  {rule:'5501 — Failed sudo attempt — non-privileged user',host:'linux-host-02',sev:'low',time:'Yesterday 11:22',isNew:false},
+  {rule:'92201 — Crontab modification detected',host:'linux-host-03',sev:'med',time:'2 days ago',isNew:false},
+  {rule:'87200 — Port scan detected from 203.0.113.x',host:'web-server-01',sev:'low',time:'2 days ago',isNew:false},
+  {rule:'5304 — New user account created — no prior notice',host:'linux-host-01',sev:'low',time:'3 days ago',isNew:false},
+];
+
+const SEV_COLOR = {crit:'var(--red)',high:'var(--orange)',med:'var(--amber)',low:'var(--accent2)'};
+const SEV_LABEL = {crit:'Critical',high:'High',med:'Medium',low:'Low'};
+const SEV_CLASS = {crit:'sev-crit',high:'sev-high',med:'sev-med',low:'sev-low'};
+const SEV_ICON  = {crit:'🔴',high:'🟠',med:'🟡',low:'🔵'};
+
+function buildAlertHTML(a,mini=false){
+  return `
+  <div class="af-item" onclick="showPage('detail')">
+    <div class="af-sev-bar" style="background:${SEV_COLOR[a.sev]}"></div>
+    <div class="af-icon" style="background:${SEV_COLOR[a.sev]}22">${SEV_ICON[a.sev]}</div>
+    <div class="af-main">
+      <div class="af-rule">${a.rule}</div>
+      <div class="af-host">${a.host}</div>
+    </div>
+    <div class="af-meta">
+      <div class="af-time">${a.time}</div>
+      ${a.isNew?'<div class="af-new"></div>':''}
+    </div>
+  </div>`;
+}
+
+// Populate live feed (dashboard)
+const liveFeed = document.getElementById('liveFeed');
+if(liveFeed) liveFeed.innerHTML = ALERTS.slice(0,6).map(a=>buildAlertHTML(a,true)).join('');
+
+// Populate full alert feed
+const fullFeed = document.getElementById('fullAlertFeed');
+if(fullFeed) fullFeed.innerHTML = ALERTS.map(a=>buildAlertHTML(a)).join('');
+
+// Simulate new alert arriving
+let alertIdx = ALERTS.length;
+setInterval(()=>{
+  if(!document.getElementById('page-alerts').classList.contains('active')) return;
+  const fakeAlerts = [
+    {rule:'5710 — SSH brute force attempt (30 fails/60s)',host:'linux-host-02',sev:'high',time:'Just now',isNew:true},
+    {rule:'31115 — Directory traversal /../etc/passwd',host:'web-server-01',sev:'med',time:'Just now',isNew:true},
+    {rule:'40200 — DNS lookup to known malicious domain',host:'windows-host-01',sev:'high',time:'Just now',isNew:true},
+  ];
+  const a = fakeAlerts[alertIdx++ % fakeAlerts.length];
+  const div = document.createElement('div');
+  div.innerHTML = buildAlertHTML(a);
+  div.firstElementChild.style.animation='fadein .3s ease';
+  if(fullFeed) fullFeed.insertBefore(div.firstElementChild, fullFeed.firstChild);
+},8000);
+
+// ── DASHBOARD SVG CHARTS ──
+function drawLine(svgId, data, color, w=300, h=120, fill=false){
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const pad = {l:30,r:10,t:10,b:30};
+  const W=w-pad.l-pad.r, H=h-pad.t-pad.b;
+  const minV=Math.min(...data)*0.85, maxV=Math.max(...data)*1.1;
+  const xs = data.map((_,i)=>pad.l + i/(data.length-1)*W);
+  const ys = data.map(v=>pad.t + (1-(v-minV)/(maxV-minV))*H);
+  const pts = xs.map((x,i)=>`${x},${ys[i]}`).join(' ');
+  svg.innerHTML=`
+    ${[0,0.25,0.5,0.75,1].map(f=>{
+      const y=pad.t+f*H;
+      const v=(maxV-(maxV-minV)*f).toFixed(1);
+      return `<line x1="${pad.l}" y1="${y}" x2="${w-pad.r}" y2="${y}" stroke="#1C2236" stroke-width="1"/>
+              <text x="${pad.l-4}" y="${y+4}" fill="#5C6B8A" font-size="8" text-anchor="end" font-family="JetBrains Mono">${v}</text>`;
+    }).join('')}
+    ${data.map((_,i)=>{const x=xs[i];return `<line x1="${x}" y1="${pad.t}" x2="${x}" y2="${pad.t+H}" stroke="#1C2236" stroke-width="1"/>`;}).join('')}
+    ${fill?`<polyline points="${xs[0]},${pad.t+H} ${pts} ${xs[xs.length-1]},${pad.t+H}" fill="${color}22" stroke="none"/>`:''}
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${data.map((v,i)=>`<circle cx="${xs[i]}" cy="${ys[i]}" r="3" fill="${color}" opacity=".8"/>`).join('')}
+  `;
+}
+
+function drawBar(svgId, data, colors, labels, w=300, h=120){
+  const svg = document.getElementById(svgId);
+  if(!svg) return;
+  const pad={l:30,r:10,t:10,b:30};
+  const W=w-pad.l-pad.r, H=h-pad.t-pad.b;
+  const maxV = Math.max(...data)*1.1;
+  const bw = W/data.length*0.6;
+  svg.innerHTML = data.map((v,i)=>{
+    const x=pad.l+i*(W/data.length)+W/data.length*0.2;
+    const bh=(v/maxV)*H;
+    const y=pad.t+H-bh;
+    return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" fill="${colors[i]}" rx="3" opacity=".85"/>
+            <text x="${x+bw/2}" y="${pad.t+H+12}" fill="#5C6B8A" font-size="8" text-anchor="middle" font-family="JetBrains Mono">${labels[i]}</text>
+            <text x="${x+bw/2}" y="${y-4}" fill="${colors[i]}" font-size="9" text-anchor="middle" font-family="JetBrains Mono">${v}</text>`;
+  }).join('');
+}
+
+// Draw dashboard MTTD chart
+drawLine('mttdChart',[5.1,4.8,4.5,4.3,4.2,3.9,4.2],'#00E5B0',300,120,true);
+
+// Draw incidents by type donut-style bar
+drawBar('typeChart',[8,12,7,4],['#FF4555','#FFB300','#3B7CFF','#9B6DFF'],['Rans.','SSH','Web','C2']);
+
+// Heatmap
+function drawHeatmap(){
+  const days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const data={Mon:[0,0,1,0,0,0,0,0,2,1,0,0,1,0,0,0,0,3,1,0,0,1,0,0],Tue:[0,0,0,0,0,0,0,1,0,2,1,0,0,1,0,0,0,2,0,0,1,0,0,0],Wed:[0,0,2,0,0,0,0,0,1,3,1,0,2,0,0,0,1,4,1,0,0,0,0,0],Thu:[0,0,0,1,0,0,0,0,2,1,0,1,0,0,1,0,2,1,0,0,0,1,0,0],Fri:[1,0,0,0,0,0,0,2,1,2,0,0,0,1,0,0,1,2,0,1,0,0,0,0],Sat:[0,0,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0],Sun:[0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0]};
+  const maxV=5;
+  const colors=['transparent','rgba(0,229,176,.15)','rgba(0,229,176,.3)','rgba(0,229,176,.5)','rgba(0,229,176,.7)','rgba(0,229,176,.9)'];
+  const hm=document.getElementById('heatmap');
+  if(!hm) return;
+  let html='<div style="display:grid;grid-template-columns:30px repeat(24,1fr);gap:2px">';
+  // hour labels row
+  html+='<div></div>';
+  for(let h=0;h<24;h++) html+=`<div style="font-size:8px;color:#5C6B8A;text-align:center;font-family:JetBrains Mono;padding-bottom:3px">${h%6===0?h:''}</div>`;
+  days.forEach(d=>{
+    html+=`<div style="font-size:9px;color:#5C6B8A;display:flex;align-items:center;font-family:JetBrains Mono">${d}</div>`;
+    data[d].forEach(v=>{
+      const col=colors[Math.min(v,maxV)];
+      html+=`<div title="${v} alerts" style="aspect-ratio:1;border-radius:2px;background:${col};border:1px solid #1C2236;cursor:pointer"></div>`;
+    });
+  });
+  html+='</div>';
+  hm.innerHTML=html;
+}
+drawHeatmap();
+
+// ── METRICS CHARTS ──
+function drawMetricCharts(){
+  // MTTD trend
+  drawLine('mttdBig',[6.2,5.8,5.1,4.7,4.4,4.3,4.1,4.2,3.9,4.0,3.8,4.2],'#00E5B0',400,160,true);
+  // FP Rate
+  drawLine('fpChart',[28,26,24,21,18,15,14,12],'#FF4555',400,160,true);
+  // Type Bar
+  drawBar('typeBar',[3.8,4.5,3.1,5.2,4.0],['#FF4555','#FFB300','#3B7CFF','#9B6DFF','#00E5B0'],['Rans','SSH','Web','C2','Exfil'],400,160);
+}
+
+// ── STEP COMPLETION ──
+function completeStep6(){
+  const step = document.getElementById('pbStep6');
+  step.classList.remove('active');
+  step.classList.add('done');
+  step.querySelector('.pbs-num').className='pbs-num pbs-num-done';
+  step.querySelector('.pbs-num').textContent='✓';
+  step.querySelector('.pbs-title').textContent='Generate DPDP Report';
+  step.querySelector('.pbs-action').innerHTML='<span style="font-size:11px;color:var(--accent);font-family:var(--mono)">✓ Done · just now</span>';
+  document.querySelector('.pb-prog-fill').style.width='100%';
+  document.querySelector('.pb-progress').textContent='6 / 6 steps';
+}
+
+// ── RANGE TOGGLE ──
+function setRange(r, btn){
+  document.querySelectorAll('#rangeWk,#rangeSp,#rangeAll').forEach(b=>{
+    b.style.background='transparent';b.style.color='var(--muted2)';
+  });
+  btn.style.background='rgba(0,229,176,.1)';btn.style.color='var(--accent)';
+}
+</script>
+</body>
+</html>

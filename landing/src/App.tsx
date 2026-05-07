@@ -1,28 +1,132 @@
-import { useEffect, useRef } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import './landing.css'
+
+const REPO_ROOT = 'https://github.com/project-kadavusol/ZeroRespond'
+const README_URL = `${REPO_ROOT}/blob/main/README.md`
+
+const DEPLOY_COMMAND =
+  'git clone https://github.com/project-kadavusol/ZeroRespond.git && cd ZeroRespond && cp .env.example .env && docker compose up -d'
+
+type TermLineSpec = { text: string; cls?: string; newline?: boolean }
+
+const TERM_LINES: TermLineSpec[] = [
+  { text: '[02:47:03] ', cls: 't-time', newline: true },
+  { text: 'WAZUH  ', cls: 't-detect' },
+  { text: 'Bulk file rename detected — 847 files in 12s', cls: '' },
+  { text: '', newline: true },
+  { text: '[02:47:04] ', cls: 't-time', newline: true },
+  { text: 'ALERT  ', cls: 't-alert' },
+  { text: 'Rule 92200 — Possible Ransomware Activity ', cls: '' },
+  { text: 'CRITICAL', cls: 'term-badge tbg-red' },
+  { text: '', newline: true },
+  { text: '[02:47:05] ', cls: 't-time', newline: true },
+  { text: 'CASE   ', cls: 't-case' },
+  { text: '#IR-2024-001 auto-created · Playbook assigned', cls: '' },
+  { text: '', newline: true },
+  { text: 'PLAYBOOK ', cls: 't-play', newline: true },
+  { text: 'Ransomware Response — 6 steps loaded', cls: '' },
+  { text: '', newline: true },
+  { text: '  ├ Step 1 → Isolate host', cls: 't-cmd', newline: true },
+  { text: '  │  $ iptables -I INPUT -j DROP', cls: 't-cmd', newline: true },
+  { text: '  ├ Step 2 → Kill process PID 3847', cls: 't-cmd', newline: true },
+  { text: '  ├ Step 3 → Block C2 IP 185.220.x.x', cls: 't-cmd', newline: true },
+  { text: '  └ Steps 4–6 complete ✓', cls: 't-done', newline: true },
+  { text: '', newline: true },
+  { text: 'REPORT  ', cls: 't-report', newline: true },
+  { text: 'Generating DPDP Section 8(6) PDF...', cls: '' },
+  { text: '', newline: true },
+  { text: 'METRIC  ', cls: 't-metric', newline: true },
+  { text: 'MTTD: 4.2 min · MTTR: 22 min · FP: 12%', cls: '' },
+  { text: '', newline: true },
+  { text: '✓ Case resolved · Report ready · ', cls: 't-done', newline: true },
+  { text: '82% faster than manual response', cls: 't-done', newline: true },
+]
+
+function buildLineGroups(lines: TermLineSpec[]) {
+  const lineGroups: TermLineSpec[][] = []
+  let cg: TermLineSpec[] = []
+  for (const l of lines) {
+    cg.push(l)
+    if (l.newline) {
+      lineGroups.push([...cg])
+      cg = []
+    }
+  }
+  if (cg.length) lineGroups.push(cg)
+  return lineGroups
+}
+
+function TerminalAnimation() {
+  const lineGroups = useMemo(() => buildLineGroups(TERM_LINES), [])
+  const cycleMs = lineGroups.length * 280 + 3000
+  const [cycle, setCycle] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => setCycle((c) => c + 1), cycleMs)
+    return () => window.clearInterval(id)
+  }, [cycleMs])
+
+  return (
+    <div className="term-body" key={cycle}>
+      {lineGroups.map((group, gi) => (
+        <div key={gi} className="term-row term-row-inner" style={{ animationDelay: `${gi * 0.08}s` }}>
+          {group.map((item, ii) => {
+            if (!item.text && !item.cls) return null
+            return (
+              <span key={ii} className={item.cls || undefined}>
+                {item.text}
+              </span>
+            )
+          })}
+        </div>
+      ))}
+      <span className="cursor" aria-hidden />
+    </div>
+  )
+}
 
 export default function App() {
   const navRef = useRef<HTMLElement | null>(null)
+  const [copyLabel, setCopyLabel] = useState('Copy')
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(DEPLOY_COMMAND)
+    } catch {
+      return
+    }
+    setCopyLabel('Copied!')
+    window.setTimeout(() => setCopyLabel('Copy'), 2000)
+  }, [])
 
   useEffect(() => {
     const nav = navRef.current
     if (!nav) return
 
     const onScroll = () => {
-      nav.classList.toggle('scrolled', window.scrollY > 60)
+      nav.classList.toggle('scrolled', window.scrollY > 50)
     }
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
+  useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (e.isIntersecting) e.target.classList.add('visible')
         }
       },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     )
-    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    document.querySelectorAll('.fade-up').forEach((el) => observer.observe(el))
 
     const anchors = document.querySelectorAll('a[href^="#"]')
     const clickHandlers: Array<{ el: Element; fn: (e: Event) => void }> = []
@@ -41,7 +145,6 @@ export default function App() {
     })
 
     return () => {
-      window.removeEventListener('scroll', onScroll)
       observer.disconnect()
       for (const { el, fn } of clickHandlers) {
         el.removeEventListener('click', fn)
@@ -52,394 +155,871 @@ export default function App() {
   return (
     <>
       <nav id="navbar" ref={navRef}>
-        <a href="#" className="nav-logo" aria-label="ZeroRespond home">
-          <span className="logo-wordmark">
-            <span className="logo-zero">Zero</span>
-            Respond
+        <a
+          className="nav-logo"
+          href="#top"
+          aria-label="ZeroRespond home"
+          onClick={(e) => {
+            e.preventDefault()
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        >
+          <div className="logo-mark">ZR</div>
+          <span className="logo-text">
+            Zero<span>Respond</span>
           </span>
         </a>
         <ul className="nav-links">
-          <li><a href="#problem">Problem</a></li>
-          <li><a href="#solution">Solution</a></li>
-          <li><a href="#compare">Compare</a></li>
-          <li><a href="#dpdp">DPDP Act</a></li>
-          <li><a href="#team">Team</a></li>
+          <li>
+            <a href="#problem">Problem</a>
+          </li>
+          <li>
+            <a href="#solution">Solution</a>
+          </li>
+          <li>
+            <a href="#modules">Modules</a>
+          </li>
+          <li>
+            <a href="#dpdp">DPDP</a>
+          </li>
+          <li>
+            <a href="#deploy">Deploy</a>
+          </li>
         </ul>
         <div className="nav-cta">
-          <a href="https://github.com/project-kadavusol/ZeroRespond" target="_blank" rel="noopener noreferrer" className="btn btn-ghost">GitHub ↗</a>
-          <a href="#cta" className="btn btn-primary">Get Started →</a>
+          <a
+            href={REPO_ROOT}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-outline"
+          >
+            GitHub
+          </a>
+          <a href="#deploy" className="btn-primary">
+            Get Started →
+          </a>
         </div>
       </nav>
-      
-      
-      <section id="hero">
-        <div className="grid-bg"></div>
-        <div className="hero-glow"></div>
-        <div className="hero-glow2"></div>
-        <div className="scan-line"></div>
-        <div className="hero-inner">
-          <div className="hero-content">
-            <div className="hero-badge anim-up">
-              <span className="badge-dot"></span>
-              India's First DPDP-Compliant IR Platform
+
+      <div id="top" />
+
+      <section className="hero">
+        <div className="hero-bg">
+          <div className="hero-grid" />
+          <div className="hero-glow1" />
+          <div className="hero-glow2" />
+        </div>
+
+        <div className="hero-left">
+          <div className="hero-badge">● v1.0 — Self-Hostable · Free · India-First</div>
+          <h1 className="hero-title">
+            INCIDENT
+            <br />
+            RESPONSE
+            <br />
+            <span className="accent">FOR EVERYONE</span>
+          </h1>
+          <p className="hero-sub">
+            When a cyberattack hits —{' '}
+            <strong>most Indian organizations panic, go dark, and lose everything.</strong>
+            <br />
+            ZeroRespond gives them a structured, DPDP-compliant path through any incident. No
+            security team needed.
+          </p>
+          <div className="hero-ctas">
+            <a href="#deploy" className="btn-hero btn-hero-primary">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+              </svg>
+              Deploy with Docker
+            </a>
+            <a href="#solution" className="btn-hero btn-hero-secondary">
+              See How It Works
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden
+              >
+                <path d="M9 18l6-6-6-6" />
+              </svg>
+            </a>
+          </div>
+          <div className="hero-stats">
+            <div className="hero-stat">
+              <span className="val">4.2 min</span>
+              <span className="lbl">Mean Time to Detect</span>
             </div>
-            <h1 className="hero-headline anim-up d1">
-              Detect. Respond.<br /><span className="accent">Report.</span> Repeat.
-            </h1>
-            <p className="hero-subline anim-up d2">
-              A unified, self-hostable <strong>Incident Response platform</strong> for colleges, hospitals, NGOs and startups that have <strong>no dedicated security team</strong> and zero budget for enterprise tools.
-            </p>
-            <div className="hero-actions anim-up d3">
-              <a href="#cta" className="btn btn-primary btn-lg">Deploy Free → Self-hosted</a>
-              <a href="#solution" className="btn btn-outline btn-lg">See How It Works</a>
+            <div className="hero-stat-div" />
+            <div className="hero-stat">
+              <span className="val">82%</span>
+              <span className="lbl">Faster Response</span>
             </div>
-            <div className="hero-stats anim-up d4">
-              <div className="hero-stat"><span className="stat-num">&lt;5 min</span><span className="stat-label">Avg. MTTD</span></div>
-              <div className="hero-stat"><span className="stat-num">82%</span><span className="stat-label">Faster Response</span></div>
-              <div className="hero-stat"><span className="stat-num">₹0</span><span className="stat-label">License Cost</span></div>
-              <div className="hero-stat"><span className="stat-num">DPDP</span><span className="stat-label">Act Aligned</span></div>
+            <div className="hero-stat-div" />
+            <div className="hero-stat">
+              <span className="val">50+</span>
+              <span className="lbl">Rules Validated</span>
+            </div>
+            <div className="hero-stat-div" />
+            <div className="hero-stat">
+              <span className="val">₹0</span>
+              <span className="lbl">Licensing Cost</span>
             </div>
           </div>
-          <div className="hero-visual anim-up d2">
-            <div className="terminal main-terminal">
-              <div className="terminal-top">
-                <div className="term-dot r"></div><div className="term-dot y"></div><div className="term-dot g"></div>
-                <span className="term-title">zerorespondnd — alert-processor</span>
+        </div>
+
+        <div className="hero-right">
+          <div className="terminal" id="terminal">
+            <div className="term-header">
+              <div className="term-dots">
+                <div className="term-dot td1" />
+                <div className="term-dot td2" />
+                <div className="term-dot td3" />
               </div>
-              <div className="term-body">
-                <div><span className="t-muted">$</span> <span className="t-teal">./alert_processor</span> <span className="t-muted">--env=production</span></div>
-                <div className="t-muted">Connecting to Wazuh API...</div>
-                <div><span className="t-green">✓</span> <span className="t-white">Wazuh connected</span> <span className="t-dim">192.168.1.10:55000</span></div>
-                <div><span className="t-green">✓</span> <span className="t-white">PostgreSQL ready</span></div>
-                <div><span className="t-green">✓</span> <span className="t-white">Polling alerts every 30s</span></div>
-                <div className="t-dim">─────────────────────────────</div>
-                <div><span className="t-amber">[ALERT]</span> <span className="t-red">CRITICAL</span> <span className="t-white">Brute Force Detected</span></div>
-                <div className="t-muted">  rule:5710 · src:203.0.113.42 · host:webserver01</div>
-                <div><span className="t-teal">→</span> <span className="t-white">Case IR-20260501-A3F2 created</span></div>
-                <div><span className="t-teal">→</span> <span className="t-white">Playbook: Unauthorized Access</span></div>
-                <div><span className="t-teal">→</span> <span className="t-white">Alert pushed via WebSocket</span></div>
-                <div className="t-muted">Watching for new alerts... <span className="cursor"></span></div>
-              </div>
+              <span className="term-title">zerorespond — live incident: #IR-2024-001</span>
             </div>
-            <div className="alert-card">
-              <div className="alert-header">
-                <div className="alert-icon">🚨</div>
-                <div><div className="alert-title-sm">Live Alerts</div><div className="alert-sub">Last 60 minutes</div></div>
-              </div>
-              <div className="alert-row"><span>SSH Brute Force</span><span className="badge-sm badge-crit">CRIT</span></div>
-              <div className="alert-row"><span>Privilege Escalation</span><span className="badge-sm badge-hi">HIGH</span></div>
-              <div className="alert-row"><span>SQL Injection</span><span className="badge-sm badge-hi">HIGH</span></div>
-              <div className="alert-row"><span>Unusual Outbound</span><span className="badge-sm badge-med">MED</span></div>
-            </div>
-            <div className="playbook-card">
-              <div className="pb-header">📋 Active Playbook</div>
-              <div className="pb-step"><div className="pb-num done">✓</div><span className="pb-text done">Isolate host</span></div>
-              <div className="pb-step"><div className="pb-num">2</div><span className="pb-text">Identify process</span></div>
-              <div className="pb-step"><div className="pb-num">3</div><span className="pb-text">Preserve evidence</span></div>
-              <div className="pb-step"><div className="pb-num">4</div><span className="pb-text">Block C2 IP</span></div>
-              <div className="pb-progress"><div className="pb-bar"></div></div>
-            </div>
+            <TerminalAnimation />
           </div>
         </div>
       </section>
-      
-      
-      <div id="strip">
-        <div className="marquee-wrap">
-          <div className="marquee-track">
-            <div className="marquee-item">🔴 Ransomware <span className="hi">→ Playbook auto-assigned</span></div>
-            <div className="marquee-item">🐟 Phishing <span className="hi">→ C2 beacon detected</span></div>
-            <div className="marquee-item">🔐 Brute Force <span className="hi">→ Case IR-A3F2 created</span></div>
-            <div className="marquee-item">📤 Data Exfiltration <span className="hi">→ Outbound blocked</span></div>
-            <div className="marquee-item">👤 Insider Threat <span className="hi">→ Evidence preserved</span></div>
-            <div className="marquee-item">📋 DPDP Report <span className="hi">→ Generated in 1 click</span></div>
-            <div className="marquee-item">⚡ MTTD <span className="hi">4.2 minutes average</span></div>
-            <div className="marquee-item">🚀 Deploy <span className="hi">docker compose up</span></div>
-            <div className="marquee-item">🔴 Ransomware <span className="hi">→ Playbook auto-assigned</span></div>
-            <div className="marquee-item">🐟 Phishing <span className="hi">→ C2 beacon detected</span></div>
-            <div className="marquee-item">🔐 Brute Force <span className="hi">→ Case IR-A3F2 created</span></div>
-            <div className="marquee-item">📤 Data Exfiltration <span className="hi">→ Outbound blocked</span></div>
-            <div className="marquee-item">👤 Insider Threat <span className="hi">→ Evidence preserved</span></div>
-            <div className="marquee-item">📋 DPDP Report <span className="hi">→ Generated in 1 click</span></div>
-            <div className="marquee-item">⚡ MTTD <span className="hi">4.2 minutes average</span></div>
-            <div className="marquee-item">🚀 Deploy <span className="hi">docker compose up</span></div>
+
+      <div className="trust-bar">
+        <div className="trust-inner">
+          <div className="trust-badge">🎓 Kumaraguru College of Technology</div>
+          <div className="trust-div" />
+          <div className="trust-item">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+            >
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            DPDP Act 2023 · Section 8(6) Mapped
+          </div>
+          <div className="trust-div" />
+          <div className="trust-item">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v4l3 3" />
+            </svg>
+            ISO 27035 Aligned IR Workflow
+          </div>
+          <div className="trust-div" />
+          <div className="trust-item">
+            <svg
+              width="14"
+              height="14"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+            >
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Tested on 50+ Simulated Alerts
+          </div>
+          <div className="trust-div" />
+          <div className="trust-item">
+            <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+              <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2c2.09 0 4.02.713 5.565 1.898L5.898 17.565A7.952 7.952 0 014 12c0-4.411 3.589-8 8-8zm0 16a7.97 7.97 0 01-5.565-2.102L18.102 6.435A7.97 7.97 0 0120 12c0 4.411-3.589 8-8 8z" />
+            </svg>
+            CERT-In 6-Hour Notification SLA
           </div>
         </div>
       </div>
-      
-      
-      <section id="problem">
-        <div className="section-inner">
-          <div className="section-label reveal">The Problem</div>
-          <h2 className="section-title reveal d100">When an attack hits, most organizations<br />panic, improvise, and go silent.</h2>
-          <div className="problem-grid">
-            <div className="problem-stats reveal d200">
-              <div className="problem-card">
-                <div className="prob-num red">42%</div>
-                <div className="prob-desc">of Indian SMBs have zero incident response plan when a breach occurs</div>
-              </div>
-              <div className="problem-card">
-                <div className="prob-num amber">6 hrs</div>
-                <div className="prob-desc">DPDP Act 2023 Section 8(6) deadline to notify CERT-In — most orgs miss this</div>
-              </div>
-              <div className="problem-card">
-                <div className="prob-num teal">₹1.4M</div>
-                <div className="prob-desc">average annual loss per SMB from uncontrolled cyberattacks in India</div>
-              </div>
-              <div className="problem-card">
-                <div className="prob-num purple">2+ hrs</div>
-                <div className="prob-desc">average manual response time vs 22 minutes with guided playbooks</div>
+
+      <div className="metrics-band">
+        <div className="metrics-grid fade-up">
+          <div className="metric-item">
+            <div className="metric-val mv-green">4.2 min</div>
+            <div className="metric-lbl">Mean Time to Detect</div>
+            <div className="metric-sub">avg across 50 simulated alerts</div>
+          </div>
+          <div className="metric-item">
+            <div className="metric-val mv-blue">22 min</div>
+            <div className="metric-lbl">Mean Time to Respond</div>
+            <div className="metric-sub">with playbook guidance</div>
+          </div>
+          <div className="metric-item">
+            <div className="metric-val mv-amber">82%</div>
+            <div className="metric-lbl">Faster than Manual</div>
+            <div className="metric-sub">22 min vs 2 hrs without tool</div>
+          </div>
+          <div className="metric-item">
+            <div className="metric-val mv-purple">12%</div>
+            <div className="metric-lbl">False Positive Rate</div>
+            <div className="metric-sub">after Wazuh tuning (default 28%)</div>
+          </div>
+        </div>
+      </div>
+
+      <section className="problem" id="problem">
+        <div className="section-label">The Problem</div>
+        <div className="section-title fade-up">
+          Most organizations have
+          <br />
+          zero plan when attacked
+        </div>
+        <div className="section-sub fade-up delay-1">
+          They panic. Go dark. Lose data. Face legal exposure.
+          <br />
+          And it keeps happening — because nothing changes after.
+        </div>
+
+        <div className="problem-grid">
+          <div className="problem-cards">
+            <div className="prob-card fade-up">
+              <div className="prob-icon pi-red">🚫</div>
+              <div className="prob-text">
+                <h4>No Security Team</h4>
+                <p>
+                  Colleges, hospitals, NGOs, and startups have zero dedicated security staff.
+                  When attacked, there is no one who knows what to do.
+                </p>
               </div>
             </div>
-            <div className="reveal d300">
-              <h2 className="section-title">Existing tools are built for experts you don't have.</h2>
-              <div className="problem-point" style={{ marginTop: "1.5rem" }}>
-                <div className="prob-icon pi-red">🔒</div>
-                <div className="prob-point-text">
-                  <h4>No Security Team</h4>
-                  <p>Colleges, hospitals, NGOs and startups have zero dedicated security staff. When a breach happens, the IT manager handles it via WhatsApp.</p>
-                </div>
+            <div className="prob-card fade-up delay-1">
+              <div className="prob-icon pi-amber">📵</div>
+              <div className="prob-text">
+                <h4>No Incident Plan</h4>
+                <p>
+                  Response is ad-hoc — usually a panicked WhatsApp group. No documentation. No
+                  structure. No way to know what was compromised.
+                </p>
               </div>
-              <div className="problem-point">
-                <div className="prob-icon pi-amber">⚠️</div>
-                <div className="prob-point-text">
-                  <h4>Tools Built for SOC Analysts</h4>
-                  <p>TheHive, Wazuh, Splunk — every existing tool assumes trained analysts. No guidance. No step-by-step instructions. No India-specific compliance.</p>
-                </div>
+            </div>
+            <div className="prob-card fade-up delay-2">
+              <div className="prob-icon pi-purple">⚖️</div>
+              <div className="prob-text">
+                <h4>DPDP Act 2023 Exposure</h4>
+                <p>
+                  India now mandates breach notification within 6 hours. Most organizations don&apos;t
+                  know this — and have zero infrastructure to comply.
+                </p>
               </div>
-              <div className="problem-point">
-                <div className="prob-icon pi-purple">📋</div>
-                <div className="prob-point-text">
-                  <h4>DPDP Act Compliance Gap</h4>
-                  <p>India's DPDP Act 2023 requires breach reporting within 6 hours. Not a single open-source IR tool generates DPDP-compliant reports. Until now.</p>
-                </div>
+            </div>
+            <div className="prob-card fade-up delay-3">
+              <div className="prob-icon pi-blue">👁️‍🗨️</div>
+              <div className="prob-text">
+                <h4>No Visibility After Attack</h4>
+                <p>
+                  No timeline of what happened. No forensic evidence. No metrics. No way to prevent
+                  it happening again next month.
+                </p>
               </div>
+            </div>
+          </div>
+
+          <div className="problem-right fade-up delay-1">
+            <blockquote>
+              &quot;When a cyberattack hits — they panic, go dark, and{' '}
+              <em>lose everything</em>.&quot;
+            </blockquote>
+            <div className="crisis-stat">
+              <div className="cs-num">63M+</div>
+              <div className="cs-txt">
+                Small and medium businesses in India — most with zero incident response capability
+              </div>
+              <div className="cs-src">// DPDP Act 2023 applies to all of them</div>
+            </div>
+            <div
+              className="crisis-stat"
+              style={{
+                background: 'rgba(255,179,0,.05)',
+                borderColor: 'rgba(255,179,0,.2)',
+              }}
+            >
+              <div className="cs-num" style={{ color: 'var(--amber)' }}>
+                ₹50K+
+              </div>
+              <div className="cs-txt">
+                Splunk costs $50,000+/year. CrowdStrike. IBM QRadar. Completely inaccessible to
+                SMBs, colleges, and NGOs.
+              </div>
+              <div className="cs-src">// ZeroRespond costs ₹0 and runs on your own server</div>
             </div>
           </div>
         </div>
       </section>
-      
-      
+
       <section id="solution">
-        <div className="section-inner">
-          <div className="section-label reveal">Our Solution</div>
-          <h2 className="section-title reveal d100">One platform. The entire IR lifecycle.</h2>
-          <p className="section-sub reveal d200">ZeroRespond connects detection, guided response, and compliance reporting in a single self-hostable platform — deployable in under one hour.</p>
-          <div className="flow-strip reveal d300">
-            <div className="flow-step">
-              <span className="flow-step-num">01</span>
-              <span className="flow-step-label">Detect</span>
-              <span className="flow-step-sub">Wazuh ingests logs & fires alerts</span>
+        <div className="section-label">The Solution</div>
+        <div className="section-title fade-up">
+          Detect. Respond.
+          <br />
+          Report.{' '}
+          <span style={{ color: 'var(--accent)' }}>Repeat.</span>
+        </div>
+        <div className="section-sub fade-up delay-1">
+          ZeroRespond is the only tool that connects all three layers of incident response in one
+          self-hostable, zero-cost platform — purpose-built for India.
+        </div>
+
+        <div className="solution-flow fade-up delay-2">
+          <div className="flow-step">
+            <div className="fs-num">01 // DETECT</div>
+            <div className="fs-icon fi-green">🔍</div>
+            <div className="fs-title">Threat Detection</div>
+            <div className="fs-sub">
+              Wazuh-powered log ingestion from Windows, Linux, firewalls, and web servers. Anomaly
+              detection with 50+ custom rules.
             </div>
-            <div className="flow-arrow">→</div>
-            <div className="flow-step">
-              <span className="flow-step-num">02</span>
-              <span className="flow-step-label">Triage</span>
-              <span className="flow-step-sub">Case auto-created with severity</span>
+          </div>
+          <div className="flow-step">
+            <div className="fs-num">02 // RESPOND</div>
+            <div className="fs-icon fi-blue">⚡</div>
+            <div className="fs-title">Guided Response</div>
+            <div className="fs-sub">
+              Step-by-step actionable playbooks — real commands, not generic advice. Non-security
+              staff can handle incidents with confidence.
             </div>
-            <div className="flow-arrow">→</div>
-            <div className="flow-step">
-              <span className="flow-step-num">03</span>
-              <span className="flow-step-label">Respond</span>
-              <span className="flow-step-sub">Step-by-step playbook guides you</span>
+          </div>
+          <div className="flow-step">
+            <div className="fs-num">03 // REPORT</div>
+            <div className="fs-icon fi-amber">📋</div>
+            <div className="fs-title">DPDP Report</div>
+            <div className="fs-sub">
+              Auto-generated PDF with all DPDP Act Section 8(6) fields: breach timeline, data
+              categories, CERT-In notification template.
             </div>
-            <div className="flow-arrow">→</div>
-            <div className="flow-step">
-              <span className="flow-step-num">04</span>
-              <span className="flow-step-label">Report</span>
-              <span className="flow-step-sub">DPDP PDF generated automatically</span>
-            </div>
-            <div className="flow-arrow">→</div>
-            <div className="flow-step">
-              <span className="flow-step-num">05</span>
-              <span className="flow-step-label">Improve</span>
-              <span className="flow-step-sub">MTTD/MTTR trends over time</span>
+          </div>
+          <div className="flow-step">
+            <div className="fs-num">04 // TRACK</div>
+            <div className="fs-icon fi-purple">📊</div>
+            <div className="fs-title">Metrics Dashboard</div>
+            <div className="fs-sub">
+              MTTD, MTTR, false positive rates, incident heatmaps. Show your organization&apos;s real
+              security posture over time.
             </div>
           </div>
         </div>
+
+        <div className="solution-moat fade-up">
+          <p>
+            The combination of <strong>Detect → Guided Respond → DPDP-Compliant Report</strong> in one
+            zero-cost self-hostable tool for Indian SMBs —{' '}
+            <strong>this combination does not exist anywhere else.</strong>
+          </p>
+        </div>
       </section>
-      
-      
+
+      <section className="modules" id="modules">
+        <div className="section-label">Platform Modules</div>
+        <div className="section-title fade-up">
+          5 modules.
+          <br />
+          One complete workflow.
+        </div>
+
+        <div className="modules-grid">
+          <div className="mod-card fade-up">
+            <div className="mod-num">M1 // DETECTION</div>
+            <div className="mod-icon">🕵️</div>
+            <div className="mod-title">Threat Detection Feed</div>
+            <div className="mod-desc">
+              Real-time log ingestion from Windows Event Logs, Linux syslogs, firewall logs, and web
+              server logs. Powered by Wazuh 4.7 with 50+ custom correlation rules covering ransomware,
+              brute force, C2 beacons, data exfiltration, and web attacks.
+            </div>
+            <span className="mod-usp">MTTD: 4.2 min avg</span>
+          </div>
+          <div className="mod-card fade-up delay-1">
+            <div className="mod-num">M2 // CASES</div>
+            <div className="mod-icon">📁</div>
+            <div className="mod-title">Incident Case Manager</div>
+            <div className="mod-desc">
+              Structured workspace per incident. Log findings, assign tasks, upload evidence files,
+              track timeline, mark resolution status. Auto-created when Wazuh fires a critical alert
+              — no manual trigger needed.
+            </div>
+            <span className="mod-usp">Auto-created on alert</span>
+          </div>
+          <div className="mod-card fade-up delay-2">
+            <div className="mod-num">M3 // PLAYBOOKS ⭐</div>
+            <div className="mod-icon">📖</div>
+            <div className="mod-title">Playbook Engine</div>
+            <div className="mod-desc">
+              Command-level step-by-step playbooks for Ransomware, Phishing, Unauthorized Access,
+              Data Exfiltration, and Insider Threats. Each step shows Linux + Windows commands, goal,
+              and blocking flag. The core differentiator — non-experts can respond correctly.
+            </div>
+            <span className="mod-usp">5 attack types covered</span>
+          </div>
+          <div className="mod-card fade-up delay-1">
+            <div className="mod-num">M4 // REPORTS</div>
+            <div className="mod-icon">📄</div>
+            <div className="mod-title">Incident Report Generator</div>
+            <div className="mod-desc">
+              Auto-generates DPDP Act 2023 compliant PDF reports with all 8 mandatory fields: breach
+              type, data categories, affected persons, timeline, actions taken, and pre-filled
+              CERT-In notification template with 6-hour SLA tracking.
+            </div>
+            <span className="mod-usp">DPDP S.8(6) native</span>
+          </div>
+          <div className="mod-card fade-up delay-2">
+            <div className="mod-num">M5 // DASHBOARD</div>
+            <div className="mod-icon">📊</div>
+            <div className="mod-title">ZeroDashboard</div>
+            <div className="mod-desc">
+              Central visibility into your security posture. Live alert feed, incident heatmap by
+              day/hour, MTTD and MTTR trend lines, incident counts by type, sprint progress and team
+              hours. Shows management what they need without a SOC background.
+            </div>
+            <span className="mod-usp">MTTD · MTTR · Heatmap</span>
+          </div>
+        </div>
+      </section>
+
       <section id="compare">
-        <div className="section-inner">
-          <div className="section-label reveal">Competitive Analysis</div>
-          <h2 className="section-title reveal d100">How we compare to every alternative.</h2>
-          <p className="section-sub reveal d200">Every existing tool covers one layer. ZeroRespond is the only platform that connects detection, guided response, and DPDP compliance reporting end-to-end at zero cost.</p>
-          <div className="compare-table reveal d300">
-            <table>
-              <thead>
-                <tr>
-                  <th>Feature</th>
-                  <th>TheHive</th>
-                  <th>DFIR-IRIS</th>
-                  <th>Wazuh</th>
-                  <th>PagerDuty</th>
-                  <th className="ours">ZeroRespond</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>Completely Free</td><td><span className="cp">Partial</span></td><td><span className="ck">✓</span></td><td><span className="ck">✓</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓</span></td></tr>
-                <tr><td>Self-Hostable</td><td><span className="ck">✓</span></td><td><span className="ck">✓</span></td><td><span className="ck">✓</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓</span></td></tr>
-                <tr><td>Built-in Detection Engine</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="ck">✓</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓ Wazuh</span></td></tr>
-                <tr><td>Guided Playbooks for Non-Experts</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cp">Partial</span></td><td className="ours"><span className="ck">✓ 5 Playbooks</span></td></tr>
-                <tr><td>DPDP Act 2023 Compliance</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓ Built-in</span></td></tr>
-                <tr><td>CERT-In Notification Template</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓ Auto-filled</span></td></tr>
-                <tr><td>One-Command Deployment</td><td><span className="cx">✗</span></td><td><span className="cp">Partial</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓ docker compose up</span></td></tr>
-                <tr><td>Non-Security Staff Friendly</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cp">Partial</span></td><td className="ours"><span className="ck">✓ Primary Goal</span></td></tr>
-                <tr><td>India-First Context</td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td><span className="cx">✗</span></td><td className="ours"><span className="ck">✓ DPDP + CERT-In</span></td></tr>
-              </tbody>
-            </table>
-          </div>
+        <div className="section-label">vs. Existing Tools</div>
+        <div className="section-title fade-up">
+          Why not just use
+          <br />
+          Wazuh or TheHive?
+        </div>
+        <div className="section-sub fade-up delay-1">
+          Each existing tool solves one layer. ZeroRespond stitches the entire workflow together — at
+          zero cost, with India-first design.
+        </div>
+
+        <div className="fade-up delay-2" style={{ overflowX: 'auto', marginTop: '60px' }}>
+          <table className="compare-table">
+            <thead>
+              <tr>
+                <th>Tool</th>
+                <th>Detection</th>
+                <th>Guided Playbooks</th>
+                <th>Case Manager</th>
+                <th>DPDP Reports</th>
+                <th>Self-Hostable</th>
+                <th>Cost</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="our-row">
+                <td>
+                  <div className="tool-name" style={{ color: 'var(--accent)' }}>
+                    ZeroRespond
+                  </div>
+                  <div className="tool-sub">// Team Zero</div>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="price-chip pc-free">₹0 Free</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="tool-name">Wazuh</div>
+                  <div className="tool-sub">// Detection only</div>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="price-chip pc-free">Free</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="tool-name">TheHive</div>
+                  <div className="tool-sub">// Case management</div>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="price-chip pc-free">Free</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="tool-name">DFIR-IRIS</div>
+                  <div className="tool-sub">// Enterprise forensics</div>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-part">~</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="price-chip pc-free">Free</span>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <div className="tool-name">Splunk</div>
+                  <div className="tool-sub">// Enterprise SIEM</div>
+                </td>
+                <td>
+                  <span className="chk-yes">✓</span>
+                </td>
+                <td>
+                  <span className="chk-part">~</span>
+                </td>
+                <td>
+                  <span className="chk-part">~</span>
+                </td>
+                <td>
+                  <span className="chk-no">✗</span>
+                </td>
+                <td>
+                  <span className="chk-part">~</span>
+                </td>
+                <td>
+                  <span className="price-chip pc-high">$50K+/yr</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
-      
-      
-      <section id="dpdp">
-        <div className="section-inner">
-          <div className="section-label reveal">India's DPDP Act 2023</div>
-          <h2 className="section-title reveal d100">The only open-source IR tool<br />built for India's new data law.</h2>
-          <div className="dpdp-grid">
-            <div className="reveal d200">
-              <div className="dpdp-card">
-                <div className="dpdp-card-head">
-                  <div className="dpdp-card-icon">⚖️</div>
-                  <div><h3>DPDP Act Section 8(6) Report</h3><p>Auto-generated from case data — all 8 mandatory fields</p></div>
-                </div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Breach Type</span><span className="dpdp-field-status">✓ Auto-filled from case</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Data Categories Affected</span><span className="dpdp-field-status">✓ Tags from case record</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Approx. Persons Impacted</span><span className="dpdp-field-status">✓ Entered by responder</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Date & Time of Discovery</span><span className="dpdp-field-status">✓ Wazuh alert timestamp</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Actions Taken</span><span className="dpdp-field-status">✓ From playbook step log</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">CERT-In Notification Template</span><span className="dpdp-field-status">✓ Pre-filled, ready to send</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">DPO Contact Details</span><span className="dpdp-field-status">✓ From org profile</span></div>
-                <div className="dpdp-field"><span className="dpdp-field-name">Data Protection Board Notice</span><span className="dpdp-field-status">✓ 72hr window tracked</span></div>
+
+      <section className="dpdp" id="dpdp">
+        <div className="section-label">Compliance</div>
+        <div className="section-title fade-up">
+          DPDP Act 2023 —
+          <br />
+          <span style={{ color: 'var(--purple)' }}>Built in, not bolted on.</span>
+        </div>
+        <div className="section-sub fade-up delay-1">
+          India&apos;s Digital Personal Data Protection Act 2023 Section 8(6) mandates organizations
+          notify CERT-In and affected individuals of a data breach. ZeroRespond auto-generates the
+          exact required format.
+        </div>
+
+        <div className="dpdp-inner">
+          <div className="fade-up delay-1">
+            <div className="dpdp-law" style={{ marginBottom: '20px' }}>
+              <div className="law-title">DPDP ACT 2023 — SECTION 8(6)</div>
+              <blockquote>
+                &quot;A Data Fiduciary shall notify the Board and each affected Data Principal of a
+                personal data breach in such form and manner and within such period as may be
+                prescribed.&quot;
+              </blockquote>
+              <div className="law-ref">
+                // notification window: 6 hours from discovery · to: incident@cert-in.org.in
               </div>
             </div>
-            <div className="dpdp-points reveal d300">
-              <div className="dpdp-point"><div className="dp-num">6h</div><div className="dp-text"><h4>CERT-In Mandatory Window</h4><p>The DPDP Act requires breach notification to CERT-In within 6 hours. ZeroRespond tracks this deadline and generates a pre-filled notification email ready to send to incident@cert-in.org.in.</p></div></div>
-              <div className="dpdp-point"><div className="dp-num">72h</div><div className="dp-text"><h4>Data Protection Board Notice</h4><p>Organizations must notify the Data Protection Board within 72 hours. ZeroRespond auto-generates this report with all required fields from your case records — no manual form-filling.</p></div></div>
-              <div className="dpdp-point"><div className="dp-num">0</div><div className="dp-text"><h4>Manual Effort Required</h4><p>One click on a resolved case. ZeroRespond pulls all case data, formats it to the official DPDP breach notification structure, and outputs a professional PDF in seconds.</p></div></div>
-              <div className="dpdp-point"><div className="dp-num">1st</div><div className="dp-text"><h4>First Open-Source Tool to Do This</h4><p>TheHive, DFIR-IRIS, Wazuh, PagerDuty — none have India's DPDP Act built in. ZeroRespond is the first and only free, open-source IR platform with native DPDP compliance.</p></div></div>
+            <div className="dpdp-sla">
+              <div className="sla-num">6h</div>
+              <div className="sla-txt">
+                <h4>CERT-In Notification SLA</h4>
+                <p>
+                  ZeroRespond tracks time-from-detection and shows a green / red badge.
+                  Auto-generates pre-filled notification form.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="fade-up delay-2">
+            <p
+              style={{
+                fontSize: '13px',
+                color: 'var(--muted)',
+                fontFamily: 'var(--font-mono)',
+                marginBottom: '16px',
+              }}
+            >
+              // 8 fields ZeroRespond auto-fills in every report
+            </p>
+            <div className="dpdp-fields">
+              <div className="dpdp-field">
+                <span className="df-num">01</span>
+                <span className="df-name">Breach Type</span>
+                <span className="df-how">dropdown → db</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">02</span>
+                <span className="df-name">Data Categories Affected</span>
+                <span className="df-how">tags in case</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">03</span>
+                <span className="df-name">Approx. Persons Affected</span>
+                <span className="df-how">number field</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">04</span>
+                <span className="df-name">Date &amp; Time of Discovery</span>
+                <span className="df-how">wazuh timestamp</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">05</span>
+                <span className="df-name">Date &amp; Time of Breach (est.)</span>
+                <span className="df-how">analyst entry</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">06</span>
+                <span className="df-name">Actions Taken</span>
+                <span className="df-how">from playbook steps</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">07</span>
+                <span className="df-name">CERT-In Notification</span>
+                <span className="df-how">pre-filled template</span>
+              </div>
+              <div className="dpdp-field">
+                <span className="df-num">08</span>
+                <span className="df-name">DPO Contact Details</span>
+                <span className="df-how">org profile → auto</span>
+              </div>
             </div>
           </div>
         </div>
       </section>
-      
-      
-      <section id="users">
-        <div className="section-inner">
-          <div className="section-label reveal">Target Users</div>
-          <h2 className="section-title reveal d100">Built for orgs that can't afford enterprise security.</h2>
-          <div className="users-grid">
-            <div className="user-card reveal d100"><span className="user-emoji">🏫</span><div className="user-type">College IT Departments</div><div className="user-desc">Student data breaches are rising. Ad-hoc response is the norm. ZeroRespond gives college IT teams a structured, documented IR workflow for the first time.</div></div>
-            <div className="user-card reveal d200"><span className="user-emoji">🏥</span><div className="user-type">Hospitals & Clinics</div><div className="user-desc">Patient data is highly sensitive and regulated. Zero security staff, zero budget. Guided playbooks work for any admin without training.</div></div>
-            <div className="user-card reveal d300"><span className="user-emoji">🌱</span><div className="user-type">NGOs & Non-Profits</div><div className="user-desc">Handle donor and beneficiary personal data under DPDP obligations. Cannot afford Splunk. ZeroRespond is completely free and self-hosted.</div></div>
-            <div className="user-card reveal d400"><span className="user-emoji">🚀</span><div className="user-type">Early-Stage Startups</div><div className="user-desc">No CISO, no SOC, no IR plan. ZeroRespond deploys in under one hour on any Linux server — first IR capability at zero licensing cost.</div></div>
+
+      <section id="how">
+        <div className="section-label">How It Works</div>
+        <div className="section-title fade-up">
+          From zero to incident
+          <br />
+          response in 3 steps
+        </div>
+
+        <div className="how-grid">
+          <div className="how-step fade-up">
+            <div className="hs-icon">🐳</div>
+            <div className="hs-title">1. Deploy with Docker</div>
+            <div className="hs-desc">
+              Clone the repo, copy .env.example to .env, run docker compose up -d. All services
+              start: backend, frontend, PostgreSQL, Wazuh connection. No manual setup.
+            </div>
+            <div className="hs-tag">// 1 command · works on any Linux server</div>
+          </div>
+          <div className="how-step fade-up delay-1">
+            <div className="hs-icon">🔗</div>
+            <div className="hs-title">2. Connect Your Systems</div>
+            <div className="hs-desc">
+              Install Wazuh agents on your servers (5-minute process). ZeroRespond starts receiving
+              logs and firing detection rules immediately. No configuration required for basic usage.
+            </div>
+            <div className="hs-tag">// Windows + Linux + firewalls + web logs</div>
+          </div>
+          <div className="how-step fade-up delay-2">
+            <div className="hs-icon">🛡️</div>
+            <div className="hs-title">3. Respond to Incidents</div>
+            <div className="hs-desc">
+              When an attack is detected, ZeroRespond opens a case, assigns the correct playbook, and
+              walks your team through each step. Then auto-generates the DPDP report.
+            </div>
+            <div className="hs-tag">// detect → case → playbook → PDF report</div>
           </div>
         </div>
       </section>
-      
-      
-      <section id="tech">
-        <div className="section-inner">
-          <div className="section-label reveal">Technology Stack</div>
-          <h2 className="section-title reveal d100">Open-source, battle-tested, self-hosted.</h2>
-          <p className="section-sub reveal d200">Every component is open-source. No vendor lock-in. Runs entirely on your own server via Docker. Zero cloud dependency.</p>
-          <div className="tech-grid">
-            <div className="tech-card reveal d100"><div className="tech-logo">Wazuh 4.7</div><div className="tech-info"><h4>Wazuh 4.7</h4><p>Open-source SIEM/XDR for log ingestion, anomaly detection, and alert generation across all connected hosts.</p><span className="tech-role">Detection Engine</span></div></div>
-            <div className="tech-card reveal d200"><div className="tech-logo">Fast API</div><div className="tech-info"><h4>FastAPI + Python</h4><p>High-performance REST API. Handles cases, playbooks, alerts, webhooks, and report triggers with auto-generated docs.</p><span className="tech-role">Backend API</span></div></div>
-            <div className="tech-card reveal d300"><div className="tech-logo">Postgres 15</div><div className="tech-info"><h4>PostgreSQL 15</h4><p>Forensic-grade data storage with immutable audit trails, timestamped action logs, and evidence chains via SQLAlchemy.</p><span className="tech-role">Database</span></div></div>
-            <div className="tech-card reveal d100"><div className="tech-logo">React 18</div><div className="tech-info"><h4>React 18 + Tailwind</h4><p>Real-time ZeroDashboard with WebSocket alert feed, Recharts MTTD/MTTR charts, and playbook step-through UI.</p><span className="tech-role">Frontend</span></div></div>
-            <div className="tech-card reveal d200"><div className="tech-logo">Jinja2 PDF</div><div className="tech-info"><h4>Jinja2 + WeasyPrint</h4><p>Dynamic HTML report templates rendered to DPDP-compliant PDF with all mandatory fields auto-filled from case data.</p><span className="tech-role">Report Generator</span></div></div>
-            <div className="tech-card reveal d300"><div className="tech-logo">Docker Compose</div><div className="tech-info"><h4>Docker + Compose</h4><p>All services containerized. One command deploys the complete ZeroRespond stack on any fresh Ubuntu 22.04 server.</p><span className="tech-role">Deployment</span></div></div>
+
+      <section className="deploy" id="deploy">
+        <div className="deploy-inner fade-up">
+          <div className="section-label" style={{ textAlign: 'center' }}>
+            Get Started
+          </div>
+          <h2
+            className="section-title"
+            style={{
+              fontSize: 'clamp(40px,5vw,68px)',
+              textAlign: 'center',
+              marginBottom: '20px',
+            }}
+          >
+            Your first line of
+            <br />
+            cyber defence.
+            <br />
+            <span style={{ color: 'var(--accent)' }}>Starts today.</span>
+          </h2>
+          <p
+            className="section-sub"
+            style={{
+              textAlign: 'center',
+              margin: '0 auto 40px',
+              maxWidth: 'none',
+            }}
+          >
+            Self-hosted. Open source. Zero licensing cost. DPDP-compliant out of the box.
+            <br />
+            Built for organizations that can&apos;t afford enterprise tools.
+          </p>
+
+          <div className="deploy-cmd">
+            <code id="deployCmd">{DEPLOY_COMMAND}</code>
+            <button type="button" className="copy-btn" onClick={handleCopy}>
+              {copyLabel}
+            </button>
+          </div>
+
+          <div className="deploy-badges">
+            <div className="dbadge">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+              </svg>
+              Open Source
+            </div>
+            <div className="dbadge">🐳 Docker Ready</div>
+            <div className="dbadge">🇮🇳 India-First</div>
+            <div className="dbadge">⚡ DPDP Compliant</div>
+            <div className="dbadge">🔒 Self-Hosted</div>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              gap: '16px',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+            }}
+          >
+            <a href={README_URL} className="btn-hero btn-hero-primary" target="_blank" rel="noopener noreferrer">
+              🐳 Docker Deploy Guide
+            </a>
+            <a href={README_URL} className="btn-hero btn-hero-secondary" target="_blank" rel="noopener noreferrer">
+              📖 Documentation
+            </a>
           </div>
         </div>
       </section>
-      
-      
-      <section id="team">
-        <div className="section-inner">
-          <div className="section-label reveal">Team Zero</div>
-          <h2 className="section-title reveal d100">Built by students, for the real world.</h2>
-          <p className="section-sub reveal d200">Final-year B.E. Computer Science students at Kumaraguru College of Technology, Coimbatore — Batch 2023–2027.</p>
-          <div className="team-grid">
-            <div className="team-card reveal d100"><div className="team-avatar ta-naveen"><span className="team-initial">N</span></div><div className="team-info"><div className="team-name">Naveen Kumar</div><div className="team-role tr-naveen">Detection Engineer</div></div></div>
-            <div className="team-card reveal d200"><div className="team-avatar ta-ragul"><span className="team-initial">R</span></div><div className="team-info"><div className="team-name">Ragul</div><div className="team-role tr-ragul">Backend Developer</div></div></div>
-            <div className="team-card reveal d300"><div className="team-avatar ta-mani"><span className="team-initial">M</span></div><div className="team-info"><div className="team-name">Manikandan</div><div className="team-role tr-mani">Frontend Developer</div></div></div>
-            <div className="team-card reveal d400"><div className="team-avatar ta-prithiv"><span className="team-initial">P</span></div><div className="team-info"><div className="team-name">Prithiv Raj</div><div className="team-role tr-prithiv">Report & DevOps</div></div></div>
-          </div>
-        </div>
-      </section>
-      
-      
-      <section id="cta">
-        <div className="cta-glow"></div>
-        <div className="cta-inner">
-          <div className="cta-tag reveal">🚀 Open Source · Self-Hosted · Free Forever</div>
-          <h2 className="cta-title reveal d100">Your next breach is coming.<br />Will you be <span className="t">ready</span>?</h2>
-          <p className="cta-sub reveal d200">Deploy ZeroRespond on your server in under 60 minutes. One command. Zero licensing cost. Full DPDP Act compliance from day one.</p>
-          <div className="cta-actions reveal d300">
-            <a href="https://github.com/project-kadavusol/ZeroRespond" target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-lg">Deploy ZeroRespond → GitHub</a>
-            <a href="#tech" className="btn btn-outline btn-lg">Tech stack</a>
-          </div>
-          <div className="cta-note reveal d400">
-            <span>🐳</span>
-            <code style={{ fontFamily: "'DM Mono', monospace", fontSize: '.85rem', color: 'var(--teal)' }}>docker compose up -d</code>
-            <span>— that's all it takes</span>
-          </div>
-        </div>
-      </section>
-      
-      
+
       <footer>
-        <div className="footer-inner">
-          <div className="footer-top">
-            <div className="footer-brand">
-              <div className="logo-wordmark footer-logo-wordmark">
-                <span className="logo-zero">Zero</span>
-                Respond
-              </div>
-              <p className="footer-desc">India's first open-source, self-hostable Incident Response platform for organizations with no security team and no enterprise budget. DPDP Act 2023 aligned and CERT-In ready.</p>
-              <span className="footer-dpdp">⚖️ DPDP Act 2023 Compliant</span>
-            </div>
-            <div className="footer-col">
-              <h4>Platform</h4>
-              <ul>
-                <li><a href="#solution">Features</a></li>
-                <li><a href="#dpdp">DPDP Compliance</a></li>
-                <li><a href="#compare">vs Competitors</a></li>
-                <li><a href="#tech">Tech Stack</a></li>
-                <li><a href="#cta">Deployment Guide</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Resources</h4>
-              <ul>
-                <li><a href="https://github.com/project-kadavusol/ZeroRespond" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
-                <li><a href="https://github.com/project-kadavusol/ZeroRespond/blob/main/README.md" target="_blank" rel="noopener noreferrer">Documentation</a></li>
-                <li><a href="#">Sprint Plan</a></li>
-                <li><a href="#">Project Document</a></li>
-                <li><a href="#">Wazuh Rule Reference</a></li>
-              </ul>
-            </div>
-            <div className="footer-col">
-              <h4>Team Zero</h4>
-              <ul>
-                <li><a href="#">Naveen Kumar</a></li>
-                <li><a href="#">Ragul</a></li>
-                <li><a href="#">Manikandan</a></li>
-                <li><a href="#">Prithiv Raj</a></li>
-                <li><a href="#">KCT, Coimbatore</a></li>
-              </ul>
-            </div>
+        <div className="footer-top">
+          <div className="footer-brand">
+            <a
+              className="nav-logo"
+              href="#top"
+              style={{ textDecoration: 'none' }}
+              onClick={(e) => {
+                e.preventDefault()
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+            >
+              <div className="logo-mark">ZR</div>
+              <span className="logo-text" style={{ fontSize: '20px' }}>
+                Zero<span>Respond</span>
+              </span>
+            </a>
+            <p>
+              Incident Response for every organization. Open source, self-hosted, DPDP-compliant —
+              built by Team Zero at Kumaraguru College of Technology.
+            </p>
           </div>
-          <div className="footer-bottom">
-            <span>© 2026 Team Zero · ZeroRespond · Kumaraguru College of Technology, Coimbatore</span>
-            <div className="footer-legal">
-              <a href="#">MIT License</a>
-              <a href="#">Privacy Policy</a>
-              <a href="#">DPDP Statement</a>
-            </div>
+          <div className="footer-col">
+            <h5>Platform</h5>
+            <a href="#modules">Detection Feed</a>
+            <a href="#modules">Case Manager</a>
+            <a href="#modules">Playbook Engine</a>
+            <a href="#modules">Report Generator</a>
+            <a href="#modules">ZeroDashboard</a>
+          </div>
+          <div className="footer-col">
+            <h5>Docs</h5>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              Quick Start
+            </a>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              Docker Setup
+            </a>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              API Reference
+            </a>
+            <a href="#dpdp">DPDP Compliance</a>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              Playbook Guide
+            </a>
+          </div>
+          <div className="footer-col">
+            <h5>Team Zero</h5>
+            <a href={REPO_ROOT} target="_blank" rel="noopener noreferrer">
+              GitHub
+            </a>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              Sprint Plan
+            </a>
+            <a href={README_URL} target="_blank" rel="noopener noreferrer">
+              Architecture
+            </a>
+            <a href={REPO_ROOT} target="_blank" rel="noopener noreferrer">
+              Contact
+            </a>
+          </div>
+        </div>
+        <div className="footer-bottom">
+          <p>
+            © 2026 Team Zero · Kumaraguru College of Technology · Batch 2023–2027 ·{' '}
+            <a href="https://zerorespond.netlify.app" target="_blank" rel="noopener noreferrer">
+              zerorespond.netlify.app
+            </a>
+          </p>
+          <div className="footer-tags">
+            <span className="ftag">Wazuh 4.7</span>
+            <span className="ftag">FastAPI</span>
+            <span className="ftag">React 18</span>
+            <span className="ftag">PostgreSQL</span>
+            <span className="ftag">Docker</span>
+            <span className="ftag">ISO 27035</span>
           </div>
         </div>
       </footer>

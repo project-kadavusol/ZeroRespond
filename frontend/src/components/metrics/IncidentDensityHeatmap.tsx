@@ -1,24 +1,41 @@
 import { MOCK_HEATMAP_DAYS } from '../../mock/fixtures'
 
-const heatClasses = ['bg-zinc-900', 'bg-amber-900/50', 'bg-orange-900/70', 'bg-red-900/70']
+const CELL_COLORS = [
+  'transparent',
+  'rgba(0,229,176,.15)',
+  'rgba(0,229,176,.35)',
+  'rgba(0,229,176,.65)',
+]
 
-/** Sprint 1: faux calendar intensity — swaps to real aggregates in Sprint 4 polish. */
-
+/** Sprint 1: calendar-style density — swaps to aggregates when analytics is wired. */
 export function IncidentDensityHeatmap() {
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-      <h3 className="text-sm font-medium text-zinc-200">
+    <section className="chart-box">
+      <h3 className="card-title" style={{ marginBottom: '8px' }}>
         Incident density (last 35 days · mock)
       </h3>
-      <p className="mt-1 text-xs text-zinc-500">
-        Each cell hints at noisy days — finer calendar grid arrives with live data.
+      <p style={{ fontSize: '12px', color: 'var(--muted)', lineHeight: 1.5 }}>
+        Hotter greens indicate heavier fixture volume on that weekday slot.
       </p>
-      <div className="mt-4 grid grid-cols-7 gap-1.5 sm:gap-2">
+      <div
+        style={{
+          marginTop: '16px',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(7, minmax(0, 1fr))',
+          gap: '6px',
+        }}
+      >
         {MOCK_HEATMAP_DAYS.map((d) => (
           <div
             key={d.label}
             title={`Day ${String(d.label)} · intensity ${String(d.intensity)}`}
-            className={`aspect-square rounded-sm ring-1 ring-zinc-800 ${heatClasses[d.intensity] ?? heatClasses[0]}`}
+            style={{
+              aspectRatio: '1',
+              borderRadius: '4px',
+              border: '1px solid var(--border)',
+              background:
+                CELL_COLORS[d.intensity] ?? CELL_COLORS[0],
+            }}
           />
         ))}
       </div>

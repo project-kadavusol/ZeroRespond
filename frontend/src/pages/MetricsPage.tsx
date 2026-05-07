@@ -24,43 +24,42 @@ import {
 
 const tooltip = {
   contentStyle: {
-    backgroundColor: '#18181b',
-    border: '1px solid #3f3f46',
+    backgroundColor: '#0f1320',
+    border: '1px solid #252d47',
     borderRadius: '6px',
+    color: '#e8eeff',
   },
 }
 
 export function MetricsPage() {
   return (
-    <div className="mx-auto max-w-6xl space-y-10">
-      <header>
-        <h1 className="text-xl font-semibold text-white md:text-2xl">
-          Operational metrics
-        </h1>
-        <p className="mt-1 max-w-prose text-sm text-zinc-400">
-          Sample charts for mean time to detect and respond, incident volume, and
-          severity mix — numbers are placeholders until your analytics pipeline is
-          connected.
-        </p>
+    <div className="zr-page">
+      <header className="zr-page-header">
+        <div>
+          <div className="zr-page-title">Security Metrics</div>
+          <div className="zr-page-sub">
+            MTTD · MTTR · False positive outlook · Incident volume — all from Sprint 1 fixtures
+          </div>
+        </div>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="metrics-grid-2">
         <MetricPanel title="MTTD rolling · minutes (fixture)">
-          <div className="h-60 w-full min-w-[16rem]">
+          <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={MOCK_MTTD_DAYS}>
-                <CartesianGrid stroke="#3f3f46" strokeDasharray="4 4" />
-                <XAxis dataKey="day" stroke="#a1a1aa" />
-                <YAxis stroke="#a1a1aa" />
+                <CartesianGrid stroke="#1c2236" strokeDasharray="4 4" />
+                <XAxis dataKey="day" stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
+                <YAxis stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
                 <Tooltip {...tooltip} />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="minutes"
                   name="MTTD (min)"
-                  stroke="#2dd4bf"
+                  stroke="#00E5B0"
                   strokeWidth={2}
-                  dot={{ r: 3 }}
+                  dot={{ r: 3, fill: '#00E5B0' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -68,45 +67,43 @@ export function MetricsPage() {
         </MetricPanel>
 
         <MetricPanel title="MTTR · containment minutes (fixture)">
-          <div className="h-60 w-full min-w-[16rem]">
+          <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={MOCK_MTTR_DAYS}>
-                <CartesianGrid stroke="#3f3f46" strokeDasharray="4 4" />
-                <XAxis dataKey="day" stroke="#a1a1aa" />
-                <YAxis stroke="#a1a1aa" />
+                <CartesianGrid stroke="#1c2236" strokeDasharray="4 4" />
+                <XAxis dataKey="day" stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
+                <YAxis stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
                 <Tooltip {...tooltip} />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="minutes"
                   name="MTTR (min)"
-                  stroke="#a78bfa"
+                  stroke="#9B6DFF"
                   strokeWidth={2}
-                  dot={{ r: 3 }}
+                  dot={{ r: 3, fill: '#9B6DFF' }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </MetricPanel>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
         <MetricPanel title="Incidents per month (fixture)">
-          <div className="h-60 w-full min-w-[16rem]">
+          <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={MOCK_INCIDENTS_BY_MONTH}>
-                <CartesianGrid stroke="#3f3f46" strokeDasharray="4 4" />
-                <XAxis dataKey="month" stroke="#a1a1aa" />
-                <YAxis allowDecimals={false} stroke="#a1a1aa" />
+                <CartesianGrid stroke="#1c2236" strokeDasharray="4 4" />
+                <XAxis dataKey="month" stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
+                <YAxis allowDecimals={false} stroke="#8895b3" tick={{ fill: '#8895b3', fontSize: 11 }} />
                 <Tooltip {...tooltip} />
-                <Bar dataKey="count" name="Incidents" fill="#38bdf8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="count" name="Incidents" fill="#3B7CFF" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </MetricPanel>
 
         <MetricPanel title="Severity distribution (fixture)">
-          <div className="h-60 w-full min-w-[16rem]">
+          <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Tooltip {...tooltip} />
@@ -131,7 +128,9 @@ export function MetricsPage() {
         </MetricPanel>
       </div>
 
-      <IncidentDensityHeatmap />
+      <div style={{ marginTop: '16px' }}>
+        <IncidentDensityHeatmap />
+      </div>
     </div>
   )
 }
@@ -144,8 +143,10 @@ function MetricPanel({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-900/40 p-4">
-      <h2 className="mb-4 text-sm font-medium text-zinc-300">{title}</h2>
+    <section className="chart-box">
+      <h2 className="card-title" style={{ marginBottom: '12px' }}>
+        {title}
+      </h2>
       {children}
     </section>
   )

@@ -244,11 +244,36 @@ export const MOCK_INCIDENTS_BY_MONTH = [
 ]
 
 export const MOCK_SEVERITY_MIX = [
-  { name: 'Critical', value: 1, fill: '#7f1d1d' },
-  { name: 'High', value: 6, fill: '#9a3412' },
-  { name: 'Medium', value: 8, fill: '#a16207' },
-  { name: 'Low', value: 4, fill: '#14532d' },
+  { name: 'Critical', value: 1, fill: '#FF4555' },
+  { name: 'High', value: 6, fill: '#FF7043' },
+  { name: 'Medium', value: 8, fill: '#FFB300' },
+  { name: 'Low', value: 4, fill: '#3B7CFF' },
 ]
+
+/** 7×24-hour grid aligned with dashboard mock heatmap */
+export const MOCK_HEATMAP_WEEK_HOURS: Record<string, number[]> = {
+  Mon: [
+    0, 0, 1, 0, 0, 0, 0, 0, 2, 1, 0, 0, 1, 0, 0, 0, 0, 3, 1, 0, 0, 1, 0, 0,
+  ],
+  Tue: [
+    0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 1, 0, 0, 1, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0,
+  ],
+  Wed: [
+    0, 0, 2, 0, 0, 0, 0, 0, 1, 3, 1, 0, 2, 0, 0, 0, 1, 4, 1, 0, 0, 0, 0, 0,
+  ],
+  Thu: [
+    0, 0, 0, 1, 0, 0, 0, 0, 2, 1, 0, 1, 0, 0, 1, 0, 2, 1, 0, 0, 0, 1, 0, 0,
+  ],
+  Fri: [
+    1, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0,
+  ],
+  Sat: [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ],
+  Sun: [
+    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+  ],
+}
 
 /** 35-day static grid for Sprint 1 heatmap visual (counts arbitrary). */
 export const MOCK_HEATMAP_DAYS: { label: number; intensity: number }[] =
