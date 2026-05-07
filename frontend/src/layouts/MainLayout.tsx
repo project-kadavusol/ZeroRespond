@@ -24,7 +24,7 @@ export function MainLayout() {
       <header className="zr-topbar">
         <div className="topbar-left">
           <Link to="/dashboard" className="logo-area" aria-label="ZeroRespond home">
-            <div className="logo-mark">ZR</div>
+            <img className="logo-mark" src="/logo_icon.png" alt="" width={28} height={28} />
             <span className="logo-txt">
               Zero<span>Respond</span>
             </span>

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="logo_icon.png">
 <title>ZeroRespond — Incident Response for Every Organization</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -28,7 +29,7 @@ body{background:var(--bg);color:var(--txt);font-family:var(--font-body);font-siz
 /* ── NAV ── */
 nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 5vw;height:64px;background:rgba(7,8,15,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:all .3s}
 .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:14px;color:#000;letter-spacing:-1px;flex-shrink:0}
+.logo-mark{width:32px;height:32px;border-radius:6px;flex-shrink:0;display:block;object-fit:contain}
 .logo-text{font-family:var(--font-display);font-size:22px;color:var(--txt);letter-spacing:.5px}
 .logo-text span{color:var(--accent)}
 .nav-links{display:flex;gap:32px;list-style:none}
@@ -282,7 +283,7 @@ footer{padding:48px 5vw 32px;border-top:1px solid var(--border)}
 <!-- NAV -->
 <nav id="navbar">
   <a class="nav-logo" href="#">
-    <div class="logo-mark">ZR</div>
+    <img class="logo-mark" src="logo_icon.png" alt="">
     <span class="logo-text">Zero<span>Respond</span></span>
   </a>
   <ul class="nav-links">
@@ -718,7 +719,7 @@ footer{padding:48px 5vw 32px;border-top:1px solid var(--border)}
   <div class="footer-top">
     <div class="footer-brand">
       <a class="nav-logo" href="#" style="text-decoration:none">
-        <div class="logo-mark">ZR</div>
+        <img class="logo-mark" src="logo_icon.png" alt="">
         <span class="logo-text" style="font-size:20px">Zero<span>Respond</span></span>
       </a>
       <p>Incident Response for every organization. Open source, self-hosted, DPDP-compliant — built by Team Zero at Kumaraguru College of Technology.</p>
