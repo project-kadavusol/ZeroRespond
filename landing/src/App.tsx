@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -16,36 +17,199 @@ const DEPLOY_COMMAND =
 type TermLineSpec = { text: string; cls?: string; newline?: boolean }
 
 const TERM_LINES: TermLineSpec[] = [
-  { text: '[02:47:03] ', cls: 't-time', newline: true },
-  { text: 'WAZUH  ', cls: 't-detect', newline: true },
-  { text: 'Bulk file rename detected — 847 files in 12s', cls: '', newline: true },
+  { text: '$ ssh responder@soc-app-01.kct.lab', cls: 't-shell', newline: true },
+  { text: 'Connecting to soc-app-01.kct.lab …', cls: 't-log', newline: true },
+  {
+    text: 'Last login: Wed May  7 02:45:11 IST 2026 from 10.0.2.210',
+    cls: 't-log',
+    newline: true,
+  },
   { text: '', newline: true },
-  { text: '[02:47:04] ', cls: 't-time', newline: true },
-  { text: 'ALERT  ', cls: 't-alert', newline: true },
-  { text: 'Rule 92200 — Possible Ransomware Activity ', cls: '', newline: true },
-  { text: 'CRITICAL', cls: 'term-badge tbg-red', newline: true },
+  {
+    text: 'soc@app01:~$ cat /etc/issue.net 2>/dev/null || uname -sr',
+    cls: 't-shell',
+    newline: true,
+  },
+  { text: 'Linux linux-host-gateway 6.5.0-28-generic x86_64', cls: 't-out', newline: true },
   { text: '', newline: true },
-  { text: '[02:47:05] ', cls: 't-time', newline: true },
-  { text: 'CASE   ', cls: 't-case', newline: true },
-  { text: '#IR-2024-001 auto-created · Playbook assigned', cls: '', newline: true },
+  { text: 'soc@app01:~$ zerorespond --version', cls: 't-shell', newline: true },
+  {
+    text: 'zerorespond-cli 1.0.0 (build 2026-05-02) · API http://127.0.0.1:8080',
+    cls: 't-out',
+    newline: true,
+  },
   { text: '', newline: true },
-  { text: 'PLAYBOOK ', cls: 't-play', newline: true },
-  { text: 'Ransomware Response — 6 steps loaded', cls: '', newline: true },
+  {
+    text: 'soc@app01:~$ zerorespond case attach IR-2024-001 --follow',
+    cls: 't-shell',
+    newline: true,
+  },
+  {
+    text: 'session ac7f9183… streaming Wazuh + playbook stdout (Ctrl-C detach)',
+    cls: 't-out',
+    newline: true,
+  },
   { text: '', newline: true },
-  { text: '  ├ Step 1 → Isolate host', cls: 't-cmd', newline: true },
-  { text: '  │  $ iptables -I INPUT -j DROP', cls: 't-cmd', newline: true },
-  { text: '  ├ Step 2 → Kill process PID 3847', cls: 't-cmd', newline: true },
-  { text: '  ├ Step 3 → Block C2 IP 185.220.x.x', cls: 't-cmd', newline: true },
-  { text: '  └ Steps 4–6 complete ✓', cls: 't-done', newline: true },
+  {
+    text: '2026-05-07T02:46:52.883+0530 WARN  linux-host-01  wazuh-agent',
+    cls: 't-time',
+    newline: true,
+  },
+  {
+    text: '(rule 554 / level 14) Suspicious rename burst under /srv/shares/finance',
+    cls: 't-detect',
+    newline: true,
+  },
+  {
+    text: '  → files_renamed=847 window=12s rule_group=ossec pattern=*.locked',
+    cls: 't-muted',
+    newline: true,
+  },
+  {
+    text: '  → agent.ipv4=10.42.17.91  manager=wazuh-mgr.lab:1514',
+    cls: 't-muted',
+    newline: true,
+  },
   { text: '', newline: true },
-  { text: 'REPORT  ', cls: 't-report', newline: true },
-  { text: 'Generating DPDP Section 8(6) PDF...', cls: '', newline: true },
+  {
+    text: '2026-05-07T02:46:53.910+0530 INFO  zerorespond-api',
+    cls: 't-time',
+    newline: true,
+  },
+  {
+    text: 'correlation svc: opened case ',
+    cls: 't-alert',
+    newline: false,
+  },
+  { text: 'IR-2024-001', cls: 't-case', newline: false },
+  { text: ' · severity=critical playbook=ransomware_response', cls: 't-alert', newline: true },
   { text: '', newline: true },
-  { text: 'METRIC  ', cls: 't-metric', newline: true },
-  { text: 'MTTD: 4.2 min · MTTR: 22 min · FP: 12%', cls: '', newline: true },
+  {
+    text: '2026-05-07T02:46:55.047+0530 INFO  playbook-engine',
+    cls: 't-time',
+    newline: true,
+  },
+  {
+    text: 'loaded playbook ',
+    cls: 't-play',
+    newline: false,
+  },
+  {
+    text: 'ransomware_response',
+    cls: 't-tag',
+    newline: false,
+  },
+  { text: ' (6 steps · blocking=yes)', cls: 't-play', newline: true },
   { text: '', newline: true },
-  { text: '✓ Case resolved · Report ready · ', cls: 't-done', newline: true },
-  { text: '82% faster than manual response', cls: 't-done', newline: true },
+  { text: '--- playbook: ransomware_response ---', cls: 't-muted', newline: true },
+  { text: 'step 1/6 isolate_host (run on endpoint)', cls: 't-step', newline: true },
+  { text: '', newline: true },
+  {
+    text: 'soc@linux-host-01:~$ ',
+    cls: 't-shell',
+    newline: false,
+  },
+  {
+    text: 'sudo -n iptables -I INPUT 1 ! -i lo -j DROP; echo exit:$?',
+    cls: '',
+    newline: true,
+  },
+  { text: 'exit:0', cls: 't-done', newline: true },
+  { text: '', newline: true },
+  {
+    text: 'soc@linux-host-01:~$ ',
+    cls: 't-shell',
+    newline: false,
+  },
+  {
+    text: 'sudo ss -ltnp \'( sport = :22 or sport = :443 )\'',
+    cls: '',
+    newline: true,
+  },
+  {
+    text: 'State  Recv-Q  Local Address:Port  Peer Address:Port  Process',
+    cls: 't-out',
+    newline: true,
+  },
+  {
+    text: 'LISTEN 0       128    10.42.17.91:22        0.0.0.0:*      users:(("sshd",pid=884,fd=4))',
+    cls: 't-out',
+    newline: true,
+  },
+  { text: '', newline: true },
+  { text: 'step 2/6 terminate_payload (SIGKILL suspicious pid)', cls: 't-step', newline: true },
+  {
+    text: 'soc@linux-host-01:~$ ',
+    cls: 't-shell',
+    newline: false,
+  },
+  {
+    text: 'pgrep -af encrypt || pgrep -af ransom || true',
+    cls: '',
+    newline: true,
+  },
+  {
+    text: '3847 /tmp/.cache/xYz/ransom.bin --encrypt /srv/shares/finance',
+    cls: 't-out',
+    newline: true,
+  },
+  {
+    text: 'soc@linux-host-01:~$ ',
+    cls: 't-shell',
+    newline: false,
+  },
+  { text: 'sudo kill -KILL 3847 && echo "pid 3847 terminated"', cls: '', newline: true },
+  { text: 'pid 3847 terminated', cls: 't-done', newline: true },
+  { text: '', newline: true },
+  { text: 'step 3/6 blackhole_c2 (static route)', cls: 't-step', newline: true },
+  {
+    text: 'soc@linux-host-01:~$ ',
+    cls: 't-shell',
+    newline: false,
+  },
+  {
+    text: 'sudo ip route replace blackhole 185.220.101.42 metric 65535',
+    cls: '',
+    newline: true,
+  },
+  {
+    text: 'RTNETLINK answers: File exists',
+    cls: 't-stderr',
+    newline: true,
+  },
+  { text: '(idempotent · route already present — OK)', cls: 't-muted', newline: true },
+  { text: '', newline: true },
+  {
+    text: '2026-05-07T02:48:02.110+0530 INFO  playbook-engine',
+    cls: 't-time',
+    newline: true,
+  },
+  { text: 'steps 4–6 complete (evidence bundle + containment log committed)', cls: 't-done', newline: true },
+  { text: '', newline: true },
+  {
+    text: '2026-05-07T02:48:06.502+0530 INFO  zerorespond-report',
+    cls: 't-time',
+    newline: true,
+  },
+  {
+    text: 'weasyprint build: /var/lib/zerorespond/reports/dpdp_IR-2024-001_20260507.pdf',
+    cls: 't-report',
+    newline: true,
+  },
+  { text: '842 KiB · sha256=9f2c…b91a', cls: 't-muted', newline: true },
+  { text: '', newline: true },
+  { text: 'soc@app01:~$ zerorespond metrics show IR-2024-001 --json', cls: 't-shell', newline: true },
+  {
+    text: '{ "case":"IR-2024-001", "mttd_sec":252, "mttr_sec":1327, "fp_rate":0.12, "state":"closed" }',
+    cls: 't-metric',
+    newline: true,
+  },
+  { text: '', newline: true },
+  {
+    text: 'session ac7f9183… closed — case IR-2024-001 resolved (report + CERT-In draft ready)',
+    cls: 't-done',
+    newline: true,
+  },
 ]
 
 function buildLineGroups(lines: TermLineSpec[]) {
@@ -68,17 +232,43 @@ function rowHasRenderableParts(group: TermLineSpec[]) {
 
 /** Pause before this row appears — feels like a command completing / stdout arriving. */
 function delayBeforeRow(group: TermLineSpec[]): number {
-  if (!rowHasRenderableParts(group)) return 100
+  if (!rowHasRenderableParts(group)) return 85
   const text = group.map((p) => p.text).join('')
+  const classes = group.map((p) => p.cls || '').join(' ')
+  if (classes.includes('t-shell')) {
+    if (text.includes('ssh')) return 900
+    if (text.includes('zerorespond case')) return 760
+    if (text.includes('metrics')) return 680
+    return 620
+  }
+  if (
+    text.includes('iptables') ||
+    text.includes('ip route') ||
+    text.includes('kill -KILL')
+  ) {
+    return 700
+  }
+  if (text.includes('ss -ltnp') || text.includes('pgrep')) return 620
+  if (classes.includes('t-time')) return 430
+  if (classes.includes('t-detect')) return 490
+  if (classes.includes('t-done')) return 350
+  if (classes.includes('t-out')) return 340
+  if (classes.includes('t-log')) return 280
+  if (classes.includes('t-muted')) return 295
+  if (classes.includes('t-metric')) return 630
+  if (classes.includes('t-report')) return 620
+  if (
+    classes.includes('t-alert') ||
+    classes.includes('t-case') ||
+    classes.includes('t-play') ||
+    classes.includes('t-tag')
+  ) {
+    return 470
+  }
+  if (classes.includes('t-step')) return 400
+  if (classes.includes('t-stderr')) return 420
   if (text.includes('$')) return 650
-  if (/[├└│]/.test(text)) return 520
-  if (text.includes('Step')) return 520
-  if (group.some((p) => p.cls?.includes('t-report'))) return 680
-  if (group.some((p) => p.cls?.includes('t-metric'))) return 620
-  if (group.some((p) => p.cls?.includes('t-play'))) return 560
-  if (group.some((p) => p.cls === 't-time')) return 440
-  if (group.some((p) => p.cls?.includes('term-badge'))) return 580
-  return 480
+  return 400
 }
 
 function TerminalAnimation() {
@@ -86,6 +276,20 @@ function TerminalAnimation() {
   const [visibleCount, setVisibleCount] = useState(0)
   const timeoutsRef = useRef<number[]>([])
   const runIdRef = useRef(0)
+  const viewportRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    if (visibleCount === 0) {
+      el.scrollTop = 0
+      return
+    }
+    const id = window.requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [visibleCount])
 
   useEffect(() => {
     const clearAllTimeouts = () => {
@@ -134,26 +338,34 @@ function TerminalAnimation() {
   }, [lineGroups])
 
   return (
-    <div className="term-body">
-      {lineGroups.slice(0, visibleCount).map((group, gi) => {
-        if (!rowHasRenderableParts(group)) {
-          return <div key={gi} className="term-row term-row-spacer" aria-hidden />
-        }
-        return (
-          <div key={gi} className="term-row term-row-live">
-            {group.map((item, ii) => {
-              if (!item.text && !item.cls) return null
-              return (
-                <span key={ii} className={item.cls || undefined}>
-                  {item.text}
-                </span>
-              )
-            })}
-          </div>
-        )
-      })}
-      <div className="term-row" style={{ minHeight: 18 }}>
-        <span className="cursor" aria-hidden />
+    <div ref={viewportRef} className="term-viewport">
+      <div className="term-buffer">
+        {lineGroups.slice(0, visibleCount).map((group, gi) => {
+          if (!rowHasRenderableParts(group)) {
+            return (
+              <div key={gi} className="term-row term-row-spacer" aria-hidden />
+            )
+          }
+          return (
+            <div key={gi} className="term-row term-row-live">
+              {group.map((item, ii) => {
+                if (!item.text && !item.cls) return null
+                return (
+                  <span key={ii} className={item.cls || undefined}>
+                    {item.text}
+                  </span>
+                )
+              })}
+            </div>
+          )
+        })}
+        <div className="term-row term-prompt-line" aria-hidden>
+          <span className="t-prompt-user">soc</span>
+          <span className="t-prompt-sep">@app01:</span>
+          <span className="t-prompt-sep">~</span>
+          <span className="t-prompt-sep">$ </span>
+          <span className="cursor" />
+        </div>
       </div>
     </div>
   )
@@ -347,7 +559,13 @@ export default function App() {
                 <div className="term-dot td2" />
                 <div className="term-dot td3" />
               </div>
-              <span className="term-title">zerorespond — live incident: #IR-2024-001</span>
+              <span
+                className="term-title"
+                title="zerorespond — live incident · IR-2024-001 · soc-app-01"
+              >
+                zerorespond · IR-2024-001 — live incident
+              </span>
+              <div className="term-header-spacer" aria-hidden />
             </div>
             <TerminalAnimation />
           </div>

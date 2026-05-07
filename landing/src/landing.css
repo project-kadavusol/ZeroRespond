@@ -372,6 +372,15 @@ h1.hero-title .line2 {
 .hero-right {
   position: relative;
   z-index: 1;
+  min-width: 0;
+}
+
+/* Fixed-height terminal card — fits below nav / within viewport */
+.hero-right .terminal {
+  display: flex;
+  flex-direction: column;
+  height: min(32rem, calc(100dvh - 11.5rem));
+  max-height: calc(100dvh - 10rem);
 }
 
 .terminal {
@@ -383,13 +392,16 @@ h1.hero-title .line2 {
     0 24px 80px rgba(0, 0, 0, 0.6),
     0 0 0 1px rgba(0, 229, 176, 0.05);
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 12.5px;
+  line-height: 1.45;
 }
 
 .term-header {
+  flex-shrink: 0;
   background: #0a0c15;
-  padding: 12px 16px;
-  display: flex;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid var(--border);
@@ -398,6 +410,7 @@ h1.hero-title .line2 {
 .term-dots {
   display: flex;
   gap: 6px;
+  justify-self: start;
 }
 
 .term-dot {
@@ -417,27 +430,71 @@ h1.hero-title .line2 {
 }
 
 .term-title {
-  flex: 1;
+  margin: 0;
+  min-width: 0;
+  justify-self: center;
   text-align: center;
   font-size: 11px;
-  color: var(--muted);
-  margin-left: -40px;
+  color: var(--muted2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
-.term-body {
-  padding: 16px;
+.term-header-spacer {
+  width: 52px;
+  justify-self: end;
+  flex-shrink: 0;
+}
+
+/* Scroll viewport: older lines scroll up and clip like a real TTY */
+.term-viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: auto;
+  padding: 12px 14px 14px;
+  background: #080a12;
+  scrollbar-width: none;
+}
+
+.term-viewport::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.term-buffer {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 400px;
+  gap: 3px;
+  min-height: min-content;
 }
 
 .term-row {
-  min-height: 18px;
+  min-height: 17px;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   flex-wrap: wrap;
   gap: 0;
+  word-break: break-word;
+}
+
+.term-prompt-line {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+.term-prompt-line .t-prompt-user {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.term-prompt-line .t-prompt-sep {
+  color: var(--muted);
 }
 
 /* Sequential “live terminal” rows */
@@ -469,7 +526,35 @@ h1.hero-title .line2 {
   }
 }
 
-.term-time {
+.t-log {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.t-out {
+  color: var(--txt);
+}
+
+.t-shell {
+  color: #7fdbca;
+}
+
+.t-stderr {
+  color: #ff8a80;
+}
+
+.t-muted {
+  color: var(--muted2);
+  font-size: 12px;
+  padding-left: 2px;
+}
+
+.t-tag {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.t-time {
   color: var(--muted);
 }
 
