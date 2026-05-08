@@ -54,21 +54,24 @@ const TERM_LINES: TermLineSpec[] = [
   { text: '2026-05-07T02:46:55.047+0530 INFO  playbook-engine', cls: 't-time', newline: true },
   { text: 'loaded ', cls: 't-play', newline: false },
   { text: 'ransomware_response', cls: 't-tag', newline: false },
-  { text: '  6 steps · blocking=yes · est. 25 min', cls: 't-play', newline: true },
+  { text: '  8 steps · blocking=yes · est. 35 min', cls: 't-play', newline: true },
   { text: '', newline: true },
 
   // ── Step 1: isolate host ──────────────────────────────────────────────────
-  { text: 'step 1/6  isolate_host  [BLOCKING]', cls: 't-step', newline: true },
+  { text: 'step 1/8  isolate_host  [BLOCKING]', cls: 't-step', newline: true },
   { text: '  goal: stop lateral movement — block all ingress/egress except loopback', cls: 't-muted', newline: true },
   { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
   { text: 'sudo iptables -I INPUT 1 ! -i lo -j DROP', cls: '', newline: true },
   { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
   { text: 'sudo iptables -I OUTPUT 1 ! -o lo -j DROP', cls: '', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo iptables -L INPUT --line-numbers | head -3', cls: '', newline: true },
+  { text: '1    DROP  all  --  !lo    anywhere  anywhere', cls: 't-out', newline: true },
   { text: '✓ host isolated · all external traffic blocked', cls: 't-done', newline: true },
   { text: '', newline: true },
 
   // ── Step 2: terminate payload ─────────────────────────────────────────────
-  { text: 'step 2/6  terminate_payload  [BLOCKING]', cls: 't-step', newline: true },
+  { text: 'step 2/8  terminate_payload  [BLOCKING]', cls: 't-step', newline: true },
   { text: '  goal: kill active encryption process before more files are lost', cls: 't-muted', newline: true },
   { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
   { text: 'sudo lsof /srv/shares/finance -t 2>/dev/null', cls: '', newline: true },
@@ -81,9 +84,24 @@ const TERM_LINES: TermLineSpec[] = [
   { text: '✓ pid 3847 terminated', cls: 't-done', newline: true },
   { text: '', newline: true },
 
-  // ── Step 3: blackhole C2 ─────────────────────────────────────────────────
-  { text: 'step 3/6  blackhole_c2  (static route)', cls: 't-step', newline: true },
-  { text: '  goal: cut attacker egress · 185.220.101.42 confirmed TOR exit', cls: 't-muted', newline: true },
+  // ── Step 3: audit network connections ─────────────────────────────────────
+  { text: 'step 3/8  audit_connections', cls: 't-step', newline: true },
+  { text: '  goal: map all outbound sockets — capture attacker IPs before blackhole', cls: 't-muted', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'ss -tnp state established', cls: '', newline: true },
+  { text: 'Netid  State   Local                Peer                 Process', cls: 't-out', newline: true },
+  { text: 'tcp    ESTAB   10.42.17.91:42891    185.220.101.42:443   pid=3847', cls: 't-out', newline: true },
+  { text: 'tcp    ESTAB   10.42.17.91:60201    91.108.56.14:443     pid=4102', cls: 't-out', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo tcpdump -i eth0 host 185.220.101.42 -c 6 -q 2>/dev/null', cls: '', newline: true },
+  { text: '02:47:01.103 IP 10.42.17.91.42891 > 185.220.101.42.https: tcp 1024', cls: 't-out', newline: true },
+  { text: '02:47:01.107 IP 185.220.101.42.https > 10.42.17.91.42891: tcp 0', cls: 't-out', newline: true },
+  { text: '  [C2 beacon · 185.220.101.42 · interval≈5 s · confirmed TOR exit node]', cls: 't-detect', newline: true },
+  { text: '', newline: true },
+
+  // ── Step 4: blackhole C2 ─────────────────────────────────────────────────
+  { text: 'step 4/8  blackhole_c2  (null route)', cls: 't-step', newline: true },
+  { text: '  goal: cut all egress to 185.220.101.42 at the routing layer', cls: 't-muted', newline: true },
   { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
   { text: 'sudo ip route add blackhole 185.220.101.42 metric 65535', cls: '', newline: true },
   { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
@@ -92,11 +110,26 @@ const TERM_LINES: TermLineSpec[] = [
   { text: '✓ C2 egress blackholed', cls: 't-done', newline: true },
   { text: '', newline: true },
 
-  // ── Steps 4-6 via playbook engine ────────────────────────────────────────
+  // ── Step 5: find persistence ─────────────────────────────────────────────
+  { text: 'step 5/8  find_persistence', cls: 't-step', newline: true },
+  { text: '  goal: enumerate startup hooks planted by the ransomware', cls: 't-muted', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo find /tmp /var/tmp -maxdepth 2 -perm /111 -newer /proc/1', cls: '', newline: true },
+  { text: '/tmp/.cache/xYz/ransom.bin', cls: 't-out', newline: true },
+  { text: '/tmp/.cache/xYz/watchdog.sh', cls: 't-out', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'crontab -l 2>/dev/null', cls: '', newline: true },
+  { text: '@reboot  /tmp/.cache/xYz/watchdog.sh', cls: 't-detect', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo rm -rf /tmp/.cache/xYz && crontab -r', cls: '', newline: true },
+  { text: '✓ 2 artefacts removed · crontab persistence cleared', cls: 't-done', newline: true },
+  { text: '', newline: true },
+
+  // ── Steps 6-8 via playbook engine ────────────────────────────────────────
   { text: '2026-05-07T02:48:02.110+0530 INFO  playbook-engine', cls: 't-time', newline: true },
-  { text: 'step 4/6 preserve_evidence  · memory dump 2.1 GiB → /srv/evidence/', cls: 't-done', newline: true },
-  { text: 'step 5/6 hash_artefacts     · sha256 manifest written · 12 files verified', cls: 't-done', newline: true },
-  { text: 'step 6/6 notify_soc         · Slack + email dispatched to IT SOC', cls: 't-done', newline: true },
+  { text: 'step 6/8 preserve_evidence  · memory dump 2.1 GiB → /srv/evidence/', cls: 't-done', newline: true },
+  { text: 'step 7/8 hash_artefacts     · sha256 manifest written · 12 files verified', cls: 't-done', newline: true },
+  { text: 'step 8/8 notify_soc         · Slack + email dispatched to IT SOC', cls: 't-done', newline: true },
   { text: '', newline: true },
 
   // ── DPDP compliance report ────────────────────────────────────────────────
@@ -188,7 +221,7 @@ function TerminalAnimation() {
   }, [visibleCount])
 
   useEffect(() => {
-    const clearAllTimeouts = () => {
+    const clearAll = () => {
       timeoutsRef.current.forEach((id) => window.clearTimeout(id))
       timeoutsRef.current = []
     }
@@ -202,34 +235,51 @@ function TerminalAnimation() {
       return
     }
 
+    const PAUSE_MS = 4000
+
+    // Chained timeouts: each tick schedules only the next one.
+    // Pre-computing all timeouts causes background-tab throttling to fire
+    // them all at once when the tab is re-focused.
     const runSeq = () => {
-      clearAllTimeouts()
+      clearAll()
       const run = ++runIdRef.current
       setVisibleCount(0)
 
-      let cumulative = 0
-      for (let gi = 0; gi < lineGroups.length; gi++) {
-        cumulative += delayBeforeRow(lineGroups[gi])
-        const id = window.setTimeout(() => {
-          if (runIdRef.current !== run) return
-          setVisibleCount(gi + 1)
-        }, cumulative)
-        timeoutsRef.current.push(id)
+      let idx = 0
+
+      const tick = () => {
+        if (runIdRef.current !== run) return
+        if (idx >= lineGroups.length) {
+          timeoutsRef.current = [window.setTimeout(runSeq, PAUSE_MS)]
+          return
+        }
+        setVisibleCount(idx + 1)
+        const next = idx + 1
+        idx = next
+        const delay =
+          next < lineGroups.length ? delayBeforeRow(lineGroups[next]) : PAUSE_MS
+        timeoutsRef.current = [window.setTimeout(tick, delay)]
       }
 
-      const pauseAfterMs = 4000
-      const resetId = window.setTimeout(() => {
-        if (runIdRef.current !== run) return
-        runSeq()
-      }, cumulative + pauseAfterMs)
-      timeoutsRef.current.push(resetId)
+      // Delay before the very first line
+      timeoutsRef.current = [
+        window.setTimeout(tick, delayBeforeRow(lineGroups[0])),
+      ]
     }
+
+    // Restart cleanly whenever the tab becomes visible again so the user
+    // never sees a half-played or all-at-once dump.
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') runSeq()
+    }
+    document.addEventListener('visibilitychange', onVisible)
 
     runSeq()
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       runIdRef.current++
-      clearAllTimeouts()
+      clearAll()
     }
   }, [lineGroups])
 
