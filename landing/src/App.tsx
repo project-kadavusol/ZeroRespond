@@ -17,199 +17,105 @@ const DEPLOY_COMMAND =
 type TermLineSpec = { text: string; cls?: string; newline?: boolean }
 
 const TERM_LINES: TermLineSpec[] = [
+  // ── SSH login ──────────────────────────────────────────────────────────────
   { text: '$ ssh responder@soc-app-01.kct.lab', cls: 't-shell', newline: true },
-  { text: 'Connecting to soc-app-01.kct.lab …', cls: 't-log', newline: true },
-  {
-    text: 'Last login: Wed May  7 02:45:11 IST 2026 from 10.0.2.210',
-    cls: 't-log',
-    newline: true,
-  },
+  { text: 'Connected. Authenticating…', cls: 't-log', newline: true },
+  { text: 'Last login: Wed May  7 02:44:59 IST 2026 from 10.0.2.210', cls: 't-log', newline: true },
   { text: '', newline: true },
-  {
-    text: 'soc@app01:~$ cat /etc/issue.net 2>/dev/null || uname -sr',
-    cls: 't-shell',
-    newline: true,
-  },
-  { text: 'Linux linux-host-gateway 6.5.0-28-generic x86_64', cls: 't-out', newline: true },
+
+  // ── Platform health check ──────────────────────────────────────────────────
+  { text: 'soc@app01:~$ zerorespond status', cls: 't-shell', newline: true },
+  { text: '● zerorespond-api    running  pid=1421  uptime=6d 14h 07m', cls: 't-done', newline: true },
+  { text: '● playbook-engine    running  pid=1422  uptime=6d 14h 07m', cls: 't-done', newline: true },
+  { text: '● alert-processor    running  pid=1423  uptime=6d 14h 07m', cls: 't-done', newline: true },
+  { text: '  wazuh: wazuh-mgr.lab:55000  agents=4 active  db=postgresql [ok]', cls: 't-muted', newline: true },
   { text: '', newline: true },
-  { text: 'soc@app01:~$ zerorespond --version', cls: 't-shell', newline: true },
-  {
-    text: 'zerorespond-cli 1.0.0 (build 2026-05-02) · API http://127.0.0.1:8080',
-    cls: 't-out',
-    newline: true,
-  },
+
+  // ── Attach to live case ────────────────────────────────────────────────────
+  { text: 'soc@app01:~$ zerorespond case attach IR-2024-001 --follow', cls: 't-shell', newline: true },
+  { text: 'session ac7f9183… streaming Wazuh + playbook stdout (Ctrl-C detach)', cls: 't-out', newline: true },
   { text: '', newline: true },
-  {
-    text: 'soc@app01:~$ zerorespond case attach IR-2024-001 --follow',
-    cls: 't-shell',
-    newline: true,
-  },
-  {
-    text: 'session ac7f9183… streaming Wazuh + playbook stdout (Ctrl-C detach)',
-    cls: 't-out',
-    newline: true,
-  },
+
+  // ── Wazuh detection event ──────────────────────────────────────────────────
+  { text: '2026-05-07T02:46:52.883+0530 CRITICAL  linux-host-01  wazuh-agent', cls: 't-time', newline: true },
+  { text: '[rule 92011 / level 14]  Ransomware mass rename burst', cls: 't-detect', newline: true },
+  { text: '  files_renamed=847  window=12s  pattern=*.locked  path=/srv/shares/finance', cls: 't-muted', newline: true },
+  { text: '  agent.ipv4=10.42.17.91  manager=wazuh-mgr.lab:1514', cls: 't-muted', newline: true },
   { text: '', newline: true },
-  {
-    text: '2026-05-07T02:46:52.883+0530 WARN  linux-host-01  wazuh-agent',
-    cls: 't-time',
-    newline: true,
-  },
-  {
-    text: '(rule 554 / level 14) Suspicious rename burst under /srv/shares/finance',
-    cls: 't-detect',
-    newline: true,
-  },
-  {
-    text: '  → files_renamed=847 window=12s rule_group=ossec pattern=*.locked',
-    cls: 't-muted',
-    newline: true,
-  },
-  {
-    text: '  → agent.ipv4=10.42.17.91  manager=wazuh-mgr.lab:1514',
-    cls: 't-muted',
-    newline: true,
-  },
-  { text: '', newline: true },
-  {
-    text: '2026-05-07T02:46:53.910+0530 INFO  zerorespond-api',
-    cls: 't-time',
-    newline: true,
-  },
-  {
-    text: 'correlation svc: opened case ',
-    cls: 't-alert',
-    newline: false,
-  },
+
+  // ── Auto case creation ────────────────────────────────────────────────────
+  { text: '2026-05-07T02:46:53.910+0530 INFO  zerorespond-api', cls: 't-time', newline: true },
+  { text: 'case ', cls: 't-alert', newline: false },
   { text: 'IR-2024-001', cls: 't-case', newline: false },
-  { text: ' · severity=critical playbook=ransomware_response', cls: 't-alert', newline: true },
+  { text: ' opened · severity=CRITICAL · assignee=IT SOC', cls: 't-alert', newline: true },
   { text: '', newline: true },
-  {
-    text: '2026-05-07T02:46:55.047+0530 INFO  playbook-engine',
-    cls: 't-time',
-    newline: true,
-  },
-  {
-    text: 'loaded playbook ',
-    cls: 't-play',
-    newline: false,
-  },
-  {
-    text: 'ransomware_response',
-    cls: 't-tag',
-    newline: false,
-  },
-  { text: ' (6 steps · blocking=yes)', cls: 't-play', newline: true },
+
+  // ── Playbook dispatch ─────────────────────────────────────────────────────
+  { text: '2026-05-07T02:46:55.047+0530 INFO  playbook-engine', cls: 't-time', newline: true },
+  { text: 'loaded ', cls: 't-play', newline: false },
+  { text: 'ransomware_response', cls: 't-tag', newline: false },
+  { text: '  6 steps · blocking=yes · est. 25 min', cls: 't-play', newline: true },
   { text: '', newline: true },
-  { text: '--- playbook: ransomware_response ---', cls: 't-muted', newline: true },
-  { text: 'step 1/6 isolate_host (run on endpoint)', cls: 't-step', newline: true },
+
+  // ── Step 1: isolate host ──────────────────────────────────────────────────
+  { text: 'step 1/6  isolate_host  [BLOCKING]', cls: 't-step', newline: true },
+  { text: '  goal: stop lateral movement — block all ingress/egress except loopback', cls: 't-muted', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo iptables -I INPUT 1 ! -i lo -j DROP', cls: '', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo iptables -I OUTPUT 1 ! -o lo -j DROP', cls: '', newline: true },
+  { text: '✓ host isolated · all external traffic blocked', cls: 't-done', newline: true },
   { text: '', newline: true },
-  {
-    text: 'soc@linux-host-01:~$ ',
-    cls: 't-shell',
-    newline: false,
-  },
-  {
-    text: 'sudo -n iptables -I INPUT 1 ! -i lo -j DROP; echo exit:$?',
-    cls: '',
-    newline: true,
-  },
-  { text: 'exit:0', cls: 't-done', newline: true },
+
+  // ── Step 2: terminate payload ─────────────────────────────────────────────
+  { text: 'step 2/6  terminate_payload  [BLOCKING]', cls: 't-step', newline: true },
+  { text: '  goal: kill active encryption process before more files are lost', cls: 't-muted', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo lsof /srv/shares/finance -t 2>/dev/null', cls: '', newline: true },
+  { text: '3847', cls: 't-out', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'ps -p 3847 -o pid,ppid,cmd --no-header', cls: '', newline: true },
+  { text: '3847  1  /tmp/.cache/xYz/ransom.bin --encrypt /srv/shares/finance', cls: 't-out', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo kill -KILL 3847 && echo "✓ pid 3847 terminated"', cls: '', newline: true },
+  { text: '✓ pid 3847 terminated', cls: 't-done', newline: true },
   { text: '', newline: true },
-  {
-    text: 'soc@linux-host-01:~$ ',
-    cls: 't-shell',
-    newline: false,
-  },
-  {
-    text: 'sudo ss -ltnp \'( sport = :22 or sport = :443 )\'',
-    cls: '',
-    newline: true,
-  },
-  {
-    text: 'State  Recv-Q  Local Address:Port  Peer Address:Port  Process',
-    cls: 't-out',
-    newline: true,
-  },
-  {
-    text: 'LISTEN 0       128    10.42.17.91:22        0.0.0.0:*      users:(("sshd",pid=884,fd=4))',
-    cls: 't-out',
-    newline: true,
-  },
+
+  // ── Step 3: blackhole C2 ─────────────────────────────────────────────────
+  { text: 'step 3/6  blackhole_c2  (static route)', cls: 't-step', newline: true },
+  { text: '  goal: cut attacker egress · 185.220.101.42 confirmed TOR exit', cls: 't-muted', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'sudo ip route add blackhole 185.220.101.42 metric 65535', cls: '', newline: true },
+  { text: 'soc@linux-host-01:~$ ', cls: 't-shell', newline: false },
+  { text: 'ip route show 185.220.101.42', cls: '', newline: true },
+  { text: 'blackhole 185.220.101.42 metric 65535', cls: 't-out', newline: true },
+  { text: '✓ C2 egress blackholed', cls: 't-done', newline: true },
   { text: '', newline: true },
-  { text: 'step 2/6 terminate_payload (SIGKILL suspicious pid)', cls: 't-step', newline: true },
-  {
-    text: 'soc@linux-host-01:~$ ',
-    cls: 't-shell',
-    newline: false,
-  },
-  {
-    text: 'pgrep -af encrypt || pgrep -af ransom || true',
-    cls: '',
-    newline: true,
-  },
-  {
-    text: '3847 /tmp/.cache/xYz/ransom.bin --encrypt /srv/shares/finance',
-    cls: 't-out',
-    newline: true,
-  },
-  {
-    text: 'soc@linux-host-01:~$ ',
-    cls: 't-shell',
-    newline: false,
-  },
-  { text: 'sudo kill -KILL 3847 && echo "pid 3847 terminated"', cls: '', newline: true },
-  { text: 'pid 3847 terminated', cls: 't-done', newline: true },
+
+  // ── Steps 4-6 via playbook engine ────────────────────────────────────────
+  { text: '2026-05-07T02:48:02.110+0530 INFO  playbook-engine', cls: 't-time', newline: true },
+  { text: 'step 4/6 preserve_evidence  · memory dump 2.1 GiB → /srv/evidence/', cls: 't-done', newline: true },
+  { text: 'step 5/6 hash_artefacts     · sha256 manifest written · 12 files verified', cls: 't-done', newline: true },
+  { text: 'step 6/6 notify_soc         · Slack + email dispatched to IT SOC', cls: 't-done', newline: true },
   { text: '', newline: true },
-  { text: 'step 3/6 blackhole_c2 (static route)', cls: 't-step', newline: true },
-  {
-    text: 'soc@linux-host-01:~$ ',
-    cls: 't-shell',
-    newline: false,
-  },
-  {
-    text: 'sudo ip route replace blackhole 185.220.101.42 metric 65535',
-    cls: '',
-    newline: true,
-  },
-  {
-    text: 'RTNETLINK answers: File exists',
-    cls: 't-stderr',
-    newline: true,
-  },
-  { text: '(idempotent · route already present — OK)', cls: 't-muted', newline: true },
+
+  // ── DPDP compliance report ────────────────────────────────────────────────
+  { text: '2026-05-07T02:48:06.502+0530 INFO  zerorespond-report', cls: 't-time', newline: true },
+  { text: 'DPDP Act 2023 §8(6) — building compliance PDF…', cls: 't-report', newline: true },
+  { text: '  breach_type      = Ransomware (data encryption)', cls: 't-muted', newline: true },
+  { text: '  data_categories  = Financial records · Employee PII', cls: 't-muted', newline: true },
+  { text: '  persons_affected = ~1,200  (Finance dept · campus network)', cls: 't-muted', newline: true },
+  { text: '  cert_in_window   = 6h  ·  elapsed: 1h 21m  ·  remaining: 4h 39m  [OK]', cls: 't-done', newline: true },
+  { text: '  output: dpdp_IR-2024-001_20260507.pdf  842 KiB · sha256=9f2c…b91a', cls: 't-muted', newline: true },
   { text: '', newline: true },
-  {
-    text: '2026-05-07T02:48:02.110+0530 INFO  playbook-engine',
-    cls: 't-time',
-    newline: true,
-  },
-  { text: 'steps 4–6 complete (evidence bundle + containment log committed)', cls: 't-done', newline: true },
-  { text: '', newline: true },
-  {
-    text: '2026-05-07T02:48:06.502+0530 INFO  zerorespond-report',
-    cls: 't-time',
-    newline: true,
-  },
-  {
-    text: 'weasyprint build: /var/lib/zerorespond/reports/dpdp_IR-2024-001_20260507.pdf',
-    cls: 't-report',
-    newline: true,
-  },
-  { text: '842 KiB · sha256=9f2c…b91a', cls: 't-muted', newline: true },
-  { text: '', newline: true },
+
+  // ── Final metrics ─────────────────────────────────────────────────────────
   { text: 'soc@app01:~$ zerorespond metrics show IR-2024-001 --json', cls: 't-shell', newline: true },
-  {
-    text: '{ "case":"IR-2024-001", "mttd_sec":252, "mttr_sec":1327, "fp_rate":0.12, "state":"closed" }',
-    cls: 't-metric',
-    newline: true,
-  },
+  { text: '{ "case":"IR-2024-001", "mttd_sec":252, "mttr_sec":1327, "fp_rate":0.12, "state":"closed" }', cls: 't-metric', newline: true },
   { text: '', newline: true },
-  {
-    text: 'session ac7f9183… closed — case IR-2024-001 resolved (report + CERT-In draft ready)',
-    cls: 't-done',
-    newline: true,
-  },
+
+  // ── Session closed ────────────────────────────────────────────────────────
+  { text: 'session ac7f9183… closed — IR-2024-001 resolved · report + CERT-In draft ready', cls: 't-done', newline: true },
 ]
 
 function buildLineGroups(lines: TermLineSpec[]) {
@@ -230,45 +136,41 @@ function rowHasRenderableParts(group: TermLineSpec[]) {
   return group.some((item) => item.text || item.cls)
 }
 
-/** Pause before each row appears — tuned slower so commands/output are readable */
+/** Pause before each row appears — tuned so commands/output are readable at demo pace */
 function delayBeforeRow(group: TermLineSpec[]): number {
   if (!rowHasRenderableParts(group)) return 200
   const text = group.map((p) => p.text).join('')
   const classes = group.map((p) => p.cls || '').join(' ')
   if (classes.includes('t-shell')) {
-    if (text.includes('ssh')) return 2200
-    if (text.includes('zerorespond case')) return 2000
-    if (text.includes('metrics')) return 1700
-    return 1550
+    if (text.includes('ssh')) return 2400
+    if (text.includes('status')) return 1900
+    if (text.includes('case attach')) return 2100
+    if (text.includes('metrics')) return 1800
+    if (text.includes('lsof') || text.includes('ps -p')) return 1400
+    return 1600
   }
-  if (
-    text.includes('iptables') ||
-    text.includes('ip route') ||
-    text.includes('kill -KILL')
-  ) {
-    return 1700
-  }
-  if (text.includes('ss -ltnp') || text.includes('pgrep')) return 1500
-  if (classes.includes('t-time')) return 950
-  if (classes.includes('t-detect')) return 1050
-  if (classes.includes('t-done')) return 820
-  if (classes.includes('t-out')) return 780
-  if (classes.includes('t-log')) return 680
-  if (classes.includes('t-muted')) return 720
-  if (classes.includes('t-metric')) return 1500
-  if (classes.includes('t-report')) return 1450
+  if (text.includes('iptables')) return 1700
+  if (text.includes('ip route add') || text.includes('ip route show')) return 1600
+  if (text.includes('kill -KILL')) return 1700
+  if (classes.includes('t-time')) return 900
+  if (classes.includes('t-detect')) return 1100
+  if (classes.includes('t-done')) return 780
+  if (classes.includes('t-out')) return 750
+  if (classes.includes('t-log')) return 650
+  if (classes.includes('t-muted')) return 680
+  if (classes.includes('t-metric')) return 1600
+  if (classes.includes('t-report')) return 1500
   if (
     classes.includes('t-alert') ||
     classes.includes('t-case') ||
     classes.includes('t-play') ||
     classes.includes('t-tag')
   ) {
-    return 1050
+    return 1000
   }
-  if (classes.includes('t-step')) return 880
-  if (classes.includes('t-stderr')) return 900
-  if (text.includes('$')) return 1550
-  return 820
+  if (classes.includes('t-step')) return 950
+  if (text.includes('$')) return 1600
+  return 780
 }
 
 function TerminalAnimation() {
