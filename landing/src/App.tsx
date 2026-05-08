@@ -249,15 +249,12 @@ function TerminalAnimation() {
       timeoutsRef.current = []
     }
 
-    const prefersReduced =
-      typeof window !== 'undefined' &&
-      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
-
-    if (prefersReduced) {
-      setVisibleCount(lineGroups.length)
-      return
-    }
-
+    // NOTE: we intentionally do NOT short-circuit on `prefers-reduced-motion`
+    // here. The OS-level reduced-motion preference (and GNOME's
+    // `enable-animations=false`, which propagates to browsers as
+    // `prefers-reduced-motion: reduce`) was previously dumping every line at
+    // once. The per-row fade is already disabled in CSS for that case, which
+    // is the correct accessibility surface — the line-by-line cadence stays.
     const pauseAfterMs = 5500
 
     // One timeout at a time, same rhythm as cumulative scheduling in 02d4afb — first row after
