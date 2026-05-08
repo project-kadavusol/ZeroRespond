@@ -499,6 +499,9 @@ h1.hero-title .line2 {
   margin-top: 4px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: pre;
 }
 
 .term-prompt-line .t-prompt-user {
@@ -508,6 +511,11 @@ h1.hero-title .line2 {
 
 .term-prompt-line .t-prompt-sep {
   color: var(--muted);
+}
+
+.term-prompt-line .cursor {
+  vertical-align: middle;
+  align-self: center;
 }
 
 /* Sequential “live terminal” rows */
@@ -529,6 +537,20 @@ h1.hero-title .line2 {
 
 .term-row-spacer {
   min-height: 6px;
+}
+
+/* Inline draft command — no fade per keystroke (avoids strobing). */
+.term-row-typing {
+  opacity: 1;
+}
+
+.term-typing-cursor {
+  margin-left: 3px;
+  vertical-align: -2px;
+}
+
+.term-buffer-busy .term-prompt-line .cursor {
+  visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
