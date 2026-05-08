@@ -169,35 +169,55 @@ function rowHasRenderableParts(group: TermLineSpec[]) {
   return group.some((item) => item.text || item.cls)
 }
 
-/** Pause before each row appears — snappy enough to look live, slow enough to read */
+/** Pause before each row appears — same pacing model as landing @ 91079332 */
 function delayBeforeRow(group: TermLineSpec[]): number {
-  if (!rowHasRenderableParts(group)) return 100
+  if (!rowHasRenderableParts(group)) return 200
   const text = group.map((p) => p.text).join('')
   const classes = group.map((p) => p.cls || '').join(' ')
   if (classes.includes('t-shell')) {
-    if (text.includes('ssh')) return 800
-    if (text.includes('status')) return 620
-    if (text.includes('case attach')) return 700
-    if (text.includes('metrics')) return 620
-    if (text.includes('lsof') || text.includes('ps -p')) return 500
-    return 560
+    if (text.includes('ssh')) return 2200
+    if (text.includes('zerorespond status')) return 1750
+    if (text.includes('zerorespond case')) return 2000
+    if (text.includes('metrics')) return 1700
+    return 1550
   }
-  if (classes.includes('t-time')) return 380
-  if (classes.includes('t-detect')) return 480
-  if (classes.includes('t-step')) return 360
-  if (classes.includes('t-done')) return 310
-  if (classes.includes('t-out')) return 290
-  if (classes.includes('t-log')) return 260
-  if (classes.includes('t-muted')) return 260
-  if (classes.includes('t-metric')) return 580
-  if (classes.includes('t-report')) return 520
+  if (
+    text.includes('iptables') ||
+    text.includes('ip route') ||
+    text.includes('kill -KILL')
+  ) {
+    return 1700
+  }
+  if (
+    text.includes('ss ') ||
+    text.includes('tcpdump') ||
+    text.includes('lsof ') ||
+    text.includes('ps -p ') ||
+    text.includes('pgrep')
+  )
+    return 1500
+  if (text.includes('find ') || text.includes('crontab ') || text.includes('rm -rf'))
+    return 1500
+  if (classes.includes('t-time')) return 950
+  if (classes.includes('t-detect')) return 1050
+  if (classes.includes('t-done')) return 820
+  if (classes.includes('t-out')) return 780
+  if (classes.includes('t-log')) return 680
+  if (classes.includes('t-muted')) return 720
+  if (classes.includes('t-metric')) return 1500
+  if (classes.includes('t-report')) return 1450
   if (
     classes.includes('t-alert') ||
     classes.includes('t-case') ||
     classes.includes('t-play') ||
     classes.includes('t-tag')
-  ) return 380
-  return 310
+  ) {
+    return 1050
+  }
+  if (classes.includes('t-step')) return 880
+  if (classes.includes('t-stderr')) return 900
+  if (text.includes('$')) return 1550
+  return 820
 }
 
 function TerminalAnimation() {
@@ -221,7 +241,7 @@ function TerminalAnimation() {
   }, [visibleCount])
 
   useEffect(() => {
-    const clearAll = () => {
+    const clearAllTimeouts = () => {
       timeoutsRef.current.forEach((id) => window.clearTimeout(id))
       timeoutsRef.current = []
     }
@@ -235,51 +255,34 @@ function TerminalAnimation() {
       return
     }
 
-    const PAUSE_MS = 4000
-
-    // Chained timeouts: each tick schedules only the next one.
-    // Pre-computing all timeouts causes background-tab throttling to fire
-    // them all at once when the tab is re-focused.
     const runSeq = () => {
-      clearAll()
+      clearAllTimeouts()
       const run = ++runIdRef.current
       setVisibleCount(0)
 
-      let idx = 0
-
-      const tick = () => {
-        if (runIdRef.current !== run) return
-        if (idx >= lineGroups.length) {
-          timeoutsRef.current = [window.setTimeout(runSeq, PAUSE_MS)]
-          return
-        }
-        setVisibleCount(idx + 1)
-        const next = idx + 1
-        idx = next
-        const delay =
-          next < lineGroups.length ? delayBeforeRow(lineGroups[next]) : PAUSE_MS
-        timeoutsRef.current = [window.setTimeout(tick, delay)]
+      let cumulative = 0
+      for (let gi = 0; gi < lineGroups.length; gi++) {
+        cumulative += delayBeforeRow(lineGroups[gi])
+        const id = window.setTimeout(() => {
+          if (runIdRef.current !== run) return
+          setVisibleCount(gi + 1)
+        }, cumulative)
+        timeoutsRef.current.push(id)
       }
 
-      // Delay before the very first line
-      timeoutsRef.current = [
-        window.setTimeout(tick, delayBeforeRow(lineGroups[0])),
-      ]
+      const pauseAfterMs = 5500
+      const resetId = window.setTimeout(() => {
+        if (runIdRef.current !== run) return
+        runSeq()
+      }, cumulative + pauseAfterMs)
+      timeoutsRef.current.push(resetId)
     }
-
-    // Restart cleanly whenever the tab becomes visible again so the user
-    // never sees a half-played or all-at-once dump.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') runSeq()
-    }
-    document.addEventListener('visibilitychange', onVisible)
 
     runSeq()
 
     return () => {
-      document.removeEventListener('visibilitychange', onVisible)
       runIdRef.current++
-      clearAll()
+      clearAllTimeouts()
     }
   }, [lineGroups])
 
