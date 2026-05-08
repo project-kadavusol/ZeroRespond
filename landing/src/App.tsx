@@ -169,15 +169,15 @@ function rowHasRenderableParts(group: TermLineSpec[]) {
   return group.some((item) => item.text || item.cls)
 }
 
-/** Pause before each row appears — same pacing model as landing @ 91079332 */
+/** Pause before each row appears — delay numbers from landing @ 02d4afb (readable one-by-one) */
 function delayBeforeRow(group: TermLineSpec[]): number {
   if (!rowHasRenderableParts(group)) return 200
   const text = group.map((p) => p.text).join('')
   const classes = group.map((p) => p.cls || '').join(' ')
   if (classes.includes('t-shell')) {
     if (text.includes('ssh')) return 2200
-    if (text.includes('zerorespond status')) return 1750
     if (text.includes('zerorespond case')) return 2000
+    if (text.includes('zerorespond status')) return 1700
     if (text.includes('metrics')) return 1700
     return 1550
   }
@@ -189,15 +189,18 @@ function delayBeforeRow(group: TermLineSpec[]): number {
     return 1700
   }
   if (
-    text.includes('ss ') ||
+    text.includes('ss -ltnp') ||
+    text.includes('ss -tnp') ||
     text.includes('tcpdump') ||
     text.includes('lsof ') ||
-    text.includes('ps -p ') ||
-    text.includes('pgrep')
-  )
+    text.includes('ps -p') ||
+    text.includes('pgrep') ||
+    text.includes('find /') ||
+    text.includes('crontab ') ||
+    text.includes('rm -rf')
+  ) {
     return 1500
-  if (text.includes('find ') || text.includes('crontab ') || text.includes('rm -rf'))
-    return 1500
+  }
   if (classes.includes('t-time')) return 950
   if (classes.includes('t-detect')) return 1050
   if (classes.includes('t-done')) return 820
@@ -255,32 +258,62 @@ function TerminalAnimation() {
       return
     }
 
+    const pauseAfterMs = 5500
+
+    // One timeout at a time, same rhythm as cumulative scheduling in 02d4afb — first row after
+    // delayBeforeRow(groups[0]), then gaps of delay(groups[1]), delay(groups[2]), … ending in
+    // pauseBeforeRestart (instead of enqueueing thousands of timeouts at tab load).
     const runSeq = () => {
       clearAllTimeouts()
       const run = ++runIdRef.current
       setVisibleCount(0)
 
-      let cumulative = 0
-      for (let gi = 0; gi < lineGroups.length; gi++) {
-        cumulative += delayBeforeRow(lineGroups[gi])
-        const id = window.setTimeout(() => {
-          if (runIdRef.current !== run) return
-          setVisibleCount(gi + 1)
-        }, cumulative)
-        timeoutsRef.current.push(id)
+      let shown = -1
+
+      const showNext = () => {
+        if (runIdRef.current !== run) return
+        shown += 1
+        if (shown >= lineGroups.length) {
+          timeoutsRef.current = [
+            window.setTimeout(() => {
+              if (runIdRef.current !== run) return
+              runSeq()
+            }, pauseAfterMs),
+          ]
+          return
+        }
+        setVisibleCount(shown + 1)
+        if (shown + 1 < lineGroups.length) {
+          timeoutsRef.current = [
+            window.setTimeout(
+              showNext,
+              delayBeforeRow(lineGroups[shown + 1])
+            ),
+          ]
+          return
+        }
+        timeoutsRef.current = [
+          window.setTimeout(() => {
+            if (runIdRef.current !== run) return
+            runSeq()
+          }, pauseAfterMs),
+        ]
       }
 
-      const pauseAfterMs = 5500
-      const resetId = window.setTimeout(() => {
-        if (runIdRef.current !== run) return
-        runSeq()
-      }, cumulative + pauseAfterMs)
-      timeoutsRef.current.push(resetId)
+      timeoutsRef.current = [
+        window.setTimeout(showNext, delayBeforeRow(lineGroups[0])),
+      ]
     }
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') runSeq()
+    }
+    document.addEventListener('visibilitychange', onVisible)
 
     runSeq()
 
     return () => {
+      document.removeEventListener('visibilitychange', onVisible)
       runIdRef.current++
       clearAllTimeouts()
     }
