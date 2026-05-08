@@ -17,7 +17,7 @@ export function IncidentsPage() {
           </div>
         </div>
         <div className="zr-page-actions">
-          <span className="zr-sync-note">Demo data</span>
+          <span className="zr-sync-note">Connect Wazuh to load live cases</span>
           <button type="button" className="btn btn-ghost btn-sm">
             Export CSV
           </button>

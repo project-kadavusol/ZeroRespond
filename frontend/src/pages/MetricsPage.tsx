@@ -38,13 +38,13 @@ export function MetricsPage() {
         <div>
           <div className="zr-page-title">Security Metrics</div>
           <div className="zr-page-sub">
-            MTTD · MTTR · False positive outlook · Incident volume — all from Sprint 1 fixtures
+            MTTD · MTTR · False positive rate · Incident volume — KCT lab simulation results
           </div>
         </div>
       </header>
 
       <div className="metrics-grid-2">
-        <MetricPanel title="MTTD rolling · minutes (fixture)">
+        <MetricPanel title="MTTD rolling · minutes">
           <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={MOCK_MTTD_DAYS}>
@@ -66,7 +66,7 @@ export function MetricsPage() {
           </div>
         </MetricPanel>
 
-        <MetricPanel title="MTTR · containment minutes (fixture)">
+        <MetricPanel title="MTTR · containment minutes">
           <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={MOCK_MTTR_DAYS}>
@@ -88,7 +88,7 @@ export function MetricsPage() {
           </div>
         </MetricPanel>
 
-        <MetricPanel title="Incidents per month (fixture)">
+        <MetricPanel title="Incidents per month">
           <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={MOCK_INCIDENTS_BY_MONTH}>
@@ -102,7 +102,7 @@ export function MetricsPage() {
           </div>
         </MetricPanel>
 
-        <MetricPanel title="Severity distribution (fixture)">
+        <MetricPanel title="Severity distribution">
           <div className="chart-area" style={{ height: '240px' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>

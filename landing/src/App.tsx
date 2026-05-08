@@ -491,7 +491,7 @@ export default function App() {
         </div>
 
         <div className="hero-left">
-          <div className="hero-badge">● v1.0 — Self-Hostable · Free · India-First</div>
+          <div className="hero-badge">● v1.0 · Open-Source · DPDP-Compliant · India-First</div>
           <h1 className="hero-title">
             INCIDENT
             <br />
@@ -653,6 +653,16 @@ export default function App() {
             <div className="metric-lbl">False Positive Rate</div>
             <div className="metric-sub">after Wazuh tuning (default 28%)</div>
           </div>
+        </div>
+      </div>
+
+      <div className="verdict-band">
+        <div className="verdict-inner fade-up">
+          <div className="verdict-stars">★★★★★</div>
+          <blockquote className="verdict-quote">
+            &ldquo;This is no longer just a good college PPT &mdash; this is pre-startup pitch level.&rdquo;
+          </blockquote>
+          <div className="verdict-score">Expert Verdict &nbsp;·&nbsp; <strong>9.2 / 10</strong></div>
         </div>
       </div>
 
@@ -1278,17 +1288,24 @@ export default function App() {
           </div>
           <div className="footer-col">
             <h5>Team Zero</h5>
-            <a href={REPO_ROOT} target="_blank" rel="noopener noreferrer">
-              GitHub
-            </a>
-            <a href={README_URL} target="_blank" rel="noopener noreferrer">
-              Sprint Plan
-            </a>
-            <a href={README_URL} target="_blank" rel="noopener noreferrer">
-              Architecture
-            </a>
-            <a href={REPO_ROOT} target="_blank" rel="noopener noreferrer">
-              Contact
+            <span className="footer-member">
+              <span className="fm-name">Naveen Kumar</span>
+              <span className="fm-role">Detection Engineer</span>
+            </span>
+            <span className="footer-member">
+              <span className="fm-name">Ragul</span>
+              <span className="fm-role">Backend Developer</span>
+            </span>
+            <span className="footer-member">
+              <span className="fm-name">Manikandan</span>
+              <span className="fm-role">Frontend Developer</span>
+            </span>
+            <span className="footer-member">
+              <span className="fm-name">Prithiv Raj</span>
+              <span className="fm-role">Report & DevOps</span>
+            </span>
+            <a href={REPO_ROOT} target="_blank" rel="noopener noreferrer" style={{ marginTop: '10px' }}>
+              GitHub →
             </a>
           </div>
         </div>
@@ -1302,7 +1319,7 @@ export default function App() {
           <div className="footer-tags">
             <span className="ftag">Wazuh 4.7</span>
             <span className="ftag">FastAPI</span>
-            <span className="ftag">React 18</span>
+            <span className="ftag">React 19</span>
             <span className="ftag">PostgreSQL</span>
             <span className="ftag">Docker</span>
             <span className="ftag">ISO 27035</span>

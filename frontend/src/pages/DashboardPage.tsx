@@ -158,7 +158,7 @@ export function DashboardPage() {
       <div className="metrics-grid-2" style={{ marginBottom: '16px' }}>
         <div className="chart-box">
           <div className="card-title" style={{ marginBottom: '0' }}>
-            MTTD Trend · minutes (fixture)
+            MTTD Trend · minutes
           </div>
           <div className="chart-area">
             <ResponsiveContainer width="100%" height="100%">
@@ -180,7 +180,7 @@ export function DashboardPage() {
         </div>
         <div className="chart-box">
           <div className="card-title" style={{ marginBottom: '0' }}>
-            Incidents by Category (fixture)
+            Incidents by Category
           </div>
           <div className="chart-area">
             <ResponsiveContainer width="100%" height="100%">

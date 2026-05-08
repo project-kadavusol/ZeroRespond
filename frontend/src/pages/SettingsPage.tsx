@@ -71,7 +71,7 @@ export function SettingsPage() {
             <div>
               <div className="td-title">API access</div>
               <div className="td-sub">
-                Bearer tokens · Rotate from Security (Sprint&nbsp;2)
+                Bearer tokens · Manage from Security settings
               </div>
             </div>
             <button type="button" className="btn btn-ghost btn-sm">
