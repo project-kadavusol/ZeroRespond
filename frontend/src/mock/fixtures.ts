@@ -414,9 +414,21 @@ export const MOCK_HEATMAP_WEEK_HOURS: Record<string, number[]> = {
   ],
 }
 
-/** 35-day static grid for Sprint 1 heatmap visual (counts arbitrary). */
-export const MOCK_HEATMAP_DAYS: { label: number; intensity: number }[] =
-  Array.from({ length: 35 }, (_, i) => ({
-    label: i + 1,
-    intensity: [0, 0, 1, 2, 0, 3, 1][i % 7],
-  }))
+/** 35-day activity grid for contribution-style heatmap. Counts simulate real lab alert volume. */
+export const MOCK_HEATMAP_DAYS: { label: number; count: number }[] = [
+  // Week 1 (Apr 4–10) — low baseline
+  { label: 1, count: 0 }, { label: 2, count: 1 }, { label: 3, count: 0 },
+  { label: 4, count: 2 }, { label: 5, count: 0 }, { label: 6, count: 0 }, { label: 7, count: 0 },
+  // Week 2 (Apr 11–17) — uptick mid-week
+  { label: 8, count: 1 }, { label: 9, count: 3 }, { label: 10, count: 4 },
+  { label: 11, count: 2 }, { label: 12, count: 1 }, { label: 13, count: 0 }, { label: 14, count: 0 },
+  // Week 3 (Apr 18–24) — ransomware simulation spike
+  { label: 15, count: 0 }, { label: 16, count: 2 }, { label: 17, count: 5 },
+  { label: 18, count: 7 }, { label: 19, count: 6 }, { label: 20, count: 1 }, { label: 21, count: 0 },
+  // Week 4 (Apr 25–May 1) — active IR period
+  { label: 22, count: 2 }, { label: 23, count: 4 }, { label: 24, count: 8 },
+  { label: 25, count: 5 }, { label: 26, count: 3 }, { label: 27, count: 0 }, { label: 28, count: 0 },
+  // Week 5 (May 2–8) — current week, partial
+  { label: 29, count: 1 }, { label: 30, count: 2 }, { label: 31, count: 3 },
+  { label: 32, count: 4 }, { label: 33, count: 2 }, { label: 34, count: 0 }, { label: 35, count: 0 },
+]

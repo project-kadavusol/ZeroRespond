@@ -4,41 +4,46 @@
 
 Detect · Respond · Report · Repeat
 
-ZeroRespond is a unified, **self-hostable** incident response stack for teams that lack a dedicated SOC or enterprise tooling budget. It ties together **detection** (Wazuh-powered alerts), **guided response** (structured cases and command-level playbooks), and **reporting** oriented toward Indian regulatory context (Digital Personal Data Protection Act 2023, CERT-In notification workflows), deployed as containers on your own Linux server.
+ZeroRespond is a unified, **self-hostable** incident response stack for teams that lack a dedicated SOC or enterprise tooling budget. It ties together **detection** (Wazuh-powered alerts), **guided response** (structured cases and command-level playbooks), and **DPDP Act 2023-compliant reporting** — deployed as containers on your own Linux server.
+
+**Team Zero · Kumaraguru College of Technology · B.E. Computer Science · Batch 2023–2027**  
+Naveen Kumar (Detection) · Ragul (Backend) · Manikandan (Frontend) · Prithiv Raj (Reports & DevOps)
 
 ---
 
 ## Why this exists
 
-Many Indian SMBs, colleges, hospitals, and NGOs have no documented IR playbook, no centralized case history, and no audit-ready breach documentation. Typical commercial SIEM/IR suites are inaccessible on cost and skills. ZeroRespond aims to give these teams a single open-source codebase: logs in, alerts rationalized into cases, responders guided step-by-step, and exportable incident reports—all without sending data to a SaaS vendor.
+Many Indian SMBs, colleges, hospitals, and NGOs have no documented IR playbook, no centralized case history, and no audit-ready breach documentation. Commercial SIEM/IR suites cost ₹50,000+/year and require specialist skills. ZeroRespond gives these organizations a single open-source codebase: logs in → alerts rationalized into cases → responders guided step-by-step → DPDP-compliant PDF reports out — all without sending data to a SaaS vendor.
 
 ---
 
-## Features (target architecture)
+## Features
 
 | Layer | What it provides |
-|--------|------------------|
-| **Detection** | Wazuh-based log ingestion, correlation rules, anomalies → structured alerts |
-| **Response** | Incident case manager, five attack playbooks with platform-specific guidance (FastAPI) |
-| **Reporting** | HTML templates rendered to PDF (e.g., WeasyPrint), fields aligned with DPDP breach-notification needs |
-| **Dashboard** | React “ZeroDashboard”: incidents, playbook step-through, live alert feed, MTTD/MTTR-style metrics |
+|-------|-----------------|
+| **Detection** | Wazuh-based log ingestion, 50+ custom correlation rules, anomalies → structured alerts |
+| **Cases** | Auto-created incident cases when Wazuh fires critical/high alerts |
+| **Playbooks** | 5 attack-type playbooks (Ransomware, Phishing, Unauthorized Access, Data Exfiltration, Insider Threat) with command-level steps for Linux and Windows |
+| **Reports** | DPDP Act 2023 §8(6) compliant PDF — breach type, data categories, affected persons, timeline, CERT-In notification template |
+| **Dashboard** | ZeroDashboard: live alert feed, incident queue, heatmaps, MTTD/MTTR charts, playbook step-through |
 
-**Cost model:** License TBD—no vendor licensing for the codebase itself; you run it on infrastructure you control.
+**Cost model:** Zero licensing cost. Runs on a single Linux server via Docker. No SaaS, no vendor lock-in.
 
 ---
 
 ## Technology stack
 
-| Area | Choices (from project spec) |
-|------|------------------------------|
-| Detection engine | Wazuh 4.x + indexer (OpenSearch) |
+| Area | Choices |
+|------|---------|
+| Detection engine | Wazuh 4.7 + indexer (OpenSearch) |
 | Backend API | Python 3.11, FastAPI, SQLAlchemy, Alembic |
 | Database | PostgreSQL 15 |
-| Frontend | React + **Vite**; **Tailwind CSS**; **react-router-dom**; **Recharts** (see `frontend/package.json` for exact versions) |
-| Reporting | Jinja2 HTML → PDF (WeasyPrint primary; optional fallback) |
+| Frontend | React 19, Vite 6, Tailwind CSS v4, react-router-dom v7, Recharts |
+| Landing site | React 19, Vite 6, plain CSS (no framework) |
+| Reporting | Jinja2 HTML → PDF (WeasyPrint) |
 | Deployment | Docker and Docker Compose (single-host) |
 
-Communication between dashboard and backend: **REST + WebSockets** for real-time alerts.
+Communication: **REST + WebSockets** for real-time alerts.
 
 ---
 
@@ -46,229 +51,203 @@ Communication between dashboard and backend: **REST + WebSockets** for real-time
 
 ```
 ZeroRespond/
-├── landing/                   # Marketing site: Vite + React; Dockerfile + nginx (Compose → port 5174)
-├── netlify.toml               # `npm run build -w landing`, publish `landing/dist`
-├── package.json               # npm workspaces — `frontend` + `landing`
-├── frontend/                  # ZeroDashboard: Vite + React + mock data; Dockerfile + nginx
-│   ├── Dockerfile             # Multi-stage: workspace build → nginx static
-│   └── nginx.conf             # SPA try_files for /dashboard etc.
-├── backend/                   # FastAPI app, PostgreSQL migrations
-│   └── app/reports/templates/ # Jinja2 layouts for incident PDFs
-├── detection/
-│   ├── wazuh/rules/           # Custom Wazuh rules
-│   ├── wazuh/decoders/        # Optional decoders
-│   └── alert_processor/       # Polls Wazuh API → backend / PostgreSQL alerts
-├── scripts/                   # Backup, restore, maintenance helpers (as added)
-├── docker-compose.yml         # DB, ZeroDashboard (:5173), landing (:5174)
+├── landing/                   # Marketing site: Vite + React; Dockerfile + nginx (:5174)
+│   ├── src/
+│   │   ├── App.tsx            # Full landing page with terminal animation
+│   │   └── landing.css        # Design tokens + all landing styles
+│   ├── Dockerfile
+│   └── nginx.conf
+├── frontend/                  # ZeroDashboard: Vite + React + Tailwind
+│   ├── src/
+│   │   ├── App.tsx            # Route table
+│   │   ├── main.tsx           # BrowserRouter bootstrap
+│   │   ├── index.css          # Tailwind v4 entry
+│   │   ├── zerorespond-ui.css # Full dashboard theme (CSS variables, components)
+│   │   ├── mock/
+│   │   │   └── fixtures.ts    # Incident, alert, playbook, metrics stubs
+│   │   ├── components/
+│   │   │   ├── SeverityBadge.tsx
+│   │   │   ├── alerts/LiveAlertCard.tsx
+│   │   │   ├── case/          # AlertSummaryCard, CaseTimeline, EvidenceList,
+│   │   │   │                  # IncidentPhaseStrip, PlaybookStepList, ResponderNotes
+│   │   │   ├── dashboard/     # DashboardHeatmap, IncidentQueueCards, IncidentTable,
+│   │   │   │                  # IncidentToolbar, NewCaseModal
+│   │   │   └── metrics/IncidentDensityHeatmap.tsx
+│   │   ├── layouts/MainLayout.tsx
+│   │   ├── lib/incidentDisplay.ts
+│   │   └── pages/
+│   │       ├── DashboardPage.tsx
+│   │       ├── IncidentsPage.tsx
+│   │       ├── IncidentDetailPage.tsx
+│   │       ├── AlertsPage.tsx
+│   │       ├── MetricsPage.tsx
+│   │       ├── PlaybooksPage.tsx
+│   │       ├── EvidencePage.tsx
+│   │       ├── ReportsPage.tsx
+│   │       ├── OrgProfilePage.tsx
+│   │       └── SettingsPage.tsx
+│   ├── Dockerfile
+│   └── nginx.conf
+├── backend/                   # FastAPI app, PostgreSQL migrations (in progress)
+├── detection/                 # Wazuh rules, decoders, alert processor (in progress)
+├── scripts/                   # Backup, restore, maintenance helpers
+├── zerorespond_landing.html   # Static prototype of landing (reference)
+├── zerorespond_app.html       # Static prototype of dashboard (reference)
+├── docker-compose.yml         # All services
+├── netlify.toml               # Landing → Netlify (build + publish landing/dist)
 ├── .env.example               # Required env vars template
 └── README.md
 ```
-
-Wazuh stack services (`wazuh-indexer`, `wazuh-manager`, optional dashboard) remain **referenced in comments** inside `docker-compose.yml` until you wire official images and volumes.
 
 ---
 
 ## Prerequisites
 
-- **Node.js** 20+ and npm (for `frontend/` development; see **Frontend — Module 5** below)
-- Docker Engine and Docker Compose v2
-- Recommended target: Ubuntu 22.04 LTS (or equivalent) with enough RAM for indexer + manager (consult Wazuh sizing guides as you scale)
+- **Node.js 20+** and npm 10+ (for local frontend/landing development)
+- **Docker Engine** and Docker Compose v2
+- Recommended OS: Ubuntu 22.04 LTS
 
 ---
 
-## Quick start (scaffolding phase)
+## Quick start
 
-Implementations land incrementally across modules. Until all services build:
+### 1. Clone
 
-1. **Clone**
-   ```bash
-   git clone https://github.com/project-kadavusol/ZeroRespond.git
-   cd ZeroRespond
-   ```
+```bash
+git clone https://github.com/project-kadavusol/ZeroRespond.git
+cd ZeroRespond
+```
 
-2. **Environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env — use strong passwords and secrets; never commit .env
-   ```
-
-3. **Public marketing site (local)**  
-   From the repo root after `npm install`:
-
-   ```bash
-   npm run dev:landing
-   ```
-
-   Open **http://127.0.0.1:5174** (Vite dev server for the React landing page).
-
-   **Netlify:** [`netlify.toml`](./netlify.toml) runs `npm install` and **`npm run build -w landing`**, then publishes **`landing/dist`**.
-
-4. **ZeroDashboard — local dev (mock UI)**
-
-   From the **repository root** (recommended — uses npm workspaces):
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-   Shorthand for the dashboard only:
-
-   ```bash
-   npm run dev:dashboard
-   ```
-
-   Or run inside `frontend/` only:
-
-   ```bash
-   cd frontend
-   npm install
-   npm run dev
-   ```
-
-   If `npm` complains that `package.json` is missing, confirm your current directory is **`ZeroRespond`**.
-
-   Open the URL shown in the terminal (default **http://127.0.0.1:5173**).
-
-5. **ZeroDashboard — Docker**
-
-   ```bash
-   docker compose up -d --build zerorespond-frontend
-   ```
-
-   Open **http://localhost:5173** (nginx serves the built SPA).
-
-   **Landing page in Docker** (marketing site, nginx static build):
-
-   ```bash
-   docker compose up -d --build zerorespond-landing
-   ```
-
-   Open **http://localhost:5174**.
-
-   **Dashboard + landing together:**
-
-   ```bash
-   docker compose up -d --build zerorespond-frontend zerorespond-landing
-   ```
-
-   **Database only** (optional):
-
-   ```bash
-   docker compose up -d zerorespond-db
-   ```
-
-6. **Full stack** (when remaining Dockerfiles exist: backend, Wazuh, alert processor):
-
-   ```bash
-   docker compose up -d
-   ```
-
-7. **First-run**: When the backend ships, configure organization profile once per deployment, then ingest agents and alerts per detection module docs.
-
----
-
-## Modules and ownership
-
-| Module | Scope | Owner role |
-|--------|--------|------------|
-| **M1** | Wazuh, custom rules, alert processor integration | Detection engineering |
-| **M2+M3** | Case manager, playbook engine APIs | Backend |
-| **M4** | DPDP-oriented PDF pipeline, Compose, backups, deployment docs | Report + DevOps |
-| **M5** | ZeroDashboard | Frontend |
-
-**Team Zero (Kumaraguru College of Technology):** Naveen Kumar · Ragul · **Manikandan** (Frontend, Module 5) · Prithiv Raj
-
----
-
-## Frontend — Module 5 (ZeroDashboard) — Manikandan
-
-Per the project specification, Module 5 is the **central real-time UI** (**ZeroDashboard**): incident list, case detail, playbook step-through, live **WebSocket** alert feed, severity visualization, **MTTD/MTTR** and related charts. The UI should stay **clear under stress**, favour **non-expert admins** (minimal unexplained jargon), and remain **responsive** from about 768px width (tablet) upward.
-
-### Scope and deliverables (from project document)
-
-| Area | What you build |
-|------|----------------|
-| **Routing** | `react-router-dom` routes: `/dashboard`, `/incidents/:id`, `/alerts`, `/metrics` |
-| **Main incident list** | Table: Case ID, severity, attack type, assignee, opened time, status → opens case detail |
-| **Case detail** | Alert summary, timeline, playbook + step checklist, evidence list, notes |
-| **Playbook step-through** | Numbered steps, Linux/Windows commands, expected outcome, **Mark complete** (+ timestamps via API) |
-| **Alert feed** | Real-time Wazuh-backed alerts via **WebSocket**; **Create case** action |
-| **Metrics** | MTTD / MTTR time series, incidents per month, severity mix, calendar-style heatmap (**Recharts**) |
-| **UX** | Large severity badges, straightforward critical actions, tooltips on technical terms |
-
-### Sprint checklist (two-week sprints)
-
-| Sprint | Focus | Deliverables (spec) |
-|--------|--------|----------------------|
-| **1** **(done)** | Tooling + layout | Vite + React + **Tailwind**; routes above; **static mockups** for all four screens (dashboard, case **`INV-2042`** demo with playbook UX, alerts, metrics + heatmap sketch); **Recharts** wired; **`src/mock/fixtures`** + layered components |
-| **2** | Cases API | Wire list + detail to `GET /cases`, `GET /cases/:id`; severity badges; status updates; evidence list; loading/error states |
-| **3** | Playbooks + alerts | Step-through + step completion API; alert list via **WebSocket**; reconnect + status indicator |
-| **4** | Metrics + polish | All charts; responsive 768px+; empty/loading states; cross-browser smoke (Chrome, Firefox, Edge) |
-
-### Sprint 1 — completed (fixture-driven UI)
-
-- **Shell:** `MainLayout` adds top header stripe (status pill + contextual title per route) beside the sidebar; footer note reminds teammates this sprint is offline-only.
-- **Dashboard (`/dashboard`):** incident table (+ search/toolbar scaffolding), five mock rows sourced from **`MOCK_INCIDENTS`**, `SeverityBadge` styling.
-- **Case detail (`/incidents/:id`):** **`INV-2042`** shows full static story — alert synopsis, immutable timeline shell, playbook with platform toggle & local “Mark complete”, evidence filenames, responder notes textarea.
-- **Alerts (`/alerts`):** stacked cards with **`LiveAlertCard`**, **Create case** stub linking back to backlog until backend hook exists (Sprint 3 websocket).
-- **Metrics (`/metrics`):** paired MTTD/MTTR line charts, incidents-per-month bar chart, severity donut, and `IncidentDensityHeatmap` grid for future calendar analytics.
-- **Conventions:** React function components in **PascalCase** files; shared mock data in **`src/mock/fixtures.ts`**; presentational pieces under **`components/<area>/`**.
-
-See `frontend/` tree below for authoritative paths after Sprint 1.
-
-### Stack in this repository
-
-| Piece | Package / tool |
-|------|----------------|
-| Build | **Vite** (`npm run dev` / `npm run build`) |
-| UI | **React** (current template: React 19.x with Vite 8; matches React 18 patterns from the doc) |
-| Styling | **Tailwind CSS v4** via `@tailwindcss/vite` |
-| Routing | **react-router-dom** |
-| Charts | **recharts** |
-
-### Prerequisites
-
-- **Node.js** 20.x or newer (LTS recommended) and **npm** 10+, for local development under `frontend/`.
-
-### Installing dependencies
-
-From repository root (installs the `frontend` workspace):
+### 2. Install all workspace dependencies
 
 ```bash
 npm install
 ```
 
-Or only the dashboard package:
+### 3. Run landing page (marketing site)
 
 ```bash
-cd frontend
-npm install
+npm run dev:landing
+# Open http://127.0.0.1:5174
 ```
 
-Copy environment template (optional for local API base URL):
+### 4. Run ZeroDashboard
 
 ```bash
-cp frontend/.env.example frontend/.env.local
-# Edit VITE_API_BASE_URL if the FastAPI backend is not at http://localhost:8000
+npm run dev
+# Open http://127.0.0.1:5173
 ```
 
-### npm scripts (dependency commands)
+### 5. Run both simultaneously
 
-From **repository root** after `npm install`:
+```bash
+npm run dev:all
+```
+
+### 6. Docker — dashboard only
+
+```bash
+docker compose up -d --build zerorespond-frontend
+# Open http://localhost:5173
+```
+
+### 7. Docker — landing only
+
+```bash
+docker compose up -d --build zerorespond-landing
+# Open http://localhost:5174
+```
+
+### 8. Docker — both frontend services
+
+```bash
+docker compose up -d --build zerorespond-frontend zerorespond-landing
+```
+
+### 9. Full stack (when backend + Wazuh Dockerfiles are complete)
+
+```bash
+docker compose up -d
+```
+
+---
+
+## Module ownership
+
+| Module | Scope | Owner |
+|--------|-------|-------|
+| **M1** | Wazuh, 50+ custom rules, alert processor | Naveen Kumar |
+| **M2 + M3** | Case manager API, Playbook engine API | Ragul |
+| **M4** | DPDP PDF pipeline, Docker Compose, backups, deployment docs | Prithiv Raj |
+| **M5** | ZeroDashboard (this README section) | Manikandan |
+
+---
+
+## Frontend — Module 5 (ZeroDashboard)
+
+Module 5 is the **central real-time UI**: incident queue, case detail, playbook step-through, live alert feed, heatmaps, and MTTD/MTTR charts. Designed for non-expert IT admins who need clarity under stress.
+
+See [`frontend/FRONTEND_DOCS.docx`](./frontend/FRONTEND_DOCS.docx) for the full module 5 technical documentation (auto-generated from source).
+
+### Pages
+
+| Route | Component | Description |
+|-------|-----------|-------------|
+| `/dashboard` | `DashboardPage` | KPI cards, incident table, live alert feed, MTTD chart, category bar, alert heatmap |
+| `/incidents` | `IncidentsPage` | Full incident list with toolbar, search, new case modal |
+| `/incidents/:id` | `IncidentDetailPage` | Alert summary, phase strip, case timeline, playbook steps, evidence, notes |
+| `/alerts` | `AlertsPage` | Full live alert feed (Wazuh-backed in production) |
+| `/metrics` | `MetricsPage` | MTTD/MTTR line charts, incidents per month, severity donut, 35-day activity heatmap |
+| `/playbooks` | `PlaybooksPage` | 5 attack-type playbook cards |
+| `/evidence` | `EvidencePage` | Evidence vault with SHA-256 hashes |
+| `/reports` | `ReportsPage` | DPDP and executive report library |
+| `/org-profile` | `OrgProfilePage` | Organization legal and DPDP liaison details |
+| `/settings` | `SettingsPage` | Integrations, notification rules, API key management |
+
+### Key components
+
+| Component | Purpose |
+|-----------|---------|
+| `MainLayout` | Fixed topbar + sidebar navigation shell |
+| `SeverityBadge` | Critical / High / Medium / Low chip |
+| `DashboardHeatmap` | GitHub-style 7×24 alert density grid with tooltip |
+| `IncidentDensityHeatmap` | GitHub-style 35-day contribution graph with tooltip + legend |
+| `IncidentTable` | Sortable incident row table with severity bars |
+| `PlaybookStepList` | Numbered step-through with Linux/Windows command tabs |
+| `CaseTimeline` | Immutable timestamped event log |
+| `LiveAlertCard` | Alert row with severity colour bar and host |
+| `NewCaseModal` | Modal form for creating a new incident case |
+
+### Design system
+
+All dashboard styles live in `src/zerorespond-ui.css` (scoped under `.zr-app`). Key tokens:
+
+| Token | Value | Usage |
+|-------|-------|-------|
+| `--accent` | `#00e5b0` | Primary CTA, success, active state |
+| `--accent2` | `#3b7cff` | Secondary highlight, links |
+| `--red` | `#ff4555` | Critical severity, danger |
+| `--amber` | `#ffb300` | High severity, warning |
+| `--purple` | `#9b6dff` | Playbook, informational |
+| `--bg` | `#07080f` | Page background |
+| `--card` | `#0f1320` | Card / panel background |
+| `--txt` | `#e8eeff` | Primary text |
+| `--muted2` | `#8895b3` | Secondary text |
+| `--mono` | JetBrains Mono | Code, IDs, badges |
+
+### npm scripts
+
+From repo root after `npm install`:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start Vite dev server (default **http://127.0.0.1:5173**) with HMR |
-| `npm run build` | Typecheck + production bundle to `frontend/dist/` |
-| `npm run preview` | Serve the production build locally for smoke testing |
-| `npm run lint` | ESLint over the project |
+| `npm run dev` | Dashboard dev server at **http://127.0.0.1:5173** |
+| `npm run dev:landing` | Landing dev server at **http://127.0.0.1:5174** |
+| `npm run dev:all` | Both servers simultaneously |
+| `npm run build` | Production bundle (dashboard + landing) |
+| `npm run lint` | ESLint over frontend |
 
-Workspace installs hoist tooling to the repo root. The **`frontend`** scripts call **`node ../node_modules/...`** so **Windows** reliably finds **vite**, **tsc**, and **eslint** without relying on `PATH`. If you see **`vite` is not recognized**, run **`npm install`** from the **repository root** (not only `frontend/`).
-
-### One-time setup commands (already applied in this repo)
-
-The app was scaffolded with **Vite’s React + TypeScript** template, then these dependencies were added (for reproducibility or recreating from scratch):
+### One-time scaffold commands (for reference)
 
 ```bash
 cd frontend
@@ -278,66 +257,37 @@ npm install -D tailwindcss @tailwindcss/vite
 npm install react-router-dom recharts
 ```
 
-Tailwind is enabled in `vite.config.ts` via the `@tailwindcss/vite` plugin; global styles use `@import 'tailwindcss'` in `src/index.css`.
+---
 
-### Frontend layout (current)
+## Landing page (marketing)
 
-```
-frontend/
-├── .env.example
-├── index.html
-├── package.json
-├── vite.config.ts
-├── Dockerfile             # Workspace build → nginx image (see docker-compose)
-├── nginx.conf             # SPA routing for containerized dashboard
-├── public/
-└── src/
-    ├── mock/
-    │   └── fixtures.ts       # Incident/alert/playbook/metrics stubs
-    ├── index.css             # Tailwind entry
-    ├── main.tsx              # BrowserRouter bootstrap
-    ├── App.tsx               # Route table
-    ├── components/
-    │   ├── SeverityBadge.tsx
-    │   ├── alerts/
-    │   │   └── LiveAlertCard.tsx
-    │   ├── case/
-    │   │   ├── AlertSummaryCard.tsx
-    │   │   ├── CaseTimeline.tsx
-    │   │   ├── EvidenceList.tsx
-    │   │   ├── PlaybookStepList.tsx
-    │   │   └── ResponderNotes.tsx
-    │   ├── dashboard/
-    │   │   ├── IncidentTable.tsx
-    │   │   └── IncidentToolbar.tsx
-    │   └── metrics/
-    │       └── IncidentDensityHeatmap.tsx
-    ├── layouts/
-    │   └── MainLayout.tsx   # Sidebar + top chrome
-    └── pages/
-        ├── DashboardPage.tsx       # /dashboard
-        ├── IncidentDetailPage.tsx  # /incidents/:id (full mock on INV-2042)
-        ├── AlertsPage.tsx          # /alerts
-        └── MetricsPage.tsx         # /metrics + charts
-```
+`landing/` is the public-facing product page deployed to **[zerorespond.netlify.app](https://zerorespond.netlify.app)**.
+
+| Section | Content |
+|---------|---------|
+| Hero | Product pitch + animated live terminal session (full IR case walkthrough) |
+| Metrics band | MTTD 4.2 min · MTTR 22 min · 82% faster · 12% FP rate |
+| Problem | Four pain-point cards + crisis statistics |
+| Solution | Detect → Respond → Report → Track flow |
+| Modules | All 5 platform modules |
+| Comparison | ZeroRespond vs Wazuh / TheHive / DFIR-IRIS / Splunk |
+| DPDP | §8(6) compliance field mapping + CERT-In SLA tracker |
+| How it works | 3-step deploy guide |
+| Deploy CTA | One-command Docker deploy with copy button |
+| Footer | Platform links, docs links, Team Zero members |
+
+**Netlify deploy config** (`netlify.toml`):
+- Build command: `npm install && npm run build -w landing`
+- Publish directory: `landing/dist`
+- Node version: 22
 
 ---
 
-## Public site on Netlify (marketing)
+## Public site on Netlify
 
-[`netlify.toml`](./netlify.toml) builds the **React** app in [`landing/`](./landing/) and publishes the Vite output:
+[`netlify.toml`](./netlify.toml) builds the marketing site automatically on push to `main`.
 
-| Setting | Value |
-|---------|--------|
-| Base directory | Repo root (`base = "."` in `netlify.toml`) |
-| Build command | `npm install && npm run build -w landing` |
-| Publish directory | `landing/dist` |
-
-**Netlify UI:** Set **Base directory** to empty (repo root), or leave it unset so `netlify.toml` wins. Do **not** set base to `frontend` — workspaces live at the root, and `landing/` is not under `frontend/`. Clear any custom **Publish directory** that points at `frontend/landing/dist`.
-
-The marketing site is a **Vite + React** build (add `VITE_*` in Netlify only if you introduce env-based config later). The **ZeroDashboard** app is **not** deployed on this Netlify site; run it with **`npm run dev`** or **`docker compose up zerorespond-frontend`**. Run the marketing site in Docker with **`docker compose up zerorespond-landing`** (see Quick start).
-
-To host the dashboard on Netlify separately, add another site that runs `npm ci && npm run build -w frontend` and publishes `frontend/dist`, with SPA redirects — optional and independent of the marketing deploy.
+Set **Base directory** to empty (repo root) in Netlify UI — the `netlify.toml` takes priority. Do **not** set it to `frontend/` or `landing/`.
 
 ---
 
@@ -351,10 +301,10 @@ To host the dashboard on Netlify separately, add another site that runs `npm ci 
 
 ## License
 
-Pending team decision—add a `LICENSE` file (e.g., MIT) when chosen.
+Pending team decision — add a `LICENSE` file (e.g., MIT) when chosen.
 
 ---
 
 ## Contributing
 
-Coordinate API boundaries across modules—open issues for payloads, playbook schema, and PDF fields. PRs welcome once contribution guidelines exist.
+Coordinate API boundaries across modules — open issues for payloads, playbook schema, and PDF fields. PRs welcome once contribution guidelines exist.

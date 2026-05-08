@@ -223,7 +223,7 @@ function TerminalAnimation() {
         timeoutsRef.current.push(id)
       }
 
-      const pauseAfterMs = 5500
+      const pauseAfterMs = 10000
       const resetId = window.setTimeout(() => {
         if (runIdRef.current !== run) return
         runSeq()
@@ -476,8 +476,6 @@ export default function App() {
 
       <div className="trust-bar">
         <div className="trust-inner">
-          <div className="trust-badge">🎓 Kumaraguru College of Technology</div>
-          <div className="trust-div" />
           <div className="trust-item">
             <svg
               width="14"
@@ -555,16 +553,6 @@ export default function App() {
             <div className="metric-lbl">False Positive Rate</div>
             <div className="metric-sub">after Wazuh tuning (default 28%)</div>
           </div>
-        </div>
-      </div>
-
-      <div className="verdict-band">
-        <div className="verdict-inner fade-up">
-          <div className="verdict-stars">★★★★★</div>
-          <blockquote className="verdict-quote">
-            &ldquo;This is no longer just a good college PPT &mdash; this is pre-startup pitch level.&rdquo;
-          </blockquote>
-          <div className="verdict-score">Expert Verdict &nbsp;·&nbsp; <strong>9.2 / 10</strong></div>
         </div>
       </div>
 
