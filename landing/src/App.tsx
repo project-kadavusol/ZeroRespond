@@ -136,41 +136,35 @@ function rowHasRenderableParts(group: TermLineSpec[]) {
   return group.some((item) => item.text || item.cls)
 }
 
-/** Pause before each row appears — tuned so commands/output are readable at demo pace */
+/** Pause before each row appears — snappy enough to look live, slow enough to read */
 function delayBeforeRow(group: TermLineSpec[]): number {
-  if (!rowHasRenderableParts(group)) return 200
+  if (!rowHasRenderableParts(group)) return 100
   const text = group.map((p) => p.text).join('')
   const classes = group.map((p) => p.cls || '').join(' ')
   if (classes.includes('t-shell')) {
-    if (text.includes('ssh')) return 2400
-    if (text.includes('status')) return 1900
-    if (text.includes('case attach')) return 2100
-    if (text.includes('metrics')) return 1800
-    if (text.includes('lsof') || text.includes('ps -p')) return 1400
-    return 1600
+    if (text.includes('ssh')) return 800
+    if (text.includes('status')) return 620
+    if (text.includes('case attach')) return 700
+    if (text.includes('metrics')) return 620
+    if (text.includes('lsof') || text.includes('ps -p')) return 500
+    return 560
   }
-  if (text.includes('iptables')) return 1700
-  if (text.includes('ip route add') || text.includes('ip route show')) return 1600
-  if (text.includes('kill -KILL')) return 1700
-  if (classes.includes('t-time')) return 900
-  if (classes.includes('t-detect')) return 1100
-  if (classes.includes('t-done')) return 780
-  if (classes.includes('t-out')) return 750
-  if (classes.includes('t-log')) return 650
-  if (classes.includes('t-muted')) return 680
-  if (classes.includes('t-metric')) return 1600
-  if (classes.includes('t-report')) return 1500
+  if (classes.includes('t-time')) return 380
+  if (classes.includes('t-detect')) return 480
+  if (classes.includes('t-step')) return 360
+  if (classes.includes('t-done')) return 310
+  if (classes.includes('t-out')) return 290
+  if (classes.includes('t-log')) return 260
+  if (classes.includes('t-muted')) return 260
+  if (classes.includes('t-metric')) return 580
+  if (classes.includes('t-report')) return 520
   if (
     classes.includes('t-alert') ||
     classes.includes('t-case') ||
     classes.includes('t-play') ||
     classes.includes('t-tag')
-  ) {
-    return 1000
-  }
-  if (classes.includes('t-step')) return 950
-  if (text.includes('$')) return 1600
-  return 780
+  ) return 380
+  return 310
 }
 
 function TerminalAnimation() {
@@ -223,7 +217,7 @@ function TerminalAnimation() {
         timeoutsRef.current.push(id)
       }
 
-      const pauseAfterMs = 10000
+      const pauseAfterMs = 4000
       const resetId = window.setTimeout(() => {
         if (runIdRef.current !== run) return
         runSeq()
