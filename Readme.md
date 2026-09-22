@@ -1,16 +1,22 @@
-Instructions to webhook script
-step 1 - add the script in the custom-fapi-flask.py in the integration folder of wazuh
-step 2 - edit the ossec.conf file of wazuh add the integration script
+# Wazuh Custom Webhook Integration Guide
 
-<ossec_config>
-  <integration>
-    <name>custom-fapi-flask</name>
-    <hook_url>http://(ip_address):5000/webhook</hook_url>
-    <level>11</level>
-    <alert_format>json</alert_format>
-  </integration>
-</ossec_config>
+Follow these steps to configure a custom Python Flask webhook integration with Wazuh.
 
-step 3 - restart the wazuh manager 
+---
 
-step 4 - install python-flask package in the desired directory to run the webhook.py file
+## Prerequisites
+* Administrative root access to the Wazuh Manager.
+* Python 3 installed on the target machine where the webhook server will run.
+
+---
+
+## Step 1: Add the Custom Integration Script
+Place your custom Python script into the default Wazuh integrations directory:
+
+* **File Location:** `/var/ossec/integrations/custom-fapi-flask.py`
+
+Make sure to assign the proper execution permissions and ownership:
+
+```bash
+sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py
+sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py
