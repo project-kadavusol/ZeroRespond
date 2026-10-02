@@ -3,6 +3,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 alerts = []
+
+# Basic HTML dashboard template
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html>
@@ -40,18 +42,53 @@ def wazuh_webhook():
 
     rule = data.get('rule', {})
     agent = data.get('agent', {})
-    win_eventdata = data.get('data', {}).get('win', {}).get('eventdata', {})
+    data_field = data.get('data', {})
+    win_eventdata = data_field.get('win', {}).get('eventdata', {})
+
+    # 1. Source IP: Windows EventData -> Linux srcip / src_ip -> Agent IP fallback
+    source_ip = (
+        win_eventdata.get('ipAddress') or
+        data_field.get('srcip') or
+        data_field.get('src_ip') or
+        agent.get('ip', 'N/A')
+    )
+
+    # Robust user extraction ensuring empty strings default to 'N/A'
+    raw_user = (
+	win_eventdata.get('targetUserName') or
+	win_eventdata.get('subjectUserName') or
+	data_field.get('dstuser') or
+	data_field.get('srcuser') or
+	''
+    )
+    target_user = raw_user.strip() if raw_user.strip() else 'N/A'
+
+    # 3. Dynamic Threat Extraction (MITRE Technique/Tactic -> Rule Group -> Fallback)
+    mitre_data = rule.get('mitre', {})
+    mitre_ids = mitre_data.get('id', [])
+    mitre_tactics = mitre_data.get('tactic', [])
+    groups = rule.get('groups', [])
+
+    if mitre_tactics:
+        threat_type = mitre_tactics[0]
+    elif groups:
+        # Avoid generic groups like 'local' or 'windows'
+        specific_groups = [g for g in groups if g not in ['local', 'windows', 'syslog']]
+        threat_type = specific_groups[0] if specific_groups else groups[0]
+    else:
+        threat_type = 'Uncategorized Threat'
+
     parsed_alert = {
         'time': data.get('timestamp', datetime.now().isoformat()),
         'rule_id': rule.get('id', 'N/A'),
         'level': rule.get('level', 0),
         'description': rule.get('description', 'N/A'),
-        'mitre_id': (rule.get('mitre', {}).get('id') or ['N/A'])[0],
+        'mitre_id': mitre_ids[0] if mitre_ids else 'N/A',
         'agent': agent.get('name', 'Unknown'),
-        'ip': agent.get('ip', 'N/A'),
-        'source_ip': win_eventdata.get('ipAddress', 'N/A'),
-        'target_user': win_eventdata.get('targetUserName', 'N/A'),
-        'threat_type': 'brute_force',
+        'agent_ip': agent.get('ip', 'N/A'),
+        'source_ip': source_ip,
+        'target_user': target_user,
+        'threat_type': threat_type,
     }
 
     alerts.append(parsed_alert)
