@@ -412,6 +412,4 @@ To restore the database from a backup file:
 
 ---
 
-## License
 
-Open-source project built by Team Zero (Kumaraguru College of Technology, Coimbatore). Released under the MIT License.
