@@ -207,8 +207,9 @@ ${settings.orgName}`
   }
 
   const handleDownloadPdf = () => {
-    const url = `http://localhost:8000/reports/${encodeURIComponent(selectedCaseId)}/download`
-    fetch('http://localhost:8000/health')
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+    const url = `${apiBase}/reports/${encodeURIComponent(selectedCaseId)}/download`
+    fetch(`${apiBase}/health`)
       .then(res => {
         if (res.ok) {
           window.open(url, '_blank')
