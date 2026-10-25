@@ -58,9 +58,46 @@ app = FastAPI(
     title="ZeroRespond API & Compliance Engine",
     description="Incident Response & Statutory DPDP Act 2023 / CERT-In Reporting Platform for Under-Resourced Organizations",
     version="1.0.0",
-    docs_url="/docs",
+    docs_url="/swagger",
     redoc_url="/redoc"
 )
+
+
+@app.get("/docs", include_in_schema=False)
+async def modern_developer_portal():
+    """
+    Modern, interactive cybersecurity dark-themed API developer reference portal.
+    """
+    html_content = """<!doctype html>
+<html>
+  <head>
+    <title>ZeroRespond API & Compliance Engine — Developer Portal</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/project-kadavusol/ZeroRespond/main/logo_icon.png" />
+    <style>
+      body { margin: 0; background: #070913; }
+      :root {
+        --scalar-color-1: #f8fafc;
+        --scalar-color-2: #94a3b8;
+        --scalar-color-3: #64748b;
+        --scalar-color-accent: #00e5b0;
+        --scalar-background-1: #070913;
+        --scalar-background-2: #0e1222;
+        --scalar-background-3: #141a2e;
+        --scalar-border-color: #1a2238;
+      }
+    </style>
+  </head>
+  <body>
+    <script
+      id="api-reference"
+      data-url="/openapi.json"
+      data-configuration='{"theme":"deepSpace","darkMode":true,"layout":"modern","showSidebar":true,"searchHotKey":"k"}'
+      src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+  </body>
+</html>"""
+    return HTMLResponse(content=html_content)
 
 # Configure Cross-Origin Resource Sharing (CORS) for frontends
 app.add_middleware(
