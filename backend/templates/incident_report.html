@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ZeroRespond Incident Report — {{ case.id }}</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   ZeroRespond · DPDP Act 2023 & CERT-In Compliant Report v3.0
+   Tailored to IR-05 (File Integrity Tampering) data structure
+   WeasyPrint CSS Paged Media · A4 Portrait
+   ══════════════════════════════════════════════════════════════════ */
+
+@page {
+  size: A4 portrait;
+  margin: 16mm 14mm 18mm 14mm;
+  @top-left {
+    content: "STRICTLY CONFIDENTIAL";
+    font-family: Arial, sans-serif; font-size: 6.5pt;
+    font-weight: bold; color: #b91c1c; letter-spacing: 0.8px;
+  }
+  @top-center {
+    content: "{{ org.name }}";
+    font-family: Arial, sans-serif; font-size: 6.5pt; color: #64748b;
+  }
+  @top-right {
+    content: "CASE: {{ case.id }}";
+    font-family: Arial, sans-serif; font-size: 6.5pt;
+    font-weight: bold; color: #475569;
+  }
+  @bottom-left {
+    content: "ZeroRespond Platform \B7 DPDP Act 2023 \A7 8(6) \B7 CERT-In Cybersecurity Directions";
+    font-family: Arial, sans-serif; font-size: 6pt; color: #94a3b8;
+  }
+  @bottom-right {
+    content: "Page " counter(page) " of " counter(pages);
+    font-family: Arial, sans-serif; font-size: 7pt;
+    font-weight: bold; color: #0f172a;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8.5pt; line-height: 1.45;
+  color: #1e293b; background: #ffffff;
+}
+
+/* WATERMARK */
+body::before {
+  content: "CONFIDENTIAL";
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) rotate(-38deg);
+  font-size: 72pt; font-weight: bold;
+  color: rgba(148,163,184,0.055);
+  letter-spacing: 5px; white-space: nowrap; z-index: -1;
+}
+
+/* ── MASTHEAD ─────────────────────────────────────────────── */
+.masthead {
+  border-bottom: 3px solid #0f172a;
+  padding-bottom: 9px; margin-bottom: 0;
+  display: table; width: 100%;
+}
+.mh-left {
+  display: table-cell; vertical-align: bottom; width: 58%;
+}
+.mh-right {
+  display: table-cell; vertical-align: bottom;
+  text-align: right; width: 42%;
+  border-left: 1px solid #e2e8f0; padding-left: 12px;
+}
+.brand { font-size: 24pt; font-weight: bold; color: #0f172a; letter-spacing: -0.5px; line-height: 1; }
+.brand .accent { color: #0ea5e9; }
+.brand-sub { font-size: 7pt; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 1px; }
+.doc-title { font-size: 10pt; font-weight: bold; color: #0f172a; margin-top: 7px; }
+.doc-legal { font-size: 7pt; color: #64748b; font-style: italic; margin-top: 1px; line-height: 1.3; }
+
+/* right meta grid */
+.meta-grid { font-size: 7.5pt; }
+.mg-row { margin-bottom: 2.5px; display: table; width: 100%; }
+.mg-key { display: table-cell; color: #94a3b8; text-transform: uppercase; font-size: 6.5pt; letter-spacing: 0.4px; font-weight: bold; white-space: nowrap; padding-right: 6px; width: 40%; text-align: left; }
+.mg-val { display: table-cell; font-weight: bold; color: #0f172a; text-align: right; }
+.mg-confidential { color: #b91c1c !important; }
+
+/* ── SEVERITY BANNER ──────────────────────────────────────── */
+.sev-banner {
+  display: table; width: 100%;
+  margin-bottom: 11px;
+}
+/* Severity colours */
+.sev-critical { background: #7f1d1d; color: #fff1f2; }
+.sev-high     { background: #7c2d12; color: #fff7ed; }
+.sev-medium   { background: #78350f; color: #fffbeb; }
+.sev-low      { background: #14532d; color: #f0fdf4; }
+.sev-info     { background: #1e3a5f; color: #eff6ff; }
+
+.sev-cell {
+  display: table-cell; vertical-align: middle;
+  padding: 6px 10px;
+}
+.sev-divider { border-left: 1px solid rgba(255,255,255,0.2); }
+.sev-main-lbl { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 0.6px; opacity: 0.72; font-weight: bold; }
+.sev-main-val { font-size: 14pt; font-weight: bold; letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.1; }
+.sev-sub-lbl  { font-size: 6.5pt; text-transform: uppercase; letter-spacing: 0.4px; opacity: 0.7; }
+.sev-sub-val  { font-size: 9.5pt; font-weight: bold; line-height: 1.2; }
+.sev-sla-note { font-size: 6pt; opacity: 0.72; margin-top: 1px; }
+
+/* ── SECTION HEADING ──────────────────────────────────────── */
+.sec { margin-bottom: 12px; }
+.sec-hd { display: table; width: 100%; margin-bottom: 5px; }
+.sec-num-cell { display: table-cell; width: 22px; vertical-align: middle; }
+.sec-num {
+  display: inline-block; width: 17px; height: 17px;
+  background: #0f172a; color: #fff;
+  font-size: 7pt; font-weight: bold;
+  border-radius: 3px; text-align: center; line-height: 17px;
+}
+.sec-title-cell {
+  display: table-cell; vertical-align: middle;
+  font-size: 9pt; font-weight: bold;
+  text-transform: uppercase; color: #0f172a;
+  letter-spacing: 0.4px;
+  border-bottom: 1.5px solid #cbd5e1;
+  padding-bottom: 3px;
+}
+.sec-desc {
+  font-size: 7.5pt; color: #64748b; font-style: italic;
+  margin-bottom: 4px; padding-left: 22px;
+}
+
+/* ── TABLES ───────────────────────────────────────────────── */
+table {
+  width: 100%; border-collapse: collapse;
+  font-size: 8pt; margin-bottom: 4px;
+}
+th {
+  background: #f1f5f9; color: #334155;
+  font-weight: bold; text-align: left;
+  padding: 4px 7px; border: 1px solid #cbd5e1;
+  font-size: 7pt; text-transform: uppercase; letter-spacing: 0.3px;
+}
+td {
+  padding: 4px 7px; border: 1px solid #e2e8f0;
+  vertical-align: top; line-height: 1.4;
+}
+tr:nth-child(even) td { background: #f8fafc; }
+.td-lbl {
+  font-weight: bold; color: #334155;
+  background: #f8fafc !important; border-color: #cbd5e1;
+  width: 28%;
+}
+
+/* inline code chip */
+.chip {
+  font-family: 'Courier New', monospace; font-size: 6.5pt;
+  background: #f1f5f9; color: #0f172a;
+  padding: 1px 4px; border-radius: 3px;
+  border: 1px solid #cbd5e1;
+  display: inline-block; word-break: break-all;
+  max-width: 100%;
+}
+
+/* phase badge */
+.badge {
+  font-size: 6.5pt; font-weight: bold;
+  padding: 1.5px 6px; border-radius: 10px;
+  white-space: nowrap; letter-spacing: 0.2px;
+}
+.b-contain   { background: #fee2e2; color: #991b1b; }
+.b-identify  { background: #dbeafe; color: #1d4ed8; }
+.b-eradicate { background: #fef9c3; color: #92400e; }
+.b-recover   { background: #dcfce7; color: #166534; }
+.b-evidence  { background: #f3e8ff; color: #6b21a8; }
+.b-invest    { background: #f0f9ff; color: #0c4a6e; }
+.b-closure   { background: #ccfbf1; color: #065f46; }
+.b-compliance{ background: #e0f2fe; color: #0369a1; }
+
+/* step circle */
+.step-c {
+  display: inline-block; width: 17px; height: 17px;
+  border-radius: 50%; background: #0f172a; color: #fff;
+  font-size: 7pt; font-weight: bold; line-height: 17px; text-align: center;
+}
+
+/* ── CERT-IN BOX ──────────────────────────────────────────── */
+.cert-wrap {
+  border: 1.5px solid #0ea5e9; border-radius: 4px;
+  overflow: hidden; margin-top: 4px;
+}
+.cert-hd {
+  background: #0ea5e9; color: #fff;
+  font-size: 7pt; font-weight: bold;
+  padding: 3.5px 9px; letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+.cert-body {
+  font-family: 'Courier New', monospace; font-size: 7pt;
+  color: #0f172a; line-height: 1.4; white-space: pre-wrap;
+  padding: 8px 10px; background: #f0f9ff;
+}
+
+/* ── RECOMMENDATIONS ─────────────────────────────────────── */
+.rec-list { list-style: none; margin: 3px 0 0 0; padding: 0; }
+.rec-item { display: table; width: 100%; margin-bottom: 4px; font-size: 8pt; }
+.rec-icon-cell { display: table-cell; width: 22px; vertical-align: top; padding-top: 0.5pt; }
+.rec-dot {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #0ea5e9; color: #fff;
+  font-size: 7pt; font-weight: bold;
+  line-height: 16px; text-align: center;
+}
+.rec-text { display: table-cell; color: #334155; vertical-align: top; }
+
+/* ── SIGN-OFF ────────────────────────────────────────────── */
+.sign-wrap {
+  border: 1.5px solid #cbd5e1; border-radius: 4px;
+  overflow: hidden; margin-top: 10px;
+  page-break-inside: avoid;
+}
+.sign-hd {
+  background: #0f172a; color: #e2e8f0;
+  font-size: 7pt; font-weight: bold;
+  text-transform: uppercase; letter-spacing: 0.5px;
+  padding: 4px 10px;
+}
+.sign-row { display: table; width: 100%; }
+.sign-cell {
+  display: table-cell; width: 50%;
+  padding: 10px 14px 16px 14px;
+  border-right: 1px solid #e2e8f0; vertical-align: top;
+}
+.sign-cell:last-child { border-right: none; }
+.sign-role {
+  font-size: 6.5pt; text-transform: uppercase;
+  letter-spacing: 0.5px; color: #64748b;
+  font-weight: bold; margin-bottom: 16px;
+}
+.sign-rule { border-top: 1px solid #0f172a; padding-top: 4px; }
+.sign-name { font-weight: bold; font-size: 9pt; color: #0f172a; }
+.sign-title { font-size: 7.5pt; color: #475569; margin-top: 1px; }
+.sign-blank { font-size: 7.5pt; color: #334155; margin-top: 5px; }
+
+/* ── HASH ────────────────────────────────────────────────── */
+.hash { font-family: 'Courier New', monospace; font-size: 6pt; color: #475569; word-break: break-all; }
+
+/* ── FOOTER ──────────────────────────────────────────────── */
+.doc-footer {
+  margin-top: 12px; padding-top: 6px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 6.5pt; color: #94a3b8; text-align: center;
+}
+
+.no-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════ MASTHEAD ═══════════════════════ -->
+<div class="masthead">
+  <div class="mh-left">
+    <div class="brand">Zero<span class="accent">Respond</span></div>
+    <div class="brand-sub">Cyber Incident Response Platform</div>
+    <div class="doc-title">Incident Response &amp; Statutory Data Breach Report</div>
+    <div class="doc-legal">Pursuant to Section 8(6), Digital Personal Data Protection Act, 2023 &amp; CERT-In Cybersecurity Directions 2022</div>
+  </div>
+  <div class="mh-right">
+    <div class="meta-grid">
+      <div class="mg-row"><span class="mg-key">Organisation</span><span class="mg-val">{{ org.name }}</span></div>
+      <div class="mg-row"><span class="mg-key">Case Reference</span><span class="mg-val">{{ case.id }}</span></div>
+      <div class="mg-row"><span class="mg-key">Report Ref</span><span class="mg-val">ZR-{{ case.id }}-RPT</span></div>
+      <div class="mg-row"><span class="mg-key">Generated On</span><span class="mg-val">{{ generated_at_ist }}</span></div>
+      <div class="mg-row"><span class="mg-key">Classification</span><span class="mg-val mg-confidential">STRICTLY CONFIDENTIAL</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ SEVERITY BANNER ════════════════════ -->
+<div class="sev-banner sev-{{ case.severity | lower }}">
+  <div class="sev-cell" style="width:24%;">
+    <div class="sev-main-lbl">Severity Level</div>
+    <div class="sev-main-val">{{ case.severity | upper }}</div>
+  </div>
+  <div class="sev-cell sev-divider" style="width:18%;">
+    <div class="sev-sub-lbl">Status</div>
+    <div class="sev-sub-val">{{ case.status | upper }}</div>
+  </div>
+  <div class="sev-cell sev-divider" style="width:18%;">
+    <div class="sev-sub-lbl">MTTD</div>
+    <div class="sev-sub-val">{{ mttd_display }}</div>
+  </div>
+  <div class="sev-cell sev-divider" style="width:18%;">
+    <div class="sev-sub-lbl">MTTR</div>
+    <div class="sev-sub-val">{{ mttr_display }}</div>
+  </div>
+  <div class="sev-cell sev-divider" style="width:22%; text-align:right;">
+    <div class="sev-sub-lbl">CERT-In SLA</div>
+    <div class="sev-sub-val">{{ cert_in_sla_status }}</div>
+    <div class="sev-sla-note">{{ cert_in_sla_elapsed }}</div>
+  </div>
+</div>
+
+<!-- ═══════════════════ § 1  INCIDENT OVERVIEW ═════════════ -->
+<div class="sec">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">1</div></div>
+    <div class="sec-title-cell">Incident Overview</div>
+  </div>
+  <table>
+    <tr>
+      <td class="td-lbl" style="width:28%;">Incident Description</td>
+      <td colspan="3"><strong>{{ case.title or case.desc or '—' }}</strong></td>
+    </tr>
+    {% if case.desc and case.title %}
+    <tr>
+      <td class="td-lbl">Additional Detail</td>
+      <td colspan="3" style="color:#475569;">{{ case.desc }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="td-lbl">Incident Type / Breach Category</td>
+      <td style="width:22%;">{{ case.breach_type }}</td>
+      <td class="td-lbl" style="width:22%;">Attack Vector / Source</td>
+      <td>{{ case.attack_vector or case.attacker_ip or 'Under Investigation' }}</td>
+    </tr>
+    <tr>
+      <td class="td-lbl">Affected System (Host)</td>
+      <td><span class="chip">{{ case.source_host }}</span></td>
+      <td class="td-lbl">Affected System (IP)</td>
+      <td><span class="chip">{{ case.source_ip }}</span></td>
+    </tr>
+    <tr>
+      <td class="td-lbl">Date / Time Discovered (IST)</td>
+      <td>{{ detected_at_ist }}</td>
+      <td class="td-lbl">Estimated Breach Start (IST)</td>
+      <td>{{ breach_est_at_ist }}</td>
+    </tr>
+    <tr>
+      <td class="td-lbl">Containment Completed (IST)</td>
+      <td>{{ contained_at_ist or 'Pending' }}</td>
+      <td class="td-lbl">Full Resolution (IST)</td>
+      <td>{{ resolved_at_ist or 'Ongoing' }}</td>
+    </tr>
+    <tr>
+      <td class="td-lbl">Assigned Incident Responder</td>
+      <td>{{ case.assigned_responder or 'IT Response Team' }}</td>
+      <td class="td-lbl">Lead Investigator</td>
+      <td>{{ case.lead_investigator or case.assigned_responder or 'Security Operations' }}</td>
+    </tr>
+    {% if case.financial_impact_estimate %}
+    <tr>
+      <td class="td-lbl">Financial / Operational Impact</td>
+      <td colspan="3">{{ case.financial_impact_estimate }}</td>
+    </tr>
+    {% endif %}
+  </table>
+</div>
+
+<!-- ════════════════ § 2  DPDP DECLARATION ══════════════════ -->
+<div class="sec">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">2</div></div>
+    <div class="sec-title-cell">DPDP Act 2023 — Section 8(6) Statutory Declaration</div>
+  </div>
+  <div class="sec-desc">Mandatory disclosures required under Section 8(6) of the Digital Personal Data Protection Act, 2023 and CERT-In Cybersecurity Incident Reporting Direction 2022.</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:34%;">Statutory Parameter</th>
+        <th style="width:66%;">Official Record / Disclosure</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="td-lbl">Nature of Incident</td><td>{{ case.breach_type }}</td></tr>
+      <tr>
+        <td class="td-lbl">Personal Data Categories Compromised</td>
+        <td>
+          {% if case.data_categories is string %}{{ case.data_categories }}
+          {% else %}{% for cat in case.data_categories %}&bull; {{ cat }}<br>{% endfor %}{% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="td-lbl">Approximate Data Principals Affected</td>
+        <td>
+          {% if case.persons_affected | int == 0 %}
+            <strong>0 individuals</strong> — No personal data was accessed or exfiltrated.
+          {% else %}
+            <strong style="font-size:9.5pt;">{{ "{:,}".format(case.persons_affected | int) }}</strong> individuals
+          {% endif %}
+        </td>
+      </tr>
+      <tr><td class="td-lbl">Date &amp; Time of Discovery (IST)</td><td>{{ detected_at_ist }}</td></tr>
+      <tr><td class="td-lbl">Estimated Initiation Window (IST)</td><td>{{ breach_est_at_ist }}</td></tr>
+      <tr>
+        <td class="td-lbl">Current Mitigation / Containment State</td>
+        <td><strong>{{ case.status | upper }}</strong> — All immediate response actions completed; affected host isolated from unauthorized network traffic.</td>
+      </tr>
+      <tr>
+        <td class="td-lbl">Designated Data Protection Officer (DPO)</td>
+        <td>{{ org.dpo_name }}, <em>{{ org.dpo_title or 'Data Protection Officer' }}</em></td>
+      </tr>
+      <tr>
+        <td class="td-lbl">DPO Contact Details</td>
+        <td>Email: <span class="chip">{{ org.dpo_email }}</span> &nbsp;&bull;&nbsp; Phone: {{ org.dpo_phone or '—' }}</td>
+      </tr>
+      <tr><td class="td-lbl">Organisation Address</td><td>{{ org.address or 'Not provided' }}</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════ § 3  ISO 27035 RESPONSE LOG ══════════════ -->
+<div class="sec no-break">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">3</div></div>
+    <div class="sec-title-cell">Chronological Response Actions — ISO/IEC 27035 Log</div>
+  </div>
+  <div class="sec-desc">Actions executed per &ldquo;{{ playbook.name or 'Incident Response Playbook' }}&rdquo;{% if playbook.iso_phase %} &mdash; Phase: {{ playbook.iso_phase }}{% endif %}.</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%;">#</th>
+        <th style="width:14%;">Time (IST)</th>
+        <th style="width:14%;">Phase</th>
+        <th style="width:29%;">Action Taken</th>
+        <th style="width:27%;">Command / Evidence</th>
+        <th style="width:11%;">Responder</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for step in completed_steps %}
+      <tr>
+        <td style="text-align:center;"><div class="step-c">{{ step.step_number }}</div></td>
+        <td style="font-size:7.5pt;white-space:nowrap;">{{ step.completed_at_ist }}</td>
+        <td>
+          {% set ph = step.phase | lower %}
+          {% if 'containment' in ph %}<span class="badge b-contain">{{ step.phase }}</span>
+          {% elif 'identification' in ph or 'detect' in ph %}<span class="badge b-identify">{{ step.phase }}</span>
+          {% elif 'eradication' in ph %}<span class="badge b-eradicate">{{ step.phase }}</span>
+          {% elif 'recovery' in ph %}<span class="badge b-recover">{{ step.phase }}</span>
+          {% elif 'evidence' in ph or 'preserv' in ph %}<span class="badge b-evidence">{{ step.phase }}</span>
+          {% elif 'investig' in ph %}<span class="badge b-invest">{{ step.phase }}</span>
+          {% elif 'closure' in ph or 'close' in ph %}<span class="badge b-closure">{{ step.phase }}</span>
+          {% else %}<span class="badge b-compliance">{{ step.phase }}</span>{% endif %}
+        </td>
+        <td>
+          <strong>{{ step.title }}</strong>
+          {% if step.notes %}<br><span style="font-size:7pt;color:#64748b;">{{ step.notes }}</span>{% endif %}
+        </td>
+        <td><span class="chip">{{ step.command_executed or 'N/A' }}</span></td>
+        <td style="font-size:7.5pt;">{{ step.responder }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════════ § 4  FORENSIC EVIDENCE ═══════════════════ -->
+{% if evidence and evidence | length > 0 %}
+<div class="sec no-break">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">4</div></div>
+    <div class="sec-title-cell">Forensic Evidence &amp; Chain-of-Custody Register</div>
+  </div>
+  <div class="sec-desc">All evidence items preserved with cryptographic SHA-256 integrity hashes to satisfy legal tamper-evidence standards.</div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:8%;">ID</th>
+        <th style="width:24%;">Filename</th>
+        <th style="width:18%;">Artifact Type</th>
+        <th style="width:9%;">Size</th>
+        <th style="width:41%;">SHA-256 Integrity Hash</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for ev in evidence %}
+      <tr>
+        <td><strong>{{ ev.id }}</strong></td>
+        <td><span class="chip">{{ ev.filename }}</span></td>
+        <td>{{ ev.file_type }}</td>
+        <td>{{ ev.size }}</td>
+        <td><div class="hash">{{ ev.sha256 }}</div></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<!-- ══════════════ § 5  CERT-In NOTIFICATION ════════════════ -->
+<div class="sec no-break">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">5</div></div>
+    <div class="sec-title-cell">CERT-In Statutory 6-Hour Incident Notification</div>
+  </div>
+  <div class="sec-desc">
+    Copy-paste ready dispatch per CERT-In Cybersecurity Incident Reporting Directions (April 2022).
+    Send to <strong>incident@cert-in.org.in</strong> within 6 hours of discovery.
+    Current elapsed time: <strong>{{ cert_in_sla_elapsed }}</strong>.
+  </div>
+  <div class="cert-wrap">
+    <div class="cert-hd">[EMAIL] Draft Notification — incident@cert-in.org.in</div>
+    <div class="cert-body">To: incident@cert-in.org.in
+Subject: Cybersecurity Incident Notification — {{ org.name }} — {{ case.id }}
+
+Dear CERT-In Incident Response Team,
+
+We hereby notify you of a cybersecurity incident pursuant to the CERT-In Cybersecurity
+Incident Reporting Directions (April 2022) and Section 8(6) of the DPDP Act 2023.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MANDATORY INCIDENT DISCLOSURE FIELDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ 1. Organisation Name      : {{ org.name }}
+ 2. Registration ID        : {{ org.registration_id or 'EDU-TN-CBE-2026-0042' }}
+ 3. Incident Reference     : {{ case.id }}
+ 4. Incident Type          : {{ case.breach_type }}
+ 5. Affected System        : {{ case.source_host }}  |  IP: {{ case.source_ip }}
+ 6. Data Categories        : {% if case.data_categories is string %}{{ case.data_categories }}{% else %}{{ case.data_categories | join(' / ') }}{% endif %}
+
+ 7. Persons Affected (est) : {% if case.persons_affected | int == 0 %}0 — No personal data exfiltrated{% else %}~{{ "{:,}".format(case.persons_affected | int) }} individuals{% endif %}
+ 8. Date Discovered (IST)  : {{ detected_at_ist }}
+ 9. Estimated Start (IST)  : {{ breach_est_at_ist }}
+10. Current Status         : {{ case.status | upper }}
+11. MTTD                   : {{ mttd_display }}
+12. MTTR                   : {{ mttr_display }}
+13. CERT-In SLA            : {{ cert_in_sla_status }}  ({{ cert_in_sla_elapsed }})
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+All immediate containment and eradication steps have been executed via the ZeroRespond
+Incident Response Platform. Full forensic logs and evidence register attached herewith.
+
+DPO Contact : {{ org.dpo_name }}  |  {{ org.dpo_email }}
+Organisation: {{ org.address }}
+
+— End of Statutory Notification —</div>
+  </div>
+</div>
+
+<!-- ════════════════ § 6  RECOMMENDATIONS ═══════════════════ -->
+{% if recommendations and recommendations | length > 0 %}
+<div class="sec no-break">
+  <div class="sec-hd">
+    <div class="sec-num-cell"><div class="sec-num">6</div></div>
+    <div class="sec-title-cell">Post-Incident Recommendations &amp; Remediation Actions</div>
+  </div>
+  <ul class="rec-list">
+    {% for rec in recommendations %}
+    <li class="rec-item">
+      <div class="rec-icon-cell"><div class="rec-dot">{{ loop.index }}</div></div>
+      <div class="rec-text">{{ rec }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- ══════════════ § 7  SIGN-OFF ════════════════════════════ -->
+<div class="sign-wrap no-break">
+  <div class="sign-hd">Section 7 — Attestation &amp; Official Sign-Off</div>
+  <div class="sign-row">
+    <div class="sign-cell">
+      <div class="sign-role">Data Protection Officer Attestation</div>
+      <div class="sign-rule">
+        <div class="sign-name">{{ org.dpo_name }}</div>
+        <div class="sign-title">{{ org.dpo_title or 'Data Protection Officer' }}</div>
+        <div class="sign-blank">Signature: ________________________ &nbsp;&nbsp; Date: _______________</div>
+        <div class="sign-blank">Official Seal: ___________________</div>
+      </div>
+    </div>
+    <div class="sign-cell">
+      <div class="sign-role">Incident Commander / IT Lead Verification</div>
+      <div class="sign-rule">
+        <div class="sign-name">{{ org.it_head_name or case.assigned_responder }}</div>
+        <div class="sign-title">{{ org.it_head_title or 'Head of Infrastructure &amp; Incident Response' }}</div>
+        <div class="sign-blank">Signature: ________________________ &nbsp;&nbsp; Date: _______________</div>
+        <div class="sign-blank">Official Seal: ___________________</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="doc-footer">
+  Report generated automatically by ZeroRespond Incident Response Platform &middot; {{ generated_at_ist }}
+  &nbsp;&bull;&nbsp; For official and regulatory use only &middot; Unauthorised disclosure is strictly prohibited.
+</div>
+
+</body>
+</html>

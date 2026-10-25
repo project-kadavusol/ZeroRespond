@@ -1,0 +1,133 @@
+{
+  "case": {
+    "id": "IR-08",
+    "title": "Ransomware encryption activity on KCTLAB-WIN01",
+    "severity": "critical",
+    "status": "contained",
+    "breach_type": "Ransomware",
+    "source_host": "KCTLAB-WIN01",
+    "source_ip": "192.168.10.45",
+    "attacker_ip": "185.220.101.5",
+    "detected_at": "2026-09-08T02:13:00+05:30",
+    "breach_est_at": "2026-09-08T01:45:00+05:30",
+    "contained_at": "2026-09-08T02:45:00+05:30",
+    "resolved_at": "2026-09-08T03:15:00+05:30",
+    "data_categories": [
+      "Student Records",
+      "Staff Information"
+    ],
+    "persons_affected": 850,
+    "assigned_responder": "Naveen Kumar",
+    "desc": "Files on KCTLAB-WIN01 were encrypted by active ransomware. Rapid containment isolated the system within 2 minutes."
+  },
+  "organization": {
+    "name": "Kumaraguru College of Technology",
+    "registration_id": "EDU-TN-CBE-2026-0042",
+    "address": "Athipalayam Road, Chinnavedampatti, Coimbatore, Tamil Nadu 641049",
+    "dpo_name": "Dr. S. Ramachandran",
+    "dpo_title": "Data Protection Officer & Head of IT",
+    "dpo_email": "dpo@kct.ac.in",
+    "dpo_phone": "+91 422 266 9401",
+    "it_head_name": "Prithiv Raj",
+    "it_head_title": "DevOps & Compliance Lead"
+  },
+  "playbook": {
+    "id": "pb-ransomware",
+    "name": "Ransomware Analysis & Response Guide",
+    "steps": [
+      {
+        "step_number": 1,
+        "title": "Isolate the affected system",
+        "phase": "Containment",
+        "command_executed": "netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:15:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Affected computer disconnected from the network to stop active encryption."
+      },
+      {
+        "step_number": 2,
+        "title": "Identify the ransomware activity",
+        "phase": "Identification",
+        "command_executed": "Get-Process | Sort-Object CPU -Descending | Select -First 20; netstat -ano",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:17:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Ransomware process identified (PID 4892) with outbound beaconing to 185.220.101.5."
+      },
+      {
+        "step_number": 3,
+        "title": "Preserve evidence",
+        "phase": "Evidence Preservation",
+        "command_executed": "Get-EventLog -LogName Security -Newest 500 | Export-Csv events.csv",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:19:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Desktop screenshots and netstat connections preserved as forensic evidence."
+      },
+      {
+        "step_number": 4,
+        "title": "Block the attacker connection",
+        "phase": "Containment",
+        "command_executed": "New-NetFirewallRule -DisplayName 'Block Ransomware C2' -Direction Outbound -RemoteAddress 185.220.101.5 -Action Block",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:23:00+05:30",
+        "responder": "Ragul",
+        "notes": "Malicious remote connection dropped at endpoint and firewall."
+      },
+      {
+        "step_number": 5,
+        "title": "Stop the malicious process",
+        "phase": "Eradication",
+        "command_executed": "Stop-Process -Id 4892 -Force",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:45:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Ransomware process terminated. File encryption halted."
+      },
+      {
+        "step_number": 6,
+        "title": "Restore from backup",
+        "phase": "Recovery",
+        "command_executed": "wbadmin start recovery -version:09/07/2026-23:00 -itemType:Volume -items:D:",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:55:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "System restored from clean immutable backup."
+      },
+      {
+        "step_number": 7,
+        "title": "Verify recovery and generate report",
+        "phase": "Verification & Reporting",
+        "command_executed": "ZeroDashboard UI -> Click 'Generate Statutory Report Package'",
+        "status": "completed",
+        "completed_at": "2026-09-08T03:15:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Recovery verified. DPDP Section 8(6) statutory report compiled."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-01",
+      "filename": "screenshot_desktop.png",
+      "file_type": "Desktop Screenshot",
+      "size": "1.4 MB",
+      "sha256": "8a329d71c89f21345efbb2a450123cde89ab412301fae2981726451928374651",
+      "captured_at": "2026-09-08T02:16:00+05:30"
+    },
+    {
+      "id": "EV-02",
+      "filename": "netstat_output.txt",
+      "file_type": "Network Connection Log",
+      "size": "18 KB",
+      "sha256": "19b48f0293847561829304958172635481920394857162534182930495817263",
+      "captured_at": "2026-09-08T02:18:00+05:30"
+    }
+  ],
+  "recommendations": [
+    "Enforce multi-factor authentication across all Windows administrative logons.",
+    "Isolate lab subnets from internal administrative database servers.",
+    "Verify off-site immutable backup schedules every 24 hours."
+  ]
+}

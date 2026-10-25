@@ -35,6 +35,9 @@ dist/
 # Evidence and generated reports
 **/evidence_store/
 **/reports_output/
+data/reports/*.pdf
+data/reports/*.html
+data/backups/
 reports/*.pdf
 
 # OS / IDE

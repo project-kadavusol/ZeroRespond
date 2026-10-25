@@ -1,202 +1,298 @@
-import type { CSSProperties } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { useZeroRespond } from '../context/ZeroRespondContext'
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  BarChart,
-  Bar,
-} from 'recharts'
-import { IncidentTable } from '../components/dashboard/IncidentTable'
-import { DashboardHeatmap } from '../components/dashboard/DashboardHeatmap'
-import { MOCK_INCIDENTS, MOCK_LIVE_ALERTS, MOCK_MTTD_DAYS } from '../mock/fixtures'
-import { ZR_SEV_BG, ZR_SEV_ICON } from '../lib/incidentDisplay'
-
-const TYPE_CHART = [
-  { t: 'Ransom.', v: 8 },
-  { t: 'SSH', v: 12 },
-  { t: 'Web', v: 7 },
-  { t: 'C2', v: 4 },
-]
-
-const tooltipSx = {
-  contentStyle: {
-    backgroundColor: '#0f1320',
-    border: '1px solid var(--border2)',
-    borderRadius: '6px',
-    color: 'var(--txt)',
-  },
-}
+  ArrowUpRight,
+  ArrowRight,
+  CircleCheck,
+  CircleX,
+  TriangleAlert,
+  Lock,
+  KeyRound,
+  ArrowUp,
+  Folder,
+} from 'lucide-react'
 
 export function DashboardPage() {
-  const recent = MOCK_INCIDENTS.slice(0, 5)
-  const miniAlerts = MOCK_LIVE_ALERTS.slice(0, 6)
+  const navigate = useNavigate()
+  const { incidents, systems, alerts, setCurrentCaseId } = useZeroRespond()
+
+  const activeIncidents = incidents.filter(
+    i => i.status !== 'resolved' && i.status !== 'false-positive'
+  )
+  const criticalCount = activeIncidents.filter(i => i.sev === 'critical').length
+
+  const handleOpenCase = (id: string) => {
+    setCurrentCaseId(id)
+    navigate(`/incidents/${id}`)
+  }
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'Ransomware':
+        return <Lock size={15} style={{ display: 'inline-block', marginRight: '4px' }} />
+      case 'Brute Force':
+        return <KeyRound size={15} style={{ display: 'inline-block', marginRight: '4px' }} />
+      case 'Privilege Escalation':
+        return <ArrowUp size={15} style={{ display: 'inline-block', marginRight: '4px' }} />
+      case 'File Integrity':
+        return <Folder size={15} style={{ display: 'inline-block', marginRight: '4px' }} />
+      default:
+        return <TriangleAlert size={15} style={{ display: 'inline-block', marginRight: '4px' }} />
+    }
+  }
+
+  const sevColors: Record<string, string> = {
+    critical: '#dc2626',
+    high: '#d97706',
+    medium: '#b45309',
+    low: '#16a34a',
+  }
+
+  const heatmapLevels = [
+    0, 1, 0, 2, 1, 0, 1, 2, 3, 1, 0, 2, 1, 0, 1, 0, 2, 1, 3, 2, 1, 0, 1, 2, 1,
+    1, 2, 4, 1, 0, 2, 1, 0, 1, 2,
+  ]
+
+  const onlineSystems = systems.filter(s => s.status === 'online').length
+  const offlineSystems = systems.filter(s => s.status === 'offline').length
 
   return (
-    <div className="zr-page">
-      <header className="zr-page-header">
-        <div>
-          <div className="zr-page-title">Security Dashboard</div>
-          <div className="zr-page-sub">
-            Live security posture · Updated every 30 seconds · KCT IT Dept
+    <div id="view-dashboard" className="view" style={{ display: 'block' }}>
+      <div className="page-hd">
+        <h1>ZeroDashboard</h1>
+        <p>Current security activity and response workload across the four supported detection types.</p>
+      </div>
+
+      <div className="workflow-summary">
+        <div
+          className="workflow-card"
+          onClick={() => navigate('/incidents')}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="workflow-card-label">Active incidents</div>
+          <div className="workflow-card-value" id="dash-open-count">
+            {activeIncidents.length}
+          </div>
+          <div className="workflow-card-meta">
+            Cases requiring response <ArrowUpRight size={14} style={{ display: 'inline-block' }} />
           </div>
         </div>
-        <div className="zr-page-actions">
-          <span className="zr-sync-note">Last sync: 2 min ago</span>
-          <button type="button" className="btn btn-ghost btn-sm">
-            ↻ Refresh
+
+        <div
+          className="workflow-card"
+          onClick={() => navigate('/incidents')}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="workflow-card-label">Critical incidents</div>
+          <div className="workflow-card-value" id="dash-critical-count">
+            {criticalCount}
+          </div>
+          <div className="workflow-card-meta">
+            Immediate attention <ArrowUpRight size={14} style={{ display: 'inline-block' }} />
+          </div>
+        </div>
+
+        <div className="workflow-card">
+          <div className="workflow-card-label">Mean time to detect</div>
+          <div className="workflow-card-value">4.2 min</div>
+          <div className="workflow-card-meta">Current reporting period</div>
+        </div>
+
+        <div className="workflow-card">
+          <div className="workflow-card-label">Mean time to respond</div>
+          <div className="workflow-card-value">22 min</div>
+          <div className="workflow-card-meta">Detection to containment</div>
+        </div>
+      </div>
+
+      <div className="dashboard-section">
+        <div className="workflow-strip">
+          <div className="workflow-step active" onClick={() => navigate('/alerts')}>
+            <div className="workflow-step-num">1</div>
+            <div className="workflow-step-title">Detect</div>
+            <div className="workflow-step-desc">Wazuh detection feed</div>
+          </div>
+          <div className="workflow-step" onClick={() => navigate('/incidents')}>
+            <div className="workflow-step-num">2</div>
+            <div className="workflow-step-title">Case</div>
+            <div className="workflow-step-desc">Incident record</div>
+          </div>
+          <div className="workflow-step" onClick={() => navigate('/playbooks')}>
+            <div className="workflow-step-num">3</div>
+            <div className="workflow-step-title">Respond</div>
+            <div className="workflow-step-desc">Guided playbook</div>
+          </div>
+          <div className="workflow-step" onClick={() => navigate('/incidents')}>
+            <div className="workflow-step-num">4</div>
+            <div className="workflow-step-title">Resolve</div>
+            <div className="workflow-step-desc">Contain and close</div>
+          </div>
+          <div className="workflow-step" onClick={() => navigate('/reports')}>
+            <div className="workflow-step-num">5</div>
+            <div className="workflow-step-title">Report</div>
+            <div className="workflow-step-desc">Incident report</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="dashboard-section">
+        <div className="dashboard-section-hd">
+          <div>
+            <div className="dashboard-section-title">Active incidents</div>
+            <div className="dashboard-section-sub">
+              Cases currently requiring investigation, containment, or resolution
+            </div>
+          </div>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/incidents')}>
+            View all <ArrowRight size={13} style={{ display: 'inline-block', marginLeft: '2px' }} />
           </button>
-          <Link to="/incidents" className="btn btn-primary btn-sm">
-            + New Incident
-          </Link>
-        </div>
-      </header>
-
-      <div className="kpi-grid">
-        <div
-          className="kpi-card"
-          style={{ '--kpi-color': 'var(--red)' } as CSSProperties}
-        >
-          <div className="kpi-val">3</div>
-          <div className="kpi-lbl">Active Incidents</div>
-          <div className="kpi-sub">2 open · 1 in progress</div>
-          <div className="kpi-delta delta-down">▲ +2</div>
-        </div>
-        <div
-          className="kpi-card"
-          style={{ '--kpi-color': 'var(--accent)' } as CSSProperties}
-        >
-          <div className="kpi-val">4.2m</div>
-          <div className="kpi-lbl">Mean Time to Detect</div>
-          <div className="kpi-sub">avg across 50 alerts</div>
-          <div className="kpi-delta delta-up">▼ -1.1m</div>
-        </div>
-        <div
-          className="kpi-card"
-          style={{ '--kpi-color': 'var(--accent2)' } as CSSProperties}
-        >
-          <div className="kpi-val">22m</div>
-          <div className="kpi-lbl">Mean Time to Respond</div>
-          <div className="kpi-sub">with playbook guidance</div>
-          <div className="kpi-delta delta-up">▼ -8m</div>
-        </div>
-        <div
-          className="kpi-card"
-          style={{ '--kpi-color': 'var(--amber)' } as CSSProperties}
-        >
-          <div className="kpi-val">12%</div>
-          <div className="kpi-lbl">False Positive Rate</div>
-          <div className="kpi-sub">after Wazuh tuning</div>
-          <div className="kpi-delta delta-up">▼ -16%</div>
-        </div>
-      </div>
-
-      <div
-        className="zr-dash-cols"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 360px',
-          gap: '16px',
-          marginBottom: '16px',
-        }}
-      >
-        <div className="card zr-card-body-pad">
-          <div className="zr-card-head">
-            <div className="card-title" style={{ margin: 0 }}>
-              Recent Incidents
-            </div>
-            <Link to="/incidents" className="btn btn-ghost btn-sm">
-              View All →
-            </Link>
-          </div>
-          <IncidentTable rows={recent} />
         </div>
 
-        <div className="card zr-card-body-pad" style={{ maxHeight: '380px', display: 'flex', flexDirection: 'column' }}>
-          <div className="zr-card-head" style={{ flexShrink: 0 }}>
-            <div className="card-title" style={{ margin: 0 }}>
-              Live Alert Feed
-            </div>
-            <div className="zr-live-pill">
-              <span className="zr-live-dot" aria-hidden />
-              LIVE
-            </div>
-          </div>
-          <div className="alert-feed" style={{ overflowY: 'auto', flex: 1 }}>
-            {miniAlerts.map((a, i) => (
-              <Link key={a.id} to="/alerts" className="af-item">
-                <span
-                  className="af-sev-bar"
-                  style={{ background: ZR_SEV_BG[a.severity] }}
-                  aria-hidden
-                />
-                <span
-                  className="af-icon"
-                  style={{ background: `${ZR_SEV_BG[a.severity]}22` }}
-                  aria-hidden
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <div className="incident-list" id="dash-incident-list">
+            {activeIncidents.length > 0 ? (
+              activeIncidents.slice(0, 5).map(inc => (
+                <div
+                  key={inc.id}
+                  className="incident-list-row"
+                  onClick={() => handleOpenCase(inc.id)}
                 >
-                  {ZR_SEV_ICON[a.severity]}
-                </span>
-                <span className="af-main">
-                  <span className="af-rule">{a.ruleName}</span>
-                  <span className="af-host">{a.host}</span>
-                </span>
-                <span className="af-meta">
-                  <span className="af-time">{a.timestamp}</span>
-                  {i < 3 ? <span className="af-new" aria-label="New" /> : null}
-                </span>
-              </Link>
-            ))}
+                  <div>
+                    <div className="incident-list-label">Case</div>
+                    <div className="incident-list-value" style={{ fontFamily: 'var(--font-brand)' }}>
+                      {inc.id}
+                    </div>
+                  </div>
+                  <div className="incident-list-main">
+                    <div className="incident-list-title" style={{ display: 'flex', alignItems: 'center' }}>
+                      {getTypeIcon(inc.type)} {inc.type}
+                    </div>
+                    <div className="incident-list-meta">
+                      {inc.computer} · Opened {inc.openedFull}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="incident-list-label">Severity</div>
+                    <div className="incident-priority">
+                      <span className={`badge ${inc.sev}`}>
+                        <span className="bdot" />
+                        {inc.sevLbl}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="incident-list-label">Progress</div>
+                    <div className="incident-list-value">
+                      {inc.curStep}/7 steps
+                    </div>
+                  </div>
+                  <div>
+                    <div className="incident-list-label">Status</div>
+                    <div className="incident-list-value">{inc.statusLbl}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)' }}>
+                No active incidents.
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="metrics-grid-2" style={{ marginBottom: '16px' }}>
-        <div className="chart-box">
-          <div className="card-title" style={{ marginBottom: '0' }}>
-            MTTD Trend · minutes
+      <div className="dash-grid">
+        <div className="card">
+          <div className="card-hd">
+            <span className="card-title">Recent detections</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/alerts')}>
+              Open feed <ArrowRight size={13} style={{ display: 'inline-block', marginLeft: '2px' }} />
+            </button>
           </div>
-          <div className="chart-area">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={MOCK_MTTD_DAYS}>
-                <CartesianGrid stroke="#1c2236" strokeDasharray="4 4" />
-                <XAxis dataKey="day" stroke="#5c6b8a" tick={{ fill: '#8895b3', fontSize: 11 }} />
-                <YAxis stroke="#5c6b8a" tick={{ fill: '#8895b3', fontSize: 11 }} />
-                <Tooltip {...tooltipSx} />
-                <Line
-                  type="monotone"
-                  dataKey="minutes"
-                  stroke="#00E5B0"
-                  strokeWidth={2}
-                  dot={{ r: 3, fill: '#00E5B0' }}
+          <div id="mini-feed">
+            {alerts.length > 0 ? (
+              alerts.slice(0, 5).map(a => (
+                <div
+                  key={a.id}
+                  className="mini-al"
+                  onClick={() => navigate('/alerts')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div
+                    className="mini-al-dot"
+                    style={{ background: sevColors[a.sev] || '#0891b2' }}
+                  />
+                  <div className="mini-al-text">
+                    <div className="mini-al-name">{a.name}</div>
+                    <div className="mini-al-host">
+                      {a.computer} · <span style={{ color: 'var(--text-3)' }}>Rule {a.ruleId}</span>
+                    </div>
+                  </div>
+                  <span className="mini-al-time">{a.time.split(' ')[0]}</span>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-3)', fontSize: '13px' }}>
+                No recent detections.
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-hd">
+            <span className="card-title">Monitored systems</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/monitored')}>
+              View systems <ArrowRight size={13} style={{ display: 'inline-block', marginLeft: '2px' }} />
+            </button>
+          </div>
+          <div className="case-kv">
+            <div className="case-kv-item">
+              <div className="case-kv-label">Online</div>
+              <div
+                className="case-kv-value"
+                style={{ color: 'var(--c-low)', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <CircleCheck size={14} /> {onlineSystems} systems
+              </div>
+            </div>
+            <div className="case-kv-item">
+              <div className="case-kv-label">Offline</div>
+              <div
+                className="case-kv-value"
+                style={{ color: 'var(--c-critical)', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <CircleX size={14} /> {offlineSystems} systems
+              </div>
+            </div>
+            <div className="case-kv-item">
+              <div className="case-kv-label">Alerts today</div>
+              <div className="case-kv-value">18 events</div>
+            </div>
+            <div className="case-kv-item">
+              <div className="case-kv-label">Wazuh</div>
+              <div className="case-kv-value" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <TriangleAlert size={14} color="#d97706" /> Demo mode
+              </div>
+            </div>
+          </div>
+
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-2)', marginBottom: '8px' }}>
+              Incident Activity Heatmap (Last 35 Hours)
+            </div>
+            <div className="heatmap" id="heatmap" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+              {heatmapLevels.map((lvl, idx) => (
+                <div
+                  key={idx}
+                  className={`hmap-cell l${lvl}`}
+                  title={`${lvl} incident${lvl !== 1 ? 's' : ''}`}
                 />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="chart-box">
-          <div className="card-title" style={{ marginBottom: '0' }}>
-            Incidents by Category
-          </div>
-          <div className="chart-area">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={TYPE_CHART}>
-                <CartesianGrid stroke="#1c2236" strokeDasharray="4 4" />
-                <XAxis dataKey="t" stroke="#5c6b8a" tick={{ fill: '#8895b3', fontSize: 11 }} />
-                <YAxis allowDecimals={false} stroke="#5c6b8a" tick={{ fill: '#8895b3', fontSize: 11 }} />
-                <Tooltip {...tooltipSx} />
-                <Bar dataKey="v" fill="#00E5B0" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-
-      <DashboardHeatmap />
     </div>
   )
 }

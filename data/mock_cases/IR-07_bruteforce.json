@@ -1,0 +1,94 @@
+{
+  "case": {
+    "id": "IR-07",
+    "title": "500 failed login attempts detected on srv-web-01 from single source in 8 minutes",
+    "severity": "high",
+    "status": "contained",
+    "breach_type": "Brute Force Authentication Attack",
+    "source_host": "srv-web-01",
+    "source_ip": "192.168.1.15",
+    "attacker_ip": "45.142.214.8",
+    "detected_at": "2026-09-08T01:47:00+05:30",
+    "breach_est_at": "2026-09-08T01:30:00+05:30",
+    "contained_at": "2026-09-08T01:52:00+05:30",
+    "resolved_at": "2026-09-08T02:15:00+05:30",
+    "data_categories": [
+      "User Authentication Credentials"
+    ],
+    "persons_affected": 240,
+    "assigned_responder": "Ragul",
+    "desc": "Automated dictionary attack against web server authentication portal targeting 240 user accounts."
+  },
+  "organization": {
+    "name": "Kumaraguru College of Technology",
+    "registration_id": "EDU-TN-CBE-2026-0042",
+    "address": "Athipalayam Road, Chinnavedampatti, Coimbatore, Tamil Nadu 641049",
+    "dpo_name": "Dr. S. Ramachandran",
+    "dpo_title": "Data Protection Officer & Head of IT",
+    "dpo_email": "dpo@kct.ac.in",
+    "dpo_phone": "+91 422 266 9401",
+    "it_head_name": "Prithiv Raj",
+    "it_head_title": "DevOps & Compliance Lead"
+  },
+  "playbook": {
+    "id": "pb-bruteforce",
+    "name": "Brute Force Response Guide",
+    "steps": [
+      {
+        "step_number": 1,
+        "title": "Block the attacking source",
+        "phase": "Containment",
+        "command_executed": "sudo iptables -I INPUT -s 45.142.214.8 -j DROP",
+        "status": "completed",
+        "completed_at": "2026-09-08T01:49:00+05:30",
+        "responder": "Ragul",
+        "notes": "Attacking IP blocked immediately at host and perimeter firewall."
+      },
+      {
+        "step_number": 2,
+        "title": "Protect targeted accounts",
+        "phase": "Containment",
+        "command_executed": "sudo usermod -L [TARGETED_USER] && pam_tally2 --user=[TARGETED_USER] --reset",
+        "status": "completed",
+        "completed_at": "2026-09-08T01:52:00+05:30",
+        "responder": "Ragul",
+        "notes": "Temporarily locked 240 targeted user accounts to halt authentication attempts."
+      },
+      {
+        "step_number": 3,
+        "title": "Review authentication logs",
+        "phase": "Investigation",
+        "command_executed": "grep -i 'failed password' /var/log/auth.log | tail -50",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:00:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Reviewed auth logs; confirmed no logins succeeded prior to firewall block."
+      },
+      {
+        "step_number": 4,
+        "title": "Reset credentials and enforce lockout policy",
+        "phase": "Recovery",
+        "command_executed": "sudo fail2ban-client set sshd banip 45.142.214.8",
+        "status": "completed",
+        "completed_at": "2026-09-08T02:15:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Mandatory password reset dispatched and Fail2ban threshold lowered."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-05",
+      "filename": "auth_logs_01.txt",
+      "file_type": "Authentication Log Excerpt",
+      "size": "95 KB",
+      "sha256": "3d5f1a2b4c6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a",
+      "captured_at": "2026-09-08T01:50:00+05:30"
+    }
+  ],
+  "recommendations": [
+    "Enforce rate-limiting and captcha on web portal login endpoints.",
+    "Implement fail2ban with maxretry=5 and bantime=3600.",
+    "Require MFA for all staff remote logins."
+  ]
+}

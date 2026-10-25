@@ -1,0 +1,104 @@
+{
+  "case": {
+    "id": "IR-05",
+    "title": "Unexpected modifications to protected configuration files on fileserver-02",
+    "severity": "medium",
+    "status": "resolved",
+    "breach_type": "File Integrity Tampering",
+    "source_host": "fileserver-02",
+    "source_ip": "192.168.1.22",
+    "attacker_ip": "Internal Maintenance Script",
+    "detected_at": "2026-09-07T20:33:00+05:30",
+    "breach_est_at": "2026-09-07T20:20:00+05:30",
+    "contained_at": "2026-09-07T21:10:00+05:30",
+    "resolved_at": "2026-09-07T22:00:00+05:30",
+    "data_categories": [
+      "System Configuration Files"
+    ],
+    "persons_affected": 0,
+    "assigned_responder": "Prithiv Raj",
+    "desc": "Changes detected in /etc/pam.d/ and /etc/ssh/sshd_config outside scheduled change control window."
+  },
+  "organization": {
+    "name": "Kumaraguru College of Technology",
+    "registration_id": "EDU-TN-CBE-2026-0042",
+    "address": "Athipalayam Road, Chinnavedampatti, Coimbatore, Tamil Nadu 641049",
+    "dpo_name": "Dr. S. Ramachandran",
+    "dpo_title": "Data Protection Officer & Head of IT",
+    "dpo_email": "dpo@kct.ac.in",
+    "dpo_phone": "+91 422 266 9401",
+    "it_head_name": "Prithiv Raj",
+    "it_head_title": "DevOps & Compliance Lead"
+  },
+  "playbook": {
+    "id": "pb-fileintegrity",
+    "name": "File Integrity Management Response Guide",
+    "steps": [
+      {
+        "step_number": 1,
+        "title": "Identify changed protected files",
+        "phase": "Identification",
+        "command_executed": "sha256sum -c /var/lib/integrity_checksums.sha256 | grep FAILED",
+        "status": "completed",
+        "completed_at": "2026-09-07T20:35:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Verified that /etc/ssh/sshd_config differed from the baseline hash."
+      },
+      {
+        "step_number": 2,
+        "title": "Preserve file hashes and system logs",
+        "phase": "Evidence Preservation",
+        "command_executed": "diff -u /etc/ssh/sshd_config.orig /etc/ssh/sshd_config > /data/evidence/sshd_diff.txt",
+        "status": "completed",
+        "completed_at": "2026-09-07T20:37:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Diff captured showing unauthorized PermitRootLogin edit."
+      },
+      {
+        "step_number": 3,
+        "title": "Review change against approved configuration",
+        "phase": "Investigation",
+        "command_executed": "git -C /etc/ansible log -n 5",
+        "status": "completed",
+        "completed_at": "2026-09-07T20:45:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Confirmed change was initiated by an unscheduled staging deployment script."
+      },
+      {
+        "step_number": 4,
+        "title": "Restore approved file state",
+        "phase": "Recovery",
+        "command_executed": "sudo cp /etc/ssh/sshd_config.orig /etc/ssh/sshd_config && sudo systemctl reload sshd",
+        "status": "completed",
+        "completed_at": "2026-09-07T21:10:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Approved configuration restored and service reloaded."
+      },
+      {
+        "step_number": 5,
+        "title": "Close incident and record in audit log",
+        "phase": "Closure",
+        "command_executed": "ZeroDashboard UI -> Click 'Generate Statutory Report Package'",
+        "status": "completed",
+        "completed_at": "2026-09-07T22:00:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Incident closed. No personal data was accessed or compromised."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-12",
+      "filename": "sshd_diff.txt",
+      "file_type": "Configuration Diff",
+      "size": "4 KB",
+      "sha256": "8f7e6d5c4b3a2019f8e7d6c5b4a302918f7e6d5c4b3a2019f8e7d6c5b4a30291",
+      "captured_at": "2026-09-07T20:37:00+05:30"
+    }
+  ],
+  "recommendations": [
+    "Lock down SSH configuration using immutable file attributes (chattr +i).",
+    "Mandate CI/CD approval for all server configuration updates.",
+    "Maintain Wazuh FIM real-time monitoring on /etc."
+  ]
+}

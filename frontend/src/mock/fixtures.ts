@@ -1,434 +1,753 @@
-/**
- * Sprint 1 static fixtures — swap for API payloads in Sprint 2+.
- */
-import type { Severity } from '../components/SeverityBadge'
+export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'resolved'
 
-export type IncidentRow = {
+export interface EvidenceItem {
+  n: string
+  size?: string
+  sha256?: string
+  uploadedAt?: string
+  attestation?: string
+  category?: string
+}
+
+export const DPDP_CATEGORY_OPTIONS = [
+  'Student Records',
+  'Staff PII',
+  'Financial & Fee Records',
+  'Auth Credentials',
+  'Health & Medical Data',
+  'System / Network Configuration',
+] as const
+
+export interface Incident {
   id: string
-  severity: Severity
-  attackType: string
-  assignee: string
-  status: string
-  opened: string
+  type: string
+  sev: Severity
+  sevLbl: string
+  computer: string
+  sourceIp?: string
+  attackerIp?: string
+  suspectPid?: string
+  targetUser?: string
+  modifiedFile?: string
+  c2Ip?: string
+  assignedTo: string
+  openedTime: string
+  openedFull: string
+  detectedAt?: string
+  breachEstAt?: string
+  containedAt?: string
+  resolvedAt?: string
+  status: 'open' | 'investigating' | 'in-progress' | 'containing' | 'contained' | 'resolved' | 'false-positive'
+  statusLbl: string
+  curStep: number
+  pb: 'ransomware' | 'bruteforce' | 'privilege' | 'fileintegrity'
+  dataCategories: string
+  dataCategoriesList?: string[]
+  persons: number
+  desc: string
+  timeline: { t: string; a: string; type: 'done' | 'active' | 'pending'; user?: string }[]
+  evidence: EvidenceItem[]
 }
 
-export const MOCK_INCIDENTS: IncidentRow[] = [
-  {
-    id: 'INV-2042',
-    severity: 'critical',
-    attackType: 'Ransomware',
-    assignee: 'IT SOC',
-    status: 'Investigating',
-    opened: 'Apr 26, 2026 · 02:47',
-  },
-  {
-    id: 'INV-2041',
-    severity: 'high',
-    attackType: 'Phishing / BEC',
-    assignee: 'admin@campus.edu',
-    status: 'Open',
-    opened: 'Apr 26, 2026 · 01:03',
-  },
-  {
-    id: 'INV-2038',
-    severity: 'high',
-    attackType: 'Unauthorized access',
-    assignee: 'Unassigned',
-    status: 'Open',
-    opened: 'Apr 25, 2026 · 14:12',
-  },
-  {
-    id: 'INV-2034',
-    severity: 'medium',
-    attackType: 'Data exfiltration',
-    assignee: 'NetOps',
-    status: 'Resolved',
-    opened: 'Apr 22, 2026 · 09:51',
-  },
-  {
-    id: 'INV-2030',
-    severity: 'low',
-    attackType: 'Insider misuse',
-    assignee: 'HR liaison',
-    status: 'Closed',
-    opened: 'Apr 18, 2026 · 16:22',
-  },
-]
-
-export type TimelineEntry = {
-  at: string
+export interface PlaybookStep {
   title: string
-  detail?: string
-}
-
-export const MOCK_ALERT_SUMMARY = {
-  plainSummary:
-    'Many shared files were renamed with a .locked extension on fin-srv-03 — a pattern that often indicates ransomware.',
-  ruleId: 'RULE-92011',
-  ruleName: 'Mass file rename (ransomware indicator)',
-  host: 'fin-srv-03.campus.edu',
-  sourceIp: '10.42.17.91',
-  description:
-    'High volume of .locked files under /data/shares plus new outbound TLS to unseen IP.',
-  detectedLocal: 'Apr 26, 2026 · 02:47 IST',
-  severity: 'critical' as Severity,
-}
-
-export const MOCK_TIMELINE: TimelineEntry[] = [
-  {
-    at: '02:47:06',
-    title: 'Detection',
-    detail: 'Wazuh alerted on mass filesystem changes from winagent-02.',
-  },
-  {
-    at: '02:48:51',
-    title: 'Case opened',
-    detail: 'Playbook «Ransomware Response» assigned automatically.',
-  },
-  {
-    at: '02:51:20',
-    title: 'Containment suggested',
-    detail:
-      'First playbook step dispatched (isolate host — pending responder).',
-  },
-]
-
-export type PlaybookStep = {
-  step: number
-  title: string
-  goal: string
+  phase?: 'Identification' | 'Analysis' | 'Containment' | 'Evidence' | 'Eradication' | 'Recovery' | 'Hardening' | 'Reporting'
+  plain: string
   linux: string
   windows: string
-  blocking: boolean
+  exp: string
 }
 
-export const MOCK_RANSOMWARE_PLAYBOOK: { name: string; steps: PlaybookStep[] } =
+export interface Playbook {
+  id?: string
+  name: string
+  mitreTag?: string
+  isoPhase?: string
+  desc?: string
+  steps: PlaybookStep[]
+}
+
+export interface SystemItem {
+  host: string
+  type: 'endpoint' | 'server' | 'database' | 'fileserver' | 'cloud'
+  typeLbl: string
+  os: string
+  dept: string
+  status: 'online' | 'warning' | 'offline'
+  lastLog: number
+  alertsToday: number
+  alertMax: string
+}
+
+export interface AlertItem {
+  id: string
+  name: string
+  category: 'bf' | 'pe' | 'fim' | 'ra'
+  sev: Severity
+  desc: string
+  computer: string
+  ruleId: string
+  time: string
+  linkedCase?: string
+}
+
+export interface RuleItem {
+  id: string
+  name: string
+  type: 'bf' | 'pe' | 'fim' | 'ra'
+  typeLbl: string
+  sev: Severity
+  condition: string
+  source: string
+  active: boolean
+  rawXml?: string
+}
+
+export interface AuditItem {
+  t: string
+  action: string
+  ref: string
+  detail: string
+  user: string
+}
+
+export interface ReportHistoryItem {
+  id: string
+  caseId: string
+  type: string
+  generated: string
+  status: string
+}
+
+export interface SettingsData {
+  orgName: string
+  orgType: string
+  city: string
+  state: string
+  dpoName: string
+  dpoEmail: string
+  dpoPhone: string
+  certInEmail: string
+  dpdpId: string
+  autoReport: string
+  wazuhUrl: string
+  wazuhVersion: string
+  wazuhUser: string
+  wazuhPass: string
+}
+
+export const INITIAL_INCIDENTS: Incident[] = [
   {
-    name: 'Ransomware Response',
-    steps: [
+    id: 'IR-08',
+    type: 'Ransomware',
+    sev: 'critical',
+    sevLbl: 'Urgent',
+    computer: 'KCTLAB-WIN01',
+    sourceIp: '192.168.10.45',
+    attackerIp: '185.220.101.5',
+    suspectPid: '4892',
+    c2Ip: '185.220.101.5',
+    targetUser: 'faculty_admin',
+    assignedTo: 'Naveen Kumar',
+    openedTime: '02:13',
+    openedFull: '08 Sep 2026, 02:13 IST',
+    detectedAt: '2026-09-08T02:13:00+05:30',
+    breachEstAt: '2026-09-08T01:45:00+05:30',
+    status: 'in-progress',
+    statusLbl: 'In Progress',
+    curStep: 2,
+    pb: 'ransomware',
+    dataCategories: 'Student Records, Staff Information',
+    dataCategoriesList: ['Student Records', 'Staff PII'],
+    persons: 850,
+    desc: 'Files on KCTLAB-WIN01 are being encrypted by ransomware. Immediate analysis and containment are required.',
+    timeline: [
+      { t: '02:13', a: 'Ransomware detection received and case opened', type: 'done' },
+      { t: '02:15', a: 'Affected computer disconnected from the network', type: 'done' },
+      { t: '02:17', a: 'Suspicious process identified for analysis (PID 4892)', type: 'done' },
+      { t: '02:19', a: 'Preserving evidence and analysing ransomware activity', type: 'active' },
+    ],
+    evidence: [
       {
-        step: 1,
-        title: 'Isolate the host immediately',
-        goal:
-          'Stop lateral movement — block ingress/egress except management until triage completes.',
-        linux:
-          'sudo iptables -I INPUT -j DROP && sudo iptables -I OUTPUT -j DROP',
-        windows:
-          'netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound',
-        blocking: true,
+        n: 'screenshot_desktop.png',
+        size: '1.4 MB',
+        sha256: '9f83acde9234bcf1038e89ad01b44ec92e92c421b8f88722a44be495f82c4710',
+        uploadedAt: '02:16 IST',
+        attestation: 'Section 65B IT Act verified',
+        category: 'Screenshot',
       },
       {
-        step: 2,
-        title: 'Identify malicious process',
-        goal: 'Enumerate listeners and correlate with suspicious filenames.',
-        linux: 'sudo ss -tulpn ; ps auxwww | rg -i "encrypt|cipher"',
-        windows: 'netstat -abno Tasklist /svc',
-        blocking: true,
-      },
-      {
-        step: 3,
-        title: 'Preserve volatile evidence',
-        goal: 'Memory image before powering off infected systems.',
-        linux: 'sudo /opt/tools/acquire-memory.sh —out /srv/evidence/',
-        windows: 'Use approved DFIR toolkit → capture RAM → hash outputs',
-        blocking: false,
-      },
-      {
-        step: 4,
-        title: 'Block C2 / exfil egress',
-        goal: 'Drop routes or upstream ACLs while keeping investigation ports open.',
-        linux:
-          'sudo ip route add unreachable <C2_IP> ; notify NetOps via ticket SEC-URG',
-        windows: 'Add host firewall denies + corp firewall ticket for egress IP',
-        blocking: false,
+        n: 'netstat_output.txt',
+        size: '48 KB',
+        sha256: '4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a',
+        uploadedAt: '02:18 IST',
+        attestation: 'Volatile network socket snapshot',
+        category: 'Network Capture',
       },
     ],
-  }
-
-export type EvidenceItem = {
-  filename: string
-  sizeKb: number
-  addedAt: string
-}
-
-export const MOCK_EVIDENCE: EvidenceItem[] = [
-  {
-    filename: 'memory_fin-srv-03_20260426.lz4',
-    sizeKb: 2048,
-    addedAt: 'Apr 26 · pending upload',
   },
   {
-    filename: 'powershell_transcript_prefetch.txt',
-    sizeKb: 12,
-    addedAt: 'Apr 26 · 03:05',
+    id: 'IR-07',
+    type: 'Brute Force',
+    sev: 'high',
+    sevLbl: 'High',
+    computer: 'srv-web-01',
+    sourceIp: '10.0.1.20',
+    attackerIp: '198.51.100.77',
+    targetUser: 'admin',
+    assignedTo: 'Ragul',
+    openedTime: '01:47',
+    openedFull: '08 Sep 2026, 01:47 IST',
+    detectedAt: '2026-09-08T01:47:00+05:30',
+    breachEstAt: '2026-09-08T01:30:00+05:30',
+    status: 'in-progress',
+    statusLbl: 'In Progress',
+    curStep: 4,
+    pb: 'bruteforce',
+    dataCategories: 'User Credentials',
+    dataCategoriesList: ['Auth Credentials'],
+    persons: 240,
+    desc: '500 failed login attempts were detected on srv-web-01 from a single source in 8 minutes.',
+    timeline: [
+      { t: '01:47', a: 'Brute force detection received and case opened', type: 'done' },
+      { t: '01:49', a: 'Attacker source blocked at firewall (198.51.100.77)', type: 'done' },
+      { t: '01:52', a: 'Targeted accounts locked', type: 'done' },
+      { t: '01:55', a: 'Authentication logs reviewed', type: 'done' },
+      { t: '02:00', a: 'Monitoring for repeated attempts', type: 'active' },
+    ],
+    evidence: [
+      {
+        n: 'auth_logs_01.txt',
+        size: '320 KB',
+        sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        uploadedAt: '01:51 IST',
+        attestation: 'Wazuh auth.log extract',
+        category: 'Log File',
+      },
+    ],
+  },
+  {
+    id: 'IR-06',
+    type: 'Privilege Escalation',
+    sev: 'high',
+    sevLbl: 'High',
+    computer: 'srv-infra-01',
+    sourceIp: '10.0.2.14',
+    targetUser: 'guest_student',
+    suspectPid: '9124',
+    assignedTo: 'Manikandan',
+    openedTime: '23:11',
+    openedFull: '07 Sep 2026, 23:11 IST',
+    detectedAt: '2026-09-07T23:11:00+05:30',
+    breachEstAt: '2026-09-07T23:05:00+05:30',
+    status: 'in-progress',
+    statusLbl: 'In Progress',
+    curStep: 1,
+    pb: 'privilege',
+    dataCategories: 'Administrator Credentials',
+    dataCategoriesList: ['Auth Credentials', 'System / Network Configuration'],
+    persons: 1,
+    desc: 'A standard user executed an unexpected administrative command. The activity requires privilege escalation analysis.',
+    timeline: [
+      { t: '23:11', a: 'Privilege escalation detection received and case opened', type: 'done' },
+      { t: '23:13', a: 'Affected account and command activity identified', type: 'active' },
+    ],
+    evidence: [],
+  },
+  {
+    id: 'IR-05',
+    type: 'File Integrity',
+    sev: 'medium',
+    sevLbl: 'Medium',
+    computer: 'fileserver-02',
+    sourceIp: '10.0.3.50',
+    modifiedFile: '/etc/shadow',
+    assignedTo: 'Prithiv Raj',
+    openedTime: '20:33',
+    openedFull: '07 Sep 2026, 20:33 IST',
+    detectedAt: '2026-09-07T20:33:00+05:30',
+    breachEstAt: '2026-09-07T20:15:00+05:30',
+    containedAt: '2026-09-07T22:00:00+05:30',
+    resolvedAt: '2026-09-07T22:05:00+05:30',
+    status: 'resolved',
+    statusLbl: 'Resolved',
+    curStep: 7,
+    pb: 'fileintegrity',
+    dataCategories: 'System Configuration',
+    dataCategoriesList: ['System / Network Configuration'],
+    persons: 0,
+    desc: 'Unexpected changes to protected system files were detected and investigated.',
+    timeline: [
+      { t: '20:33', a: 'File integrity detection received and case opened', type: 'done' },
+      { t: '20:35', a: 'Changed files identified (/etc/shadow)', type: 'done' },
+      { t: '20:37', a: 'System logs preserved', type: 'done' },
+      { t: '20:45', a: 'Changes reviewed against expected configuration', type: 'done' },
+      { t: '21:10', a: 'No malicious persistence identified', type: 'done' },
+      { t: '22:00', a: 'System restored to approved configuration', type: 'done' },
+      { t: '22:05', a: 'System stability verified and case closed', type: 'done' },
+    ],
+    evidence: [
+      {
+        n: 'file_change_report.txt',
+        size: '18 KB',
+        sha256: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918',
+        uploadedAt: '20:38 IST',
+        attestation: 'Wazuh FIM syscheck diff',
+        category: 'Log File',
+      },
+      {
+        n: 'access_report.pdf',
+        size: '220 KB',
+        sha256: 'a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0',
+        uploadedAt: '20:46 IST',
+        attestation: 'Audit log export',
+        category: 'Document / Report',
+      },
+    ],
   },
 ]
 
-/** Global evidence locker — artefacts linked across cases (Sprint 1 demo). */
-export type EvidenceVaultRow = {
-  id: string
-  filename: string
-  incidentId: string
-  kind: string
-  sizeKb: number
-  sha256short: string
-  addedAt: string
+export const PLAYBOOKS: Record<string, Playbook> = {
+  ransomware: {
+    id: 'ransomware',
+    name: 'Ransomware Containment & Recovery SOP',
+    mitreTag: 'T1486 (Data Encrypted for Impact), T1071 (C2)',
+    isoPhase: 'ISO 27035: Phase 3 (Containment) & Phase 4 (Eradication)',
+    desc: 'Emergency isolation, malware process termination, volatile memory/log preservation, C2 blocking, clean restoration, and statutory DPDP Act §8(6) reporting.',
+    steps: [
+      {
+        title: 'Host Network Isolation',
+        phase: 'Containment',
+        plain: 'Immediately sever all inbound and outbound network communication to halt active encryption and lateral spread across the subnet. Keep the machine powered on so volatile memory evidence is preserved.',
+        linux: 'sudo iptables -I INPUT -j DROP\nsudo iptables -I OUTPUT -j DROP',
+        windows: 'netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound',
+        exp: 'Target machine drops all network connectivity. Active lateral infection across SMB/RDP is halted.',
+      },
+      {
+        title: 'Identify Malicious Process & Connections',
+        phase: 'Identification',
+        plain: 'Scan active processes and socket listeners to locate the suspicious ransomware executable, associated PID, and command-and-control (C2) destination IP.',
+        linux: 'ps aux --sort=-%cpu | head -20\nss -tulpn',
+        windows: 'Get-Process | Sort-Object CPU -Descending | Select -First 20\nnetstat -ano',
+        exp: 'Ransomware executable name, PID, and remote connection endpoints are identified and noted.',
+      },
+      {
+        title: 'Preserve Volatile Memory & Forensic Logs',
+        phase: 'Evidence',
+        plain: 'Capture volatile system logs, active process listings, and network state before altering system state. Ensure SHA-256 integrity hash is computed.',
+        linux: 'cp /var/log/syslog /tmp/syslog_dump.txt\ndmesg > /tmp/kernel_dmesg.txt\nsha256sum /tmp/syslog_dump.txt',
+        windows: 'Get-EventLog -LogName Security -Newest 500 | Export-Csv -Path C:\\evid.csv\nipconfig /all > C:\\net.txt',
+        exp: 'Forensic files are securely dumped to /tmp or C:\\, hashed, and attached to the incident evidence locker.',
+      },
+      {
+        title: 'Terminate Malicious Ransomware Process',
+        phase: 'Eradication',
+        plain: 'Force-kill the identified ransomware process to stop active encryption of student, customer, and system files.',
+        linux: 'sudo kill -9 [SUSPECT_PID]',
+        windows: 'Stop-Process -Id [SUSPECT_PID] -Force',
+        exp: 'The suspicious PID terminates; CPU usage returns to baseline, and disk write activity stops.',
+      },
+      {
+        title: 'Block Malicious C2 on Host & Perimeter',
+        phase: 'Containment',
+        plain: 'Block identified command-and-control or extraction IP addresses at host level and upstream gateway to prevent secondary payload staging.',
+        linux: 'sudo iptables -I OUTPUT -d [C2_IP] -j DROP',
+        windows: 'New-NetFirewallRule -DisplayName "Block Ransomware C2" -Direction Outbound -RemoteAddress [C2_IP] -Action Block',
+        exp: 'Host firewall rejects all future outbound handshakes to the attacker IP.',
+      },
+      {
+        title: 'Restore Clean Data from Offline Backup',
+        phase: 'Recovery',
+        plain: 'Mount verified, immutable pre-incident backup. Test restoration in dry-run mode before overwriting encrypted volumes.',
+        linux: 'rsync -av --dry-run /backup/clean-snapshot/ /data/restored/',
+        windows: 'wbadmin get versions -backupTarget:[TARGET]',
+        exp: 'Clean backup integrity is validated; files are restored and verified before network reconnect.',
+      },
+      {
+        title: 'DPDP Act §8(6) & CERT-In Statutory Notice',
+        phase: 'Reporting',
+        plain: 'Verify affected personal data categories, record estimated impacted data principals, and generate the mandatory 6-hour CERT-In incident notification.',
+        linux: '# Open ZeroRespond Reports view to generate pre-filled DPDP Section 8(6) compliance filing',
+        windows: '# Open ZeroRespond Reports view to generate pre-filled DPDP Section 8(6) compliance filing',
+        exp: 'Statutory compliance report generated and dispatched to CERT-In and Data Protection Board within SLA.',
+      },
+    ],
+  },
+  bruteforce: {
+    id: 'bruteforce',
+    name: 'Brute Force & Credential Attack Defense',
+    mitreTag: 'T1110.001 (Password Guessing), T1110.003 (Password Spraying)',
+    isoPhase: 'ISO 27035: Phase 3 (Containment) & Phase 4 (Hardening)',
+    desc: 'Attacker IP perimeter drop, targeted account emergency locking, authentication audit for successful compromise, credential reset, and fail2ban rate limiting.',
+    steps: [
+      {
+        title: 'Block Attacking Source IP',
+        phase: 'Containment',
+        plain: 'Immediately drop all incoming packets from the remote source IP performing automated password guessing against SSH/RDP/Web services.',
+        linux: 'sudo iptables -I INPUT -s [ATTACKER_IP] -j DROP',
+        windows: 'New-NetFirewallRule -DisplayName "Block BruteForce" -Direction Inbound -RemoteAddress [ATTACKER_IP] -Action Block',
+        exp: 'Immediate cessation of inbound authentication requests from the attacker IP.',
+      },
+      {
+        title: 'Protect Targeted User Accounts',
+        phase: 'Containment',
+        plain: 'Temporarily lock accounts sustaining high failure volumes to protect against credential stuffing while audit is underway.',
+        linux: 'sudo passwd -l [TARGET_USER]',
+        windows: 'Disable-ADAccount -Identity [TARGET_USER]',
+        exp: 'User account status set to locked/disabled; ongoing authorization requests denied.',
+      },
+      {
+        title: 'Audit Authentication Logs for Successful Compromise',
+        phase: 'Identification',
+        plain: 'Inspect security logs to confirm whether any login succeeded from the attacking IP prior to blocking.',
+        linux: "grep 'Accepted' /var/log/auth.log | tail -50\nlast -n 20",
+        windows: 'Get-WinEvent -FilterHashtable @{LogName="Security";Id=4624} -MaxEvents 50',
+        exp: 'Determined with certainty whether the attacker succeeded or was fully repelled at the perimeter.',
+      },
+      {
+        title: 'Force Immediate Credential Reset',
+        phase: 'Eradication',
+        plain: 'Issue a mandatory credential change for targeted users using organizational strong-password policies.',
+        linux: 'sudo passwd [TARGET_USER]',
+        windows: 'Set-ADAccountPassword -Identity [TARGET_USER] -Reset',
+        exp: 'Existing password hash invalidated; user required to configure new credentials upon re-enablement.',
+      },
+      {
+        title: 'Enable Automated Rate Limiting & Account Lockout',
+        phase: 'Hardening',
+        plain: 'Deploy or reload fail2ban on Linux or configure Active Directory account lockout policies to deter repeat automated attacks.',
+        linux: 'sudo systemctl restart fail2ban\nfail2ban-client status sshd',
+        windows: 'net accounts /lockoutthreshold:5 /lockoutduration:30',
+        exp: 'System automatically bans any IP address that exceeds 5 failed attempts within 10 minutes.',
+      },
+      {
+        title: 'Review Scheduled Tasks & Persistence',
+        phase: 'Identification',
+        plain: 'Ensure the attacker did not plant persistence mechanisms (cron jobs, scheduled tasks, authorized_keys) during any successful session.',
+        linux: 'crontab -l\ncat /etc/cron.*/*\ncat ~/.ssh/authorized_keys',
+        windows: 'Get-ScheduledTask | Where-Object {$_.State -eq "Ready"}',
+        exp: 'No unauthorized cron entries, backdoor keys, or scheduled tasks identified on the system.',
+      },
+      {
+        title: 'Preserve Authentication Logs & Close Case',
+        phase: 'Reporting',
+        plain: 'Export the authentication log segment to the Evidence Locker and finalize the incident summary with zero data exfiltration verified.',
+        linux: '# Attach auth log dump to case evidence and confirm stability before case closure',
+        windows: '# Attach Security Event CSV to case evidence and confirm stability before case closure',
+        exp: 'Incident marked Contained/Resolved with permanent immutable audit trail in ZeroRespond.',
+      },
+    ],
+  },
+  privilege: {
+    id: 'privilege',
+    name: 'Privilege Escalation & Unauthorized Access',
+    mitreTag: 'T1068 (Exploitation for Privilege Escalation), T1078 (Valid Accounts)',
+    isoPhase: 'ISO 27035: Phase 3 (Containment) & Phase 5 (Recovery)',
+    desc: 'Account investigation, volatile process tree capture, admin privilege revocation, local admin audit, sudoers/registry inspection, and permission re-baselining.',
+    steps: [
+      {
+        title: 'Identify Account & Command History',
+        phase: 'Identification',
+        plain: 'Investigate the suspicious account, terminal session history, and recent privileged commands executed on the system.',
+        linux: 'last -F [SUSPECT_USER]\ncat ~[SUSPECT_USER]/.bash_history | tail -100',
+        windows: 'Get-WinEvent -FilterHashtable @{LogName="Security";Id=4688} -MaxEvents 50',
+        exp: 'Exact command line, parent process, timestamp, and target user account documented.',
+      },
+      {
+        title: 'Preserve Audit Logs & Process Tree',
+        phase: 'Evidence',
+        plain: 'Save authentication records and active process hierarchy before modifying account groups or terminating running sessions.',
+        linux: 'cp /var/log/auth.log /tmp/auth_evid.log\nps -ef > /tmp/process_tree.txt',
+        windows: 'Get-WinEvent -LogName Security -MaxEvents 500 | Export-Csv C:\\sec_log.csv',
+        exp: 'Cryptographic evidence record created for post-incident review and accountability.',
+      },
+      {
+        title: 'Revoke Elevated Access & Terminate Active Sessions',
+        phase: 'Containment',
+        plain: 'Immediately strip administrator / sudo privileges from the affected user and kill active interactive shells.',
+        linux: 'sudo deluser [SUSPECT_USER] sudo\nsudo pkill -u [SUSPECT_USER]',
+        windows: 'Remove-LocalGroupMember -Group "Administrators" -Member [SUSPECT_USER]',
+        exp: 'User account dropped from administrative groups; active rogue sessions terminated.',
+      },
+      {
+        title: 'Audit Local Administrator Group Membership',
+        phase: 'Identification',
+        plain: 'Inspect group membership to ensure no hidden or secondary backdoor accounts were created with root/administrator rights.',
+        linux: 'getent group sudo\ngrep ":0:" /etc/passwd',
+        windows: 'Get-LocalGroupMember -Group "Administrators"',
+        exp: 'Confirmed that only verified organizational administrators maintain privileged status.',
+      },
+      {
+        title: 'Inspect Sudoers & System Startup Configuration',
+        phase: 'Eradication',
+        plain: 'Verify that `/etc/sudoers` or registry Run keys have not been modified to allow passwordless execution or root escalation.',
+        linux: 'sudo visudo -c\nls -la /etc/sudoers.d/',
+        windows: 'Get-ItemProperty HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run',
+        exp: 'Sudoers syntax verified clean; unauthorized startup registry hooks eradicated.',
+      },
+      {
+        title: 'Restore Approved Role Permissions',
+        phase: 'Recovery',
+        plain: 'Re-baseline file and directory permissions for the account according to the principle of least privilege.',
+        linux: 'sudo chmod 750 /home/[SUSPECT_USER]\nsudo chown -R [SUSPECT_USER]:[SUSPECT_USER] /home/[SUSPECT_USER]',
+        windows: 'icacls C:\\Users\\[SUSPECT_USER] /reset /t',
+        exp: 'Account permissions successfully re-aligned with organizational policy.',
+      },
+      {
+        title: 'Document Findings & Close Incident',
+        phase: 'Reporting',
+        plain: 'Record whether the incident was caused by an internal policy violation, misconfiguration, or external threat actor; finalize report.',
+        linux: '# Record findings in ZeroRespond responder notes and close case',
+        windows: '# Record findings in ZeroRespond responder notes and close case',
+        exp: 'Post-incident review completed, root cause documented, and case closed.',
+      },
+    ],
+  },
+  fileintegrity: {
+    id: 'fileintegrity',
+    name: 'File Integrity Monitoring (FIM) & System Tampering',
+    mitreTag: 'T1565 (Data Manipulation), T1036 (Masquerading)',
+    isoPhase: 'ISO 27035: Phase 2 (Analysis) & Phase 4 (Eradication)',
+    desc: 'Cryptographic hash verification, modified file quarantine, change authorization check, rogue process isolation, clean restoration, and Wazuh FIM re-baselining.',
+    steps: [
+      {
+        title: 'Identify Changed Files & Hashes',
+        phase: 'Identification',
+        plain: 'Review the Wazuh Syscheck detection alert to pinpoint modified system or application binaries, modification timestamps, and new cryptographic hashes.',
+        linux: 'stat [MODIFIED_FILE]\nsha256sum [MODIFIED_FILE]',
+        windows: 'Get-Item [MODIFIED_FILE] | Format-List *\nGet-FileHash [MODIFIED_FILE] -Algorithm SHA256',
+        exp: 'Confirmed file size, modification timestamp, owner, and current SHA-256 digest.',
+      },
+      {
+        title: 'Quarantine Modified File Copy',
+        phase: 'Evidence',
+        plain: 'Copy the tampered file into an isolated staging directory for forensic diff analysis before overwriting.',
+        linux: 'sudo cp [MODIFIED_FILE] /tmp/quarantine_[FILE].bak\nsha256sum /tmp/quarantine_[FILE].bak',
+        windows: 'Copy-Item [MODIFIED_FILE] -Destination C:\\quarantine\\ -Force',
+        exp: 'Evidence copy safely quarantined with recorded SHA-256 hash in case evidence locker.',
+      },
+      {
+        title: 'Verify Against Approved Maintenance Records',
+        phase: 'Analysis',
+        plain: 'Cross-reference the change timestamp with IT change management, CI/CD pipeline deployments, or package manager history (`dpkg.log`).',
+        linux: 'grep -E "install|upgrade" /var/log/dpkg.log | tail -20',
+        windows: 'Get-HotFix | Sort-Object InstalledOn -Descending | Select -First 10',
+        exp: 'Determined whether file modification was an approved system update (false positive) or unauthorized tampering.',
+      },
+      {
+        title: 'Isolate Process or Restrict Modifying Account',
+        phase: 'Containment',
+        plain: 'If the change is unauthorized, identify and terminate the process holding a file descriptor to the targeted path.',
+        linux: 'sudo fuser -v [MODIFIED_FILE]\nsudo kill -9 [LOCKING_PID]',
+        windows: 'Get-Process | Where-Object {$_.Path -eq [MODIFIED_FILE]}',
+        exp: 'Any unauthorized service or process attempting continued modification is terminated.',
+      },
+      {
+        title: 'Restore Approved File from Golden Image / Backup',
+        phase: 'Eradication',
+        plain: 'Restore the verified configuration or binary from the approved repository or golden image backup.',
+        linux: 'sudo cp /backup/clean/[FILE] [TARGET_PATH]\nsudo sha256sum [TARGET_PATH]',
+        windows: 'Copy-Item -Path C:\\GoldenImage\\[FILE] -Destination [TARGET_PATH] -Force',
+        exp: 'Target file restored; hash matches original approved baseline.',
+      },
+      {
+        title: 'Reset File Permissions & Lock Immutability',
+        phase: 'Hardening',
+        plain: 'Ensure the restored file has strict ownership (`root:root` / `Administrators`) and cannot be modified by standard users.',
+        linux: 'sudo chmod 644 [TARGET_PATH]\nsudo chown root:root [TARGET_PATH]',
+        windows: 'icacls [TARGET_PATH] /inheritance:r /grant:r Administrators:F',
+        exp: 'File write permissions restricted exclusively to authorized root/administrator accounts.',
+      },
+      {
+        title: 'Trigger Wazuh FIM Syscheck Baseline Scan',
+        phase: 'Recovery',
+        plain: 'Instruct the Wazuh agent to perform an immediate integrity scan to verify the system is synchronized with the clean database.',
+        linux: 'sudo /var/ossec/bin/wazuh-control restart',
+        windows: 'Restart-Service -Name WazuhSvc',
+        exp: 'Wazuh Syscheck engine acknowledges baseline restored; FIM alert cleared.',
+      },
+    ],
+  },
 }
 
-export const MOCK_EVIDENCE_VAULT: EvidenceVaultRow[] = [
-  {
-    id: 'EVD-9912',
-    filename: 'memory_fin-srv-03_20260426.lz4',
-    incidentId: 'INV-2042',
-    kind: 'Memory image',
-    sizeKb: 2048000,
-    sha256short: 'a91f…c883',
-    addedAt: 'Apr 26, 2026 · 03:12',
-  },
-  {
-    id: 'EVD-9908',
-    filename: 'wazuh_alert_92200.json',
-    incidentId: 'INV-2042',
-    kind: 'Alert export',
-    sizeKb: 3,
-    sha256short: '74be…019a',
-    addedAt: 'Apr 26, 2026 · 02:49',
-  },
-  {
-    id: 'EVD-9891',
-    filename: 'edge-gw_ssh_auth_failures.pcap.gz',
-    incidentId: 'INV-2038',
-    kind: 'Network capture',
-    sizeKb: 18420,
-    sha256short: 'c3d4…eef0',
-    addedAt: 'Apr 25, 2026 · 22:41',
-  },
-  {
-    id: 'EVD-9822',
-    filename: 'powershell_transcript_prefetch.txt',
-    incidentId: 'INV-2042',
-    kind: 'Host artefact',
-    sizeKb: 12,
-    sha256short: '11aa…4499',
-    addedAt: 'Apr 26, 2026 · 03:05',
-  },
-  {
-    id: 'EVD-9755',
-    filename: 'lab-win-07_prefetch_efdr.zip',
-    incidentId: 'INV-2034',
-    kind: 'Forensic bundle',
-    sizeKb: 98200,
-    sha256short: 'ffb0…12cd',
-    addedAt: 'Apr 23, 2026 · 18:06',
-  },
+export const INITIAL_SYSTEMS: SystemItem[] = [
+  { host: 'KCTLAB-WIN01', type: 'endpoint', typeLbl: 'Windows Endpoint', os: 'Windows 10', dept: 'IT Lab — Block A', status: 'online', lastLog: 12, alertsToday: 3, alertMax: 'critical' },
+  { host: 'KCTLAB-WIN02', type: 'endpoint', typeLbl: 'Windows Endpoint', os: 'Windows 10', dept: 'IT Lab — Block B', status: 'online', lastLog: 28, alertsToday: 0, alertMax: '' },
+  { host: 'srv-web-01', type: 'server', typeLbl: 'Linux Server', os: 'Ubuntu 22.04', dept: 'Web Services', status: 'online', lastLog: 8, alertsToday: 5, alertMax: 'high' },
+  { host: 'db-server-01', type: 'database', typeLbl: 'Database Server', os: 'Ubuntu 22.04', dept: 'Data Centre', status: 'online', lastLog: 15, alertsToday: 1, alertMax: 'medium' },
+  { host: 'fileserver-02', type: 'fileserver', typeLbl: 'File Server', os: 'Ubuntu 20.04', dept: 'Administration', status: 'online', lastLog: 22, alertsToday: 2, alertMax: 'medium' },
+  { host: '10.0.0.22', type: 'endpoint', typeLbl: 'Windows Endpoint', os: 'Windows 11', dept: 'Faculty Workstations', status: 'online', lastLog: 41, alertsToday: 1, alertMax: 'medium' },
+  { host: 'aws-ec2-prod', type: 'cloud', typeLbl: 'Cloud (AWS EC2)', os: 'Amazon Linux 2', dept: 'Cloud Infrastructure', status: 'online', lastLog: 19, alertsToday: 0, alertMax: '' },
 ]
 
-export type ReportVaultRow = {
-  id: string
-  title: string
-  type: 'Executive' | 'DPDP' | 'Technical' | 'Lessons learned'
-  incidentId: string | null
-  createdAt: string
-  pages: number
+export const ALERT_TEMPLATES = [
+  { name: 'SSH Brute Force Attack', category: 'bf' as const, sev: 'critical' as Severity, desc: '500+ failed SSH login attempts in 8 minutes from IP 185.220.101.x. Someone is trying to break into a server by repeatedly guessing the password.', computers: ['srv-web-01', '10.0.0.14', 'KCTLAB-WIN01'], ruleId: '5763' },
+  { name: 'RDP Password Guessing', category: 'bf' as const, sev: 'high' as Severity, desc: '100+ failed Remote Desktop login attempts in 5 minutes. An attacker is trying to access a Windows computer by guessing login credentials.', computers: ['KCTLAB-WIN01', 'KCTLAB-WIN02', '10.0.0.5'], ruleId: '5764' },
+  { name: 'Web Login Attack', category: 'bf' as const, sev: 'high' as Severity, desc: '200+ failed web application login attempts on the student portal in 10 minutes. Automated password guessing tool detected.', computers: ['srv-web-01', '10.0.0.14'], ruleId: '5765' },
+  { name: 'Unexpected Sudo Command', category: 'pe' as const, sev: 'high' as Severity, desc: 'A regular user account ran a sudo (administrator) command they have not used before. This may indicate an account takeover attempt.', computers: ['10.0.0.22', 'research-pc-01', 'srv-web-01'], ruleId: '5406' },
+  { name: 'New Admin Account Created', category: 'pe' as const, sev: 'critical' as Severity, desc: 'A new administrator account was created without going through the normal approval process. This is a common technique attackers use to maintain access.', computers: ['KCTLAB-WIN01', 'admin-panel', 'srv-infra-01'], ruleId: '5902' },
+  { name: 'Service Account Acting as Admin', category: 'pe' as const, sev: 'high' as Severity, desc: 'A service account (meant for automated tasks) performed an interactive login and ran administrative commands. This may indicate the account has been hijacked.', computers: ['db-server-01', 'srv-web-01'], ruleId: '5403' },
+  { name: 'Critical System File Modified', category: 'fim' as const, sev: 'critical' as Severity, desc: 'A critical system configuration file (/etc/passwd or /etc/shadow) was changed without a scheduled maintenance window. Attackers modify these files to create backdoor accounts.', computers: ['srv-web-01', '10.0.0.14', 'db-server-01'], ruleId: '5501' },
+  { name: 'Config File Changed Unexpectedly', category: 'fim' as const, sev: 'medium' as Severity, desc: 'An important configuration file in the /etc/ directory was modified outside of normal working hours. Unexpected config changes can indicate a system compromise.', computers: ['srv-infra-01', 'KCTLAB-WIN01', '10.0.0.22'], ruleId: '5502' },
+  { name: 'System Log File Deleted', category: 'fim' as const, sev: 'high' as Severity, desc: 'A system log file was deleted or cleared. Attackers delete logs to cover their tracks and hide evidence of what they did on a system.', computers: ['fileserver-02', 'db-server-01', 'srv-web-01'], ruleId: '5503' },
+  { name: 'Mass File Encryption Detected', category: 'ra' as const, sev: 'critical' as Severity, desc: '100+ files renamed to .encrypted extension in 60 seconds. This is a strong sign of a ransomware attack actively encrypting your data right now.', computers: ['KCTLAB-WIN02', 'fileserver-02', '10.0.0.5'], ruleId: '5800' },
+  { name: 'Ransomware C2 Communication', category: 'ra' as const, sev: 'critical' as Severity, desc: 'A computer is connecting to a known ransomware command-and-control server (185.220.101.x). This means malware is active and receiving instructions from the attacker.', computers: ['KCTLAB-WIN01', '10.0.0.22', 'research-pc-01'], ruleId: '5801' },
+  { name: 'Shadow Copy Deletion Attempted', category: 'ra' as const, sev: 'critical' as Severity, desc: 'Someone ran a command to delete Windows backup copies (shadow copies). Ransomware does this before encrypting files so victims cannot restore from backup.', computers: ['KCTLAB-WIN01', 'KCTLAB-WIN02'], ruleId: '5802' },
+]
+
+export const INITIAL_ALERTS: AlertItem[] = [
+  { id: 'ALT-1', name: 'SSH Brute Force Attack', category: 'bf', sev: 'critical', desc: '500+ failed SSH login attempts in 8 minutes from IP 185.220.101.x. Someone is trying to break into a server by repeatedly guessing the password.', computer: 'srv-web-01', ruleId: '5763', time: '02:07:12 IST' },
+  { id: 'ALT-2', name: 'Service Account Acting as Admin', category: 'pe', sev: 'high', desc: 'A service account performed an interactive login and ran administrative commands.', computer: 'KCTLAB-WIN02', ruleId: '5403', time: '02:03:44 IST' },
+  { id: 'ALT-3', name: 'Unexpected Sudo Command', category: 'pe', sev: 'high', desc: 'A regular user account ran a sudo command they have not used before.', computer: '10.0.0.22', ruleId: '5406', time: '01:58:30 IST' },
+  { id: 'ALT-4', name: 'RDP Password Guessing', category: 'bf', sev: 'high', desc: '100+ failed Remote Desktop login attempts in 5 minutes.', computer: 'fileserver-02', ruleId: '5764', time: '01:52:11 IST' },
+  { id: 'ALT-5', name: 'System Log File Deleted', category: 'fim', sev: 'high', desc: 'A system log file was deleted or cleared.', computer: 'db-server-01', ruleId: '5503', time: '01:44:07 IST' },
+  { id: 'ALT-6', name: 'Critical System File Modified', category: 'fim', sev: 'critical', desc: '/etc/passwd or /etc/shadow was changed without a scheduled maintenance window.', computer: 'admin-panel', ruleId: '5501', time: '01:39:55 IST' },
+]
+
+export const INITIAL_RULES: RuleItem[] = [
+  { id: '5763', name: 'SSH Brute Force', type: 'bf', typeLbl: 'Brute Force', sev: 'critical', condition: '500+ failed SSH logins in 10 minutes from the same IP address', source: 'SSH / Auth Log', active: true },
+  { id: '5764', name: 'RDP Password Guessing', type: 'bf', typeLbl: 'Brute Force', sev: 'high', condition: '100+ failed RDP login attempts in 5 minutes from a single source', source: 'Windows Event Log', active: true },
+  { id: '5765', name: 'Web Application Login Attack', type: 'bf', typeLbl: 'Brute Force', sev: 'high', condition: '200+ failed web login attempts on a single form in 10 minutes', source: 'Web Server Log', active: true },
+  { id: '5406', name: 'Unexpected Sudo Command', type: 'pe', typeLbl: 'Privilege Escalation', sev: 'high', condition: 'A regular (non-admin) user runs a sudo command they have not used before', source: 'Linux Syslog', active: true },
+  { id: '5902', name: 'New Admin Account Created', type: 'pe', typeLbl: 'Privilege Escalation', sev: 'critical', condition: 'A new user account is added to the admin or wheel group outside maintenance hours', source: 'Windows Event Log', active: true },
+  { id: '5403', name: 'Service Account Interactive Login', type: 'pe', typeLbl: 'Privilege Escalation', sev: 'high', condition: 'A service account performs an interactive (human) login and runs admin commands', source: 'Linux Syslog', active: true },
+  { id: '5501', name: 'Critical System File Modified', type: 'fim', typeLbl: 'File Integrity', sev: 'critical', condition: 'Changes detected in /etc/passwd, /etc/shadow, or /etc/sudoers outside scheduled maintenance', source: 'File Monitor (FIM)', active: true },
+  { id: '5502', name: 'Config File Changed Unexpectedly', type: 'fim', typeLbl: 'File Integrity', sev: 'medium', condition: 'Any file in /etc/ directory modified outside normal office hours (9 AM – 6 PM)', source: 'File Monitor (FIM)', active: true },
+  { id: '5503', name: 'System Log File Deleted', type: 'fim', typeLbl: 'File Integrity', sev: 'high', condition: 'Any file in /var/log/ is deleted, moved, or cleared outside a scheduled log rotation', source: 'File Monitor (FIM)', active: true },
+  { id: '5800', name: 'Mass File Encryption Detected', type: 'ra', typeLbl: 'Ransomware', sev: 'critical', condition: 'More than 100 files renamed to .encrypted, .locked, or .crypted extension within 60 seconds', source: 'File Monitor (FIM)', active: true },
+  { id: '5801', name: 'Ransomware C2 Communication', type: 'ra', typeLbl: 'Ransomware', sev: 'critical', condition: 'Outbound connection to a known ransomware command-and-control IP or domain', source: 'Network / Firewall', active: true },
+  { id: '5802', name: 'Shadow Copy Deletion', type: 'ra', typeLbl: 'Ransomware', sev: 'critical', condition: 'vssadmin delete shadows or wbadmin delete command executed by a non-administrator account', source: 'Windows Event Log', active: true },
+]
+
+export const INITIAL_AUDIT_LOG: AuditItem[] = [
+  { t: '14:32', action: 'Detection received', ref: 'WZ-5800', detail: 'Mass file encryption detected on KCTLAB-WIN01', user: 'Wazuh' },
+  { t: '14:33', action: 'Incident case opened', ref: 'IR-08', detail: 'Case created from ransomware detection', user: 'System' },
+  { t: '14:35', action: 'Response started', ref: 'IR-08', detail: 'Ransomware response playbook started', user: 'Naveen Kumar' },
+  { t: '14:39', action: 'Evidence attached', ref: 'IR-08', detail: 'netstat_output.txt added to case', user: 'Naveen Kumar' },
+  { t: '15:30', action: 'Report generated', ref: 'IR-08', detail: 'Ransomware incident report generated from case record', user: 'System' },
+]
+
+export const INITIAL_REPORT_HISTORY: ReportHistoryItem[] = [
+  { id: 'ZR-IR-08-2026', caseId: 'IR-08', type: 'Ransomware', generated: '08 Sep 2026, 03:20 IST', status: 'Generated' },
+  { id: 'ZR-IR-05-2026', caseId: 'IR-05', type: 'File Integrity', generated: '07 Sep 2026, 22:05 IST', status: 'Generated' },
+]
+
+export const RPT_STATIC_DATA: Record<string, {
+  type: string
+  computer: string
+  cats: string
+  persons: number
+  discovered: string
+  breachStart: string
+  actions: { t: string; a: string }[]
+}> = {
+  'IR-08': {
+    type: 'Ransomware',
+    computer: 'KCTLAB-WIN01',
+    cats: 'Student Records, Staff Information',
+    persons: 850,
+    discovered: '08 Sep 2026, 02:13 IST',
+    breachStart: '08 Sep 2026, 01:45 IST',
+    actions: [
+      { t: '02:15', a: 'Affected computer disconnected from the network' },
+      { t: '02:17', a: 'Ransomware process identified and evidence preserved' },
+      { t: '02:23', a: 'Malicious remote connection blocked' },
+      { t: '02:45', a: 'Ransomware process terminated' },
+      { t: '02:55', a: 'System restored from clean backup' },
+      { t: '03:15', a: 'Recovery verified' },
+    ],
+  },
+  'IR-07': {
+    type: 'Brute Force',
+    computer: 'srv-web-01',
+    cats: 'User Credentials',
+    persons: 240,
+    discovered: '08 Sep 2026, 01:47 IST',
+    breachStart: '08 Sep 2026, 01:30 IST',
+    actions: [
+      { t: '01:49', a: 'Attacking source blocked at firewall' },
+      { t: '01:52', a: 'Targeted accounts locked' },
+      { t: '02:00', a: 'Authentication logs reviewed' },
+      { t: '02:15', a: 'Affected credentials reset' },
+    ],
+  },
+  'IR-06': {
+    type: 'Privilege Escalation',
+    computer: 'srv-infra-01',
+    cats: 'Administrator Credentials',
+    persons: 1,
+    discovered: '07 Sep 2026, 23:11 IST',
+    breachStart: '07 Sep 2026, 23:05 IST',
+    actions: [
+      { t: '23:13', a: 'Unexpected administrative command identified' },
+      { t: '23:18', a: 'Relevant logs and process evidence preserved' },
+      { t: '23:25', a: 'Suspicious account access restricted' },
+      { t: '23:40', a: 'Persistence checks completed' },
+    ],
+  },
+  'IR-05': {
+    type: 'File Integrity',
+    computer: 'fileserver-02',
+    cats: 'System Configuration',
+    persons: 0,
+    discovered: '07 Sep 2026, 20:33 IST',
+    breachStart: '07 Sep 2026, 20:20 IST',
+    actions: [
+      { t: '20:35', a: 'Changed protected files identified' },
+      { t: '20:37', a: 'File hashes and system logs preserved' },
+      { t: '20:45', a: 'Change reviewed against approved configuration' },
+      { t: '21:10', a: 'Approved file state restored' },
+      { t: '22:00', a: 'Incident closed' },
+    ],
+  },
 }
 
-export const MOCK_REPORTS_VAULT: ReportVaultRow[] = [
-  {
-    id: 'RPT-0488',
-    title: 'DPDP breach notification draft — ransomware cluster',
-    type: 'DPDP',
-    incidentId: 'INV-2042',
-    createdAt: 'Apr 26, 2026 · 11:40',
-    pages: 7,
-  },
-  {
-    id: 'RPT-0487',
-    title: 'Executive summary · Q2 IR posture',
-    type: 'Executive',
-    incidentId: null,
-    createdAt: 'Apr 26, 2026 · 09:05',
-    pages: 3,
-  },
-  {
-    id: 'RPT-0472',
-    title: 'Technical timeline & IOC package',
-    type: 'Technical',
-    incidentId: 'INV-2038',
-    createdAt: 'Apr 25, 2026 · 16:21',
-    pages: 12,
-  },
-  {
-    id: 'RPT-0461',
-    title: 'Post-incident review · phishing wave',
-    type: 'Lessons learned',
-    incidentId: 'INV-2041',
-    createdAt: 'Apr 24, 2026 · 14:08',
-    pages: 5,
-  },
+export const MOCK_EVIDENCE_VAULT = [
+  { id: 'EV-101', caseId: 'IR-08', name: 'screenshot_desktop.png', sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', sizeBytes: 1048576, collectedAt: '08 Sep 2026, 02:15 IST', artifactType: 'Screenshot', custodyChain: ['Naveen Kumar (SOC)'] },
+  { id: 'EV-102', caseId: 'IR-08', name: 'netstat_output.txt', sha256: 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb', sizeBytes: 20480, collectedAt: '08 Sep 2026, 02:17 IST', artifactType: 'Log File', custodyChain: ['Naveen Kumar (SOC)'] },
 ]
 
 export const MOCK_ORG_PROFILE = {
-  legalName: 'Kumaraguru College of Technology',
-  tradingAs: 'KCT IT Dept',
-  industry: 'Education',
-  timezone: 'Asia/Kolkata',
-  dpdpNominee: 'dpo@kct.ac.in',
-  dataRegion: 'India (primary workloads)',
-  supportEmail: 'soc@campus.edu',
-  retentionEvidenceDays: '365',
-  slackWebhookMasked: 'https://hooks.slack.com/services/····/····',
+  institutionName: 'Kumaraguru College of Technology',
+  campusCity: 'Coimbatore',
+  regulatoryWindowCertInHours: 6,
+  dpdpBoardHours: 72,
+  dpoName: 'KCT IT Department',
+  dpoEmail: 'it@kct.ac.in',
+  dpoPhone: '+91 422 000 0000',
+  incidentInbox: 'incident@cert-in.org.in',
 }
 
-export type IntegrationStatus = 'connected' | 'paused'
-
-export const MOCK_SETTINGS_INTEGRATIONS: {
-  name: string
-  detail: string
-  status: IntegrationStatus
-}[] = [
-  {
-    name: 'Wazuh manager',
-    detail: 'Ingest RULE-81102, RULE-92011 · 50+ decoder rules · 9200/tcp',
-    status: 'connected',
-  },
-  {
-    name: 'Outbound email (SOC)',
-    detail: 'Playbook notifications · incident owners',
-    status: 'connected',
-  },
-  {
-    name: 'Slack escalation',
-    detail: MOCK_ORG_PROFILE.slackWebhookMasked,
-    status: 'paused',
-  },
+export const MOCK_INCIDENTS_BY_MONTH = [
+  { month: 'May', incidents: 8 },
+  { month: 'Jun', incidents: 12 },
+  { month: 'Jul', incidents: 6 },
+  { month: 'Aug', incidents: 9 },
+  { month: 'Sep', incidents: 4 },
 ]
-
-export type LiveAlertFixture = {
-  id: string
-  severity: Severity
-  plainSummary: string
-  ruleId: string
-  ruleName: string
-  host: string
-  timestamp: string
-}
-
-export const MOCK_LIVE_ALERTS: LiveAlertFixture[] = [
-  {
-    id: 'ALRT-98211',
-    severity: 'critical',
-    plainSummary:
-      'Unusual mass file renames on fin-srv-03 — treat as possible ransomware until ruled out.',
-    ruleId: 'RULE-92011',
-    ruleName: 'Ransomware mass rename',
-    host: 'fin-srv-03',
-    timestamp: '02:47:11',
-  },
-  {
-    id: 'ALRT-98206',
-    severity: 'high',
-    plainSummary:
-      'More than 500 failed SSH logins on edge-gw — likely a brute-force attempt from the network.',
-    ruleId: 'RULE-81102',
-    ruleName: 'Brute force SSH',
-    host: 'edge-gw',
-    timestamp: '02:12:54',
-  },
-  {
-    id: 'ALRT-98193',
-    severity: 'medium',
-    plainSummary:
-      'Traffic to a known Tor exit node from lab-win-07 — may be policy bypass or unwanted software.',
-    ruleId: 'RULE-44021',
-    ruleName: 'Tor exit egress',
-    host: 'lab-win-07',
-    timestamp: '01:41:07',
-  },
-]
-
-/** High-level case lifecycle for the phase strip (currentIndex = active step). */
-export const MOCK_INCIDENT_PHASE_STRIP = {
-  phases: [
-    { id: 'detected', label: 'Detected' },
-    { id: 'opened', label: 'Case opened' },
-    { id: 'playbook', label: 'Playbook' },
-    { id: 'containment', label: 'Containment' },
-    { id: 'resolved', label: 'Resolved' },
-  ] as const,
-  /** 0-based; playbook step is in progress for the demo timeline. */
-  currentIndex: 2,
-}
 
 export const MOCK_MTTD_DAYS = [
-  { day: 'Mon', minutes: 5.8 },
-  { day: 'Tue', minutes: 4.2 },
-  { day: 'Wed', minutes: 4.9 },
-  { day: 'Thu', minutes: 3.6 },
-  { day: 'Fri', minutes: 4.1 },
+  { day: 'Day 1', mttdMinutes: 12.0 },
+  { day: 'Day 5', mttdMinutes: 9.4 },
+  { day: 'Day 10', mttdMinutes: 6.8 },
+  { day: 'Day 15', mttdMinutes: 5.2 },
+  { day: 'Day 20', mttdMinutes: 4.5 },
+  { day: 'Day 25', mttdMinutes: 4.2 },
 ]
 
 export const MOCK_MTTR_DAYS = [
-  { day: 'Mon', minutes: 24 },
-  { day: 'Tue', minutes: 19 },
-  { day: 'Wed', minutes: 22 },
-  { day: 'Thu', minutes: 18 },
-  { day: 'Fri', minutes: 21 },
-]
-
-export const MOCK_INCIDENTS_BY_MONTH = [
-  { month: 'Jan', count: 2 },
-  { month: 'Feb', count: 4 },
-  { month: 'Mar', count: 3 },
-  { month: 'Apr', count: 5 },
+  { day: 'Day 1', mttrMinutes: 65 },
+  { day: 'Day 5', mttrMinutes: 48 },
+  { day: 'Day 10', mttrMinutes: 38 },
+  { day: 'Day 15', mttrMinutes: 29 },
+  { day: 'Day 20', mttrMinutes: 25 },
+  { day: 'Day 25', mttrMinutes: 22 },
 ]
 
 export const MOCK_SEVERITY_MIX = [
-  { name: 'Critical', value: 1, fill: '#FF4555' },
-  { name: 'High', value: 6, fill: '#FF7043' },
-  { name: 'Medium', value: 8, fill: '#FFB300' },
-  { name: 'Low', value: 4, fill: '#3B7CFF' },
+  { name: 'Critical', value: 1, color: '#dc2626' },
+  { name: 'High', value: 2, color: '#d97706' },
+  { name: 'Medium', value: 1, color: '#b45309' },
+  { name: 'Low', value: 0, color: '#16a34a' },
 ]
 
-/** 7×24-hour grid aligned with dashboard mock heatmap */
-export const MOCK_HEATMAP_WEEK_HOURS: Record<string, number[]> = {
-  Mon: [
-    0, 0, 1, 0, 0, 0, 0, 0, 2, 1, 0, 0, 1, 0, 0, 0, 0, 3, 1, 0, 0, 1, 0, 0,
-  ],
-  Tue: [
-    0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 1, 0, 0, 1, 0, 0, 0, 2, 0, 0, 1, 0, 0, 0,
-  ],
-  Wed: [
-    0, 0, 2, 0, 0, 0, 0, 0, 1, 3, 1, 0, 2, 0, 0, 0, 1, 4, 1, 0, 0, 0, 0, 0,
-  ],
-  Thu: [
-    0, 0, 0, 1, 0, 0, 0, 0, 2, 1, 0, 1, 0, 0, 1, 0, 2, 1, 0, 0, 0, 1, 0, 0,
-  ],
-  Fri: [
-    1, 0, 0, 0, 0, 0, 0, 2, 1, 2, 0, 0, 0, 1, 0, 0, 1, 2, 0, 1, 0, 0, 0, 0,
-  ],
-  Sat: [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  ],
-  Sun: [
-    0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-  ],
-}
-
-/** 35-day activity grid for contribution-style heatmap. Counts simulate real lab alert volume. */
-export const MOCK_HEATMAP_DAYS: { label: number; count: number }[] = [
-  // Week 1 (Apr 4–10) — low baseline
-  { label: 1, count: 0 }, { label: 2, count: 1 }, { label: 3, count: 0 },
-  { label: 4, count: 2 }, { label: 5, count: 0 }, { label: 6, count: 0 }, { label: 7, count: 0 },
-  // Week 2 (Apr 11–17) — uptick mid-week
-  { label: 8, count: 1 }, { label: 9, count: 3 }, { label: 10, count: 4 },
-  { label: 11, count: 2 }, { label: 12, count: 1 }, { label: 13, count: 0 }, { label: 14, count: 0 },
-  // Week 3 (Apr 18–24) — ransomware simulation spike
-  { label: 15, count: 0 }, { label: 16, count: 2 }, { label: 17, count: 5 },
-  { label: 18, count: 7 }, { label: 19, count: 6 }, { label: 20, count: 1 }, { label: 21, count: 0 },
-  // Week 4 (Apr 25–May 1) — active IR period
-  { label: 22, count: 2 }, { label: 23, count: 4 }, { label: 24, count: 8 },
-  { label: 25, count: 5 }, { label: 26, count: 3 }, { label: 27, count: 0 }, { label: 28, count: 0 },
-  // Week 5 (May 2–8) — current week, partial
-  { label: 29, count: 1 }, { label: 30, count: 2 }, { label: 31, count: 3 },
-  { label: 32, count: 4 }, { label: 33, count: 2 }, { label: 34, count: 0 }, { label: 35, count: 0 },
-]

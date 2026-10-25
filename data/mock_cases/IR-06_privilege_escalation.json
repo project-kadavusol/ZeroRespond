@@ -1,0 +1,94 @@
+{
+  "case": {
+    "id": "IR-06",
+    "title": "Standard user executed unexpected administrative command on srv-infra-01",
+    "severity": "high",
+    "status": "contained",
+    "breach_type": "Privilege Escalation",
+    "source_host": "srv-infra-01",
+    "source_ip": "192.168.1.5",
+    "attacker_ip": "Internal User (UID 1042)",
+    "detected_at": "2026-09-07T23:11:00+05:30",
+    "breach_est_at": "2026-09-07T23:05:00+05:30",
+    "contained_at": "2026-09-07T23:25:00+05:30",
+    "resolved_at": "2026-09-07T23:40:00+05:30",
+    "data_categories": [
+      "Administrator Credentials"
+    ],
+    "persons_affected": 1,
+    "assigned_responder": "Manikandan",
+    "desc": "A regular user account executed unauthorized sudo commands attempting to modify /etc/sudoers."
+  },
+  "organization": {
+    "name": "Kumaraguru College of Technology",
+    "registration_id": "EDU-TN-CBE-2026-0042",
+    "address": "Athipalayam Road, Chinnavedampatti, Coimbatore, Tamil Nadu 641049",
+    "dpo_name": "Dr. S. Ramachandran",
+    "dpo_title": "Data Protection Officer & Head of IT",
+    "dpo_email": "dpo@kct.ac.in",
+    "dpo_phone": "+91 422 266 9401",
+    "it_head_name": "Prithiv Raj",
+    "it_head_title": "DevOps & Compliance Lead"
+  },
+  "playbook": {
+    "id": "pb-privilege",
+    "name": "Privilege Escalation Response Guide",
+    "steps": [
+      {
+        "step_number": 1,
+        "title": "Identify affected account and command activity",
+        "phase": "Identification",
+        "command_executed": "grep 'COMMAND=' /var/log/auth.log | grep -v 'known_admin' | tail -20",
+        "status": "completed",
+        "completed_at": "2026-09-07T23:13:00+05:30",
+        "responder": "Manikandan",
+        "notes": "Identified UID 1042 attempting unauthorized sudo /bin/bash."
+      },
+      {
+        "step_number": 2,
+        "title": "Preserve relevant logs and process evidence",
+        "phase": "Evidence Preservation",
+        "command_executed": "cp /var/log/auth.log /data/evidence/auth_privesc.log && history > /data/evidence/shell_hist.txt",
+        "status": "completed",
+        "completed_at": "2026-09-07T23:18:00+05:30",
+        "responder": "Naveen Kumar",
+        "notes": "Session history and audit logs archived."
+      },
+      {
+        "step_number": 3,
+        "title": "Restrict suspicious account access",
+        "phase": "Containment",
+        "command_executed": "sudo passwd -l user1042 && sudo pkill -u user1042",
+        "status": "completed",
+        "completed_at": "2026-09-07T23:25:00+05:30",
+        "responder": "Manikandan",
+        "notes": "User account locked and active SSH sessions killed."
+      },
+      {
+        "step_number": 4,
+        "title": "Complete persistence checks",
+        "phase": "Eradication",
+        "command_executed": "crontab -l -u user1042; ls -la /etc/cron*; ls -la /home/user1042/.ssh/",
+        "status": "completed",
+        "completed_at": "2026-09-07T23:40:00+05:30",
+        "responder": "Prithiv Raj",
+        "notes": "Audited cron jobs and authorized_keys; no unauthorized backdoors detected."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-08",
+      "filename": "auth_privesc.log",
+      "file_type": "Linux Auth Log",
+      "size": "42 KB",
+      "sha256": "4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d8e7f6a5b4c3d",
+      "captured_at": "2026-09-07T23:18:00+05:30"
+    }
+  ],
+  "recommendations": [
+    "Audit sudoers configuration to ensure no wildcard NOPASSWD entries exist.",
+    "Enforce principle of least privilege across all developer accounts.",
+    "Configure Wazuh rule 5406 for real-time alerting on unusual sudo invocations."
+  ]
+}

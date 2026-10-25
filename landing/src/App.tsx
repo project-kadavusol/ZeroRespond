@@ -1264,7 +1264,7 @@ export default function App() {
               <span className="fm-role">Backend Developer</span>
             </span>
             <span className="footer-member">
-              <span className="fm-name">Manikandan</span>
+              <span className="fm-name">Kavin</span>
               <span className="fm-role">Frontend Developer</span>
             </span>
             <span className="footer-member">

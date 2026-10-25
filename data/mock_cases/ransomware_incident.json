@@ -1,0 +1,148 @@
+{
+  "case": {
+    "id": "IR-2026-0412",
+    "title": "Ransomware outbreak on student management database server",
+    "severity": "critical",
+    "status": "contained",
+    "breach_type": "Ransomware & Unauthorized Encryption",
+    "attack_vector": "Compromised SSH credentials via external brute force leading to lateral movement and malicious payload execution",
+    "source_host": "kct-db-student-01",
+    "source_ip": "192.168.10.45",
+    "attacker_ip": "185.220.101.5",
+    "detected_at": "2026-04-12T04:15:00Z",
+    "breach_est_at": "2026-04-12T03:45:00Z",
+    "contained_at": "2026-04-12T04:38:00Z",
+    "resolved_at": "2026-04-12T04:47:00Z",
+    "data_categories": [
+      "Student Identification Information (PII)",
+      "Academic Records & Grade Histories",
+      "Fee Payment & Banking Details",
+      "Staff Contact Information"
+    ],
+    "persons_affected": 4850,
+    "financial_impact_estimate": "Zero direct ransom paid; temporary portal downtime of 32 minutes",
+    "regulatory_classification": "Significant Data Fiduciary (Higher Education)",
+    "assigned_responder": "Prithiv Raj (DevOps & Security)",
+    "lead_investigator": "Naveen Kumar (Detection Lead)"
+  },
+  "organization": {
+    "name": "Kumaraguru College of Technology",
+    "registration_id": "EDU-TN-CBE-2026-0042",
+    "address": "Athipalayam Road, Chinnavedampatti, Coimbatore, Tamil Nadu 641049",
+    "dpo_name": "Dr. S. Ramachandran",
+    "dpo_title": "Data Protection Officer & Head of IT",
+    "dpo_email": "dpo@kct.ac.in",
+    "dpo_phone": "+91 422 266 9401",
+    "it_head_name": "Prithiv Raj",
+    "it_head_title": "Incident Commander / DevOps Lead"
+  },
+  "playbook": {
+    "id": "pb-ransomware-v1",
+    "name": "Ransomware Rapid Containment & Eradication Playbook",
+    "iso_phase": "Phase 3 (Containment) & Phase 4 (Eradication)",
+    "steps": [
+      {
+        "step_number": 1,
+        "title": "Isolate the Host from the Network",
+        "phase": "Containment",
+        "command_executed": "sudo iptables -I INPUT -j DROP && sudo iptables -I OUTPUT -j DROP",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:18:22Z",
+        "responder": "Prithiv Raj",
+        "notes": "Host isolated immediately within 3 minutes of Wazuh alert. Outbound C2 beaconing ceased."
+      },
+      {
+        "step_number": 2,
+        "title": "Identify the Malicious Process and Encryption Parent PID",
+        "phase": "Identification",
+        "command_executed": "ps aux --sort=-%cpu | grep -E '(crypt|lock|encrypt|python|bash)' | head -n 5",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:22:10Z",
+        "responder": "Naveen Kumar",
+        "notes": "Found suspicious binary /tmp/.cache_updater running with PID 4892 encrypting /var/data/students/."
+      },
+      {
+        "step_number": 3,
+        "title": "Preserve Forensic Memory Dump and Volatile Evidence",
+        "phase": "Evidence Preservation",
+        "command_executed": "sudo dd if=/dev/fmem of=/data/evidence/mem_dump_4892.raw bs=1M count=512",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:28:45Z",
+        "responder": "Ragul",
+        "notes": "Evidence captured with verified SHA-256 hash before process termination."
+      },
+      {
+        "step_number": 4,
+        "title": "Terminate Malicious Process and Child Subprocesses",
+        "phase": "Eradication",
+        "command_executed": "sudo kill -9 4892 && sudo killall -9 .cache_updater",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:31:05Z",
+        "responder": "Prithiv Raj",
+        "notes": "Process group terminated. File modification lock released."
+      },
+      {
+        "step_number": 5,
+        "title": "Block Malicious C2 IP Address at Perimeter Firewall",
+        "phase": "Containment",
+        "command_executed": "sudo ufw insert 1 deny from 185.220.101.5 to any",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:34:40Z",
+        "responder": "Naveen Kumar",
+        "notes": "Perimeter rule injected. Drop rule verified across router syslog."
+      },
+      {
+        "step_number": 6,
+        "title": "Audit Database Integrity and Restore Affected Partition",
+        "phase": "Recovery",
+        "command_executed": "sudo pg_checksums -D /var/lib/postgresql/data && restic restore latest --target /var/data/students",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:44:15Z",
+        "responder": "Prithiv Raj",
+        "notes": "14 encrypted dummy student records restored from immutable snapshot taken at 03:00 IST."
+      },
+      {
+        "step_number": 7,
+        "title": "Generate Statutory DPDP Section 8(6) Incident Report",
+        "phase": "Lessons Learned & Compliance",
+        "command_executed": "ZeroDashboard UI -> Click 'Generate Statutory Report Package'",
+        "status": "completed",
+        "completed_at": "2026-04-12T04:47:00Z",
+        "responder": "Prithiv Raj",
+        "notes": "Report compiled within 32 minutes of discovery, beating the 6-hour CERT-In statutory deadline by 5 hours 28 minutes."
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "EV-01",
+      "filename": "mem_dump_4892.raw",
+      "file_type": "Volatile Memory Dump",
+      "size": "512 MB",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "captured_at": "2026-04-12T04:28:45Z"
+    },
+    {
+      "id": "EV-02",
+      "filename": "wazuh_alert_5763_4892.json",
+      "file_type": "SIEM Alert Log Excerpt",
+      "size": "24 KB",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "captured_at": "2026-04-12T04:15:30Z"
+    },
+    {
+      "id": "EV-03",
+      "filename": "c2_traffic_pcap_segment.pcap",
+      "file_type": "Network Packet Capture",
+      "size": "4.2 MB",
+      "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+      "captured_at": "2026-04-12T04:33:10Z"
+    }
+  ],
+  "recommendations": [
+    "Enforce hardware token multi-factor authentication (MFA) on all SSH ingress bastions.",
+    "Isolate database subnets onto private VLANs without direct external Internet route tables.",
+    "Implement daily automated immutable snapshot backups with offsite air-gapped replication.",
+    "Deploy Wazuh File Integrity Monitoring (FIM) with real-time active response rules on /var/data."
+  ]
+}

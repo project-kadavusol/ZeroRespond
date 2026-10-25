@@ -1,0 +1,218 @@
+{
+  "ransomware": {
+    "name": "Ransomware Analysis & Response Guide",
+    "steps": [
+      {
+        "title": "Isolate the affected system",
+        "plain": "Disconnect the affected computer from the network to stop active encryption and limit spread. Keep the system powered on unless directed otherwise so evidence can be preserved.",
+        "linux": "sudo iptables -I INPUT -j DROP\nsudo iptables -I OUTPUT -j DROP",
+        "windows": "netsh advfirewall set allprofiles firewallpolicy blockinbound,blockoutbound",
+        "exp": "The affected system can no longer communicate with the network."
+      },
+      {
+        "title": "Identify the ransomware activity",
+        "plain": "Identify the suspicious process, executable, file extensions, and network connections associated with the ransomware. Record process IDs and external addresses.",
+        "linux": "ps aux --sort=-%cpu | head -20\nnetstat -tulnp",
+        "windows": "Get-Process | Sort-Object CPU -Descending | Select -First 20\nnetstat -ano",
+        "exp": "You have identified the suspicious process and relevant network indicators."
+      },
+      {
+        "title": "Preserve evidence",
+        "plain": "Capture logs, process information, network information, screenshots, and suspicious file details before removing the malware.",
+        "linux": "dmesg > /tmp/kernel_log.txt\ncp /var/log/syslog /tmp/syslog_backup.txt",
+        "windows": "Get-EventLog -LogName Security -Newest 500 | Export-Csv events.csv\nipconfig /all > network_info.txt",
+        "exp": "Evidence is stored and can be attached to the incident case."
+      },
+      {
+        "title": "Stop the malicious process",
+        "plain": "Terminate the confirmed ransomware process after evidence has been preserved. This stops ongoing encryption activity.",
+        "linux": "sudo kill -9 [PID]",
+        "windows": "Stop-Process -Id [PID] -Force",
+        "exp": "The ransomware process is no longer running and active encryption has stopped."
+      },
+      {
+        "title": "Block the attacker connection",
+        "plain": "Block identified command-and-control or malicious external addresses so the attacker cannot reconnect to the affected system.",
+        "linux": "sudo iptables -I OUTPUT -d [ATTACKER_IP] -j DROP",
+        "windows": "New-NetFirewallRule -DisplayName \"Block Ransomware C2\" -Direction Outbound -RemoteAddress [ATTACKER_IP] -Action Block",
+        "exp": "The identified malicious connection is blocked."
+      },
+      {
+        "title": "Recover and verify",
+        "plain": "Restore affected files or systems from a known-clean backup. Verify important files and confirm the system is operating normally before reconnecting it.",
+        "linux": "rsync -av /backup/pre-attack/ /data/restored/",
+        "windows": "wbadmin start recovery -version:[BACKUP_VERSION]",
+        "exp": "Clean data is restored and the recovered system passes basic verification."
+      },
+      {
+        "title": "Confirm clean state and close",
+        "plain": "Confirm the ransomware activity has stopped, required systems are stable, and the response record is complete before closing the incident.",
+        "linux": "# Verify services, logs, and restored files before reconnecting the host",
+        "windows": "# Verify services, logs, and restored files before reconnecting the host",
+        "exp": "The environment is stable, recovery is verified, and the incident is ready to close."
+      }
+    ]
+  },
+  "bruteforce": {
+    "name": "Brute Force Response Guide",
+    "steps": [
+      {
+        "title": "Block the attacking source",
+        "plain": "Block the source address responsible for the repeated authentication attempts.",
+        "linux": "sudo iptables -I INPUT -s [ATTACKER_IP] -j DROP",
+        "windows": "New-NetFirewallRule -DisplayName \"Block Brute Force Source\" -Direction Inbound -RemoteAddress [ATTACKER_IP] -Action Block",
+        "exp": "Further authentication attempts from the identified source are blocked."
+      },
+      {
+        "title": "Protect targeted accounts",
+        "plain": "Lock accounts receiving excessive failed login attempts so compromised credentials cannot be used while the investigation continues.",
+        "linux": "sudo passwd -l [username]",
+        "windows": "Disable-ADAccount -Identity [username]",
+        "exp": "Targeted accounts are protected from further access."
+      },
+      {
+        "title": "Review authentication logs",
+        "plain": "Determine which accounts were targeted and whether any successful login occurred during the attack window.",
+        "linux": "grep 'Failed password' /var/log/auth.log | tail -100\ngrep 'Accepted' /var/log/auth.log | tail -50",
+        "windows": "Get-WinEvent -FilterHashtable @{LogName=\"Security\";Id=4624,4625} -MaxEvents 100",
+        "exp": "You know which accounts were targeted and whether successful authentication occurred."
+      },
+      {
+        "title": "Reset affected credentials",
+        "plain": "Reset credentials for accounts that were targeted or successfully accessed. Use approved strong-password requirements.",
+        "linux": "sudo passwd [username]",
+        "windows": "Set-ADAccountPassword -Identity [username] -Reset",
+        "exp": "Affected accounts have new credentials."
+      },
+      {
+        "title": "Strengthen authentication controls",
+        "plain": "Review lockout and authentication controls to reduce the chance of repeated password-guessing attacks.",
+        "linux": "sudo systemctl enable fail2ban --now",
+        "windows": "Set-ADDefaultDomainPasswordPolicy -LockoutThreshold 5 -LockoutDuration 00:30:00",
+        "exp": "The environment has stronger controls against repeated authentication attempts."
+      },
+      {
+        "title": "Document and close",
+        "plain": "Record the attack source, affected accounts, successful logins, actions taken, and final outcome.",
+        "linux": "# Complete incident notes and close when verified",
+        "windows": "# Complete incident notes and close when verified",
+        "exp": "The incident has a complete response record."
+      },
+      {
+        "title": "Verify and close the case",
+        "plain": "Confirm that repeated authentication attempts have stopped, affected accounts are secure, and the response record is complete.",
+        "linux": "# Review recent authentication events and confirm no continued attack",
+        "windows": "# Review recent Security events and confirm no continued attack",
+        "exp": "No continued brute force activity is observed and the case is ready to close."
+      }
+    ]
+  },
+  "privilege": {
+    "name": "Privilege Escalation Response Guide",
+    "steps": [
+      {
+        "title": "Identify the account and command",
+        "plain": "Confirm which account performed the unexpected administrative action and record the command, timestamp, and affected system.",
+        "linux": "last -F [username]\nhistory | tail -50",
+        "windows": "Get-WinEvent -FilterHashtable @{LogName=\"Security\";Id=4688} -MaxEvents 100",
+        "exp": "The account, command, time, and system are identified."
+      },
+      {
+        "title": "Preserve relevant evidence",
+        "plain": "Save authentication, process, and system logs before changing the account or removing activity.",
+        "linux": "cp /var/log/auth.log /tmp/auth_evidence.log\nps aux > /tmp/processes.txt",
+        "windows": "Get-WinEvent -LogName Security -MaxEvents 500 | Export-Csv security_events.csv",
+        "exp": "Relevant evidence is preserved for investigation."
+      },
+      {
+        "title": "Restrict suspicious access",
+        "plain": "Temporarily remove elevated access or lock the account if the activity is not authorised.",
+        "linux": "sudo passwd -l [username]",
+        "windows": "Disable-ADAccount -Identity [username]",
+        "exp": "The suspicious account can no longer perform additional privileged actions."
+      },
+      {
+        "title": "Check for persistence",
+        "plain": "Look for newly created administrator accounts, scheduled tasks, services, startup entries, or other mechanisms that could preserve attacker access.",
+        "linux": "getent group sudo\nsystemctl list-unit-files --state=enabled",
+        "windows": "Get-LocalGroupMember Administrators\nGet-ScheduledTask",
+        "exp": "No unauthorised persistence remains, or suspicious persistence is documented."
+      },
+      {
+        "title": "Restore approved privileges",
+        "plain": "Remove unauthorised privilege changes and restore the account to its approved role after the investigation.",
+        "linux": "# Remove unauthorised group membership and restore approved access",
+        "windows": "# Remove unauthorised group membership and restore approved access",
+        "exp": "The account has only its approved permissions."
+      },
+      {
+        "title": "Document and close",
+        "plain": "Record the escalation path, evidence, containment actions, and final determination.",
+        "linux": "# Complete incident notes and close when verified",
+        "windows": "# Complete incident notes and close when verified",
+        "exp": "The privilege escalation incident is fully documented."
+      },
+      {
+        "title": "Verify and close the case",
+        "plain": "Confirm that elevated access is restored only where approved, no persistence remains, and the incident record is complete.",
+        "linux": "# Verify approved privileges and review recent account activity",
+        "windows": "# Verify approved privileges and review recent account activity",
+        "exp": "Approved access is confirmed and the case is ready to close."
+      }
+    ]
+  },
+  "fileintegrity": {
+    "name": "File Integrity Management Response Guide",
+    "steps": [
+      {
+        "title": "Identify the changed files",
+        "plain": "Review the file integrity alert and identify exactly which protected files changed, when they changed, and on which system.",
+        "linux": "stat [FILE]\nls -l [FILE]",
+        "windows": "Get-Item [FILE] | Format-List *",
+        "exp": "The changed files and timestamps are identified."
+      },
+      {
+        "title": "Preserve evidence",
+        "plain": "Capture the current file state, relevant logs, and the account or process responsible for the change.",
+        "linux": "sha256sum [FILE] > /tmp/file_hash.txt\ncp /var/log/auth.log /tmp/auth_evidence.log",
+        "windows": "Get-FileHash [FILE] -Algorithm SHA256 | Out-File file_hash.txt\nGet-WinEvent -LogName Security -MaxEvents 200 | Export-Csv security_events.csv",
+        "exp": "The original change and supporting evidence are recorded."
+      },
+      {
+        "title": "Determine whether the change was authorised",
+        "plain": "Compare the change with approved maintenance, deployment, configuration management, or administrator activity.",
+        "linux": "# Compare timestamps with approved maintenance records",
+        "windows": "# Compare timestamps with approved maintenance records",
+        "exp": "The change is classified as authorised or suspicious."
+      },
+      {
+        "title": "Contain suspicious activity",
+        "plain": "If the change is unauthorised, restrict the responsible account or process and investigate related activity on the system.",
+        "linux": "sudo passwd -l [username]",
+        "windows": "Disable-ADAccount -Identity [username]",
+        "exp": "Further unauthorised changes are prevented while investigation continues."
+      },
+      {
+        "title": "Restore the approved file state",
+        "plain": "Restore the affected configuration or system file from a known-good source after confirming the correct version.",
+        "linux": "cp /backup/approved/[FILE] [FILE]",
+        "windows": "# Restore the approved file version from your configuration backup",
+        "exp": "The protected file matches the approved configuration."
+      },
+      {
+        "title": "Document and close",
+        "plain": "Record the changed files, authorisation decision, evidence, corrective action, and final outcome.",
+        "linux": "# Complete incident notes and close when verified",
+        "windows": "# Complete incident notes and close when verified",
+        "exp": "The file integrity incident is fully documented."
+      },
+      {
+        "title": "Verify system stability and close",
+        "plain": "Monitor the protected files and system activity after restoration to confirm that no unexpected changes recur.",
+        "linux": "# Verify file hashes and monitor for additional unexpected changes",
+        "windows": "# Verify file hashes and monitor for additional unexpected changes",
+        "exp": "The approved file state remains stable and the case is ready to close."
+      }
+    ]
+  }
+}
