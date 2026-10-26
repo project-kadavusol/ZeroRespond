@@ -545,6 +545,7 @@ def get_case_evidence(case_id: str, db: Session = Depends(get_db)):
 # ==============================================================================
 
 @app.post("/api/v1/webhook/wazuh", tags=["Detection"])
+@app.post("/alerts", tags=["Detection"])
 def wazuh_alert_webhook(payload: Dict[str, Any] = Body(...), db: Session = Depends(get_db)):
     """
     Direct ingestion endpoint for Wazuh 4.7 SIEM alerts pushed by custom-fapi-flask.py.

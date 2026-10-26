@@ -222,8 +222,8 @@ ZeroRespond focuses on four core attack vectors common to under-resourced instit
 
 ### How to Connect Each Module (Developer Guide & Parameters)
 
-#### 1. Detection Engine to Backend (Naveen ↔ Ragul)
-Naveen operates the Wazuh 4.7 SIEM and implements the Python Alert Processor (`detection/alert_processor/`).
+#### 1. Detection Engine to Backend (Naveen ↔ Backend Integration)
+Naveen operates the Wazuh 4.7 SIEM, manages the monitored virtual machines, and executes the simulation attack scenarios.
 
 * **Wazuh API Configuration (`.env`)**:
   - `WAZUH_API_URL`: `https://wazuh-manager:55000` (within Docker) or `https://localhost:55000` (local).
@@ -232,65 +232,190 @@ Naveen operates the Wazuh 4.7 SIEM and implements the Python Alert Processor (`d
   - `verify_ssl=False`: Wazuh ships with self-signed TLS certificates by default. Disabling SSL verification in the Python HTTP client is required unless a custom internal CA is loaded.
 * **Alert Severity Threshold**:
   - Wazuh evaluates rules on a 0–16 scale.
-  - **Parameter Tweak**: The Alert Processor must filter for `rule.level >= 8` (High and Critical alerts only). Low-level operational events must be suppressed to maintain the team's false-positive rate under 15%.
-* **Attack Type Classification**:
-  - The Alert Processor must categorize each incident into one of the four exact string keys: `"ransomware"`, `"bruteforce"`, `"privilege_escalation"`, or `"file_integrity"`.
-* **Backend Webhook Endpoint & JSON Contract**:
-  - **Target**: `POST http://localhost:8000/alerts` (or `http://zerorespond-api:8000/alerts` in Docker)
-  - **Payload Schema**:
+  - **Threshold**: The integration triggers for `rule.level >= 8` (or custom rules `100001`–`100004` at level 12+ for critical breaches). Low-level operational noise is automatically filtered out.
+* **Deduplication Engine**:
+  - ZeroRespond features a **5-minute sliding window deduplication algorithm**. Repeat alerts from the same attacker IP and agent within 5 minutes are grouped into the active case rather than spamming duplicate tickets.
+* **Backend Webhook Endpoints & Contracts**:
+  - **Primary Webhook**: `POST http://<ZERO_RESPOND_HOST_IP>:8000/api/v1/webhook/wazuh`
+  - **Legacy Alias**: `POST http://<ZERO_RESPOND_HOST_IP>:8000/alerts`
+  - ZeroRespond accepts **both** raw nested Wazuh 4.7 JSON alerts and normalized/flattened JSON payloads:
     ```json
     {
-      "rule_id": "100201",
-      "rule_description": "Mass file encryption detected - Ransomware activity",
-      "severity": "critical",
-      "attack_type": "ransomware",
-      "source_host": "KCTLAB-WIN01",
-      "source_ip": "192.168.1.45",
-      "attacker_ip": "185.220.101.44",
-      "detected_at": "2026-10-25T14:05:00+05:30",
-      "data_categories": ["Student Records", "Financial Information"],
-      "estimated_persons_affected": 850
+      "rule_id": "100002",
+      "level": 12,
+      "description": "SSH Brute Force Authentication Failure Spike",
+      "threat_type": "Brute Force",
+      "agent": "srv-lab-ssh01",
+      "agent_ip": "192.168.1.120",
+      "source_ip": "203.0.113.88",
+      "target_user": "root"
     }
     ```
 
 ---
 
-### Wazuh Custom Webhook Integration Guide
+### Naveen's Wazuh SIEM & VM Simulation Setup Guide
 
-Follow these steps to configure a custom Python Flask/FastAPI webhook integration with Wazuh.
+This section provides the end-to-end instructions for deploying Wazuh Manager, connecting target VMs, configuring the webhook, and running attack simulations.
 
-#### Prerequisites
-- Administrative root access to the Wazuh Manager.
-- Python 3 installed on the target machine where the webhook server will run.
+#### Step 1: Deploying the Wazuh Integration Script on Manager
 
-#### Step 1: Add the Custom Integration Script
-Place your custom Python script into the default Wazuh integrations directory:
-- **File Location:** `/var/ossec/integrations/custom-fapi-flask.py`
+The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to external webhooks.
 
-Make sure to assign the proper execution permissions and ownership:
+1. Copy the integration script to the Wazuh Manager:
+   ```bash
+   sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask.py
+   ```
+2. Set ownership and executable permissions:
+   ```bash
+   sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py
+   sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py
+   ```
+3. Configure the integration in `/var/ossec/etc/ossec.conf` inside the `<ossec_config>` section:
+   ```xml
+   <ossec_config>
+     <!-- ZeroRespond SOAR Ingestion Integration -->
+     <integration>
+       <name>custom-fapi-flask.py</name>
+       <hook_url>http://<ZERO_RESPOND_IP>:8000/api/v1/webhook/wazuh</hook_url>
+       <level>8</level>
+       <alert_format>json</alert_format>
+     </integration>
+   </ossec_config>
+   ```
+   *(Note: Replace `<ZERO_RESPOND_IP>` with your backend host machine IP, e.g., `192.168.1.100` or `localhost` if on same host).*
+4. Restart the Wazuh Manager to apply changes:
+   ```bash
+   sudo systemctl restart wazuh-manager
+   ```
+
+---
+
+#### Step 2: Deploying Wazuh Agents on Target Monitored VMs
+
+To simulate real-world attacks, install the Wazuh Agent on the test virtual machines.
+
+##### A. Linux Target VM (Ubuntu/Debian Server — e.g. `srv-lab-ssh01`)
 ```bash
-sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py
-sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py
+# 1. Add Wazuh repository key and source
+curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | sudo gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && sudo chmod 644 /usr/share/keyrings/wazuh.gpg
+echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" | sudo tee -a /etc/apt/sources.list.d/wazuh.list
+sudo apt-get update
+
+# 2. Install agent pointing to your Wazuh Manager IP
+sudo WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="srv-lab-ssh01" apt-get install wazuh-agent
+
+# 3. Start the agent daemon
+sudo systemctl daemon-reload
+sudo systemctl enable wazuh-agent
+sudo systemctl start wazuh-agent
 ```
 
-#### Step 2: Configure the Integration in Wazuh Manager
-Add the integration block to `/var/ossec/etc/ossec.conf` inside the `<ossec_config>` section:
-```xml
-<ossec_config>
-  <integration>
-    <name>custom-fapi-flask.py</name>
-    <hook_url>http://localhost:8000/alerts</hook_url>
-    <level>8</level>
-    <alert_format>json</alert_format>
-  </integration>
-</ossec_config>
+##### B. Windows Target VM (Windows Server / 10 / 11 — e.g. `KCTLAB-WIN01`)
+Open an administrative PowerShell console:
+```powershell
+Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.5-1.msi -OutFile wazuh-agent.msi
+.\wazuh-agent.msi /q WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="KCTLAB-WIN01"
+NET START Wazuh
 ```
 
-#### Step 3: Restart Wazuh Manager
-Restart the Wazuh manager daemon to activate the custom webhook integration:
+##### C. Verify Connected Agents on Wazuh Manager
+Run on the Wazuh Manager server:
 ```bash
-sudo systemctl restart wazuh-manager
+sudo /var/ossec/bin/agent_control -l
 ```
+*Expected: Monitored agents should show as `Active`.*
+
+---
+
+#### Step 3: Executing Practical Attack Simulation Scenarios
+
+Naveen can execute any of these 4 attack scenarios from an attacker machine (Kali Linux or secondary VM) against the monitored targets:
+
+```
+┌────────────────────────┐      Attack Traffic     ┌────────────────────────┐
+│  Attacker (Kali VM)    ├────────────────────────►│  Target VM (Agent)     │
+│  IP: 203.0.113.88      │                         │  srv-lab-ssh01         │
+└────────────────────────┘                         └───────────┬────────────┘
+                                                               │ Event Logs (1514)
+                                                               ▼
+┌────────────────────────┐    Alert Webhook (8000) ┌────────────────────────┐
+│  ZeroRespond Platform  │◄────────────────────────┤  Wazuh Manager SIEM    │
+│  Case IR-XX + Playbook │                         │  Rule 100002 Triggers  │
+└────────────────────────┘                         └────────────────────────┘
+```
+
+##### Scenario 1: SSH Brute Force Attack (`bruteforce`)
+- **Target**: Linux VM (`srv-lab-ssh01` / `192.168.1.120`)
+- **Action from Attacker VM**:
+  ```bash
+  # Using hydra to simulate password spraying:
+  hydra -l root -P /usr/share/wordlists/rockyou.txt ssh://<TARGET_VM_IP> -t 4
+  
+  # Or via quick bash failure loop:
+  for i in {1..25}; do sshpass -p 'WrongPass123' ssh -o StrictHostKeyChecking=no invalid_user@<TARGET_VM_IP>; done
+  ```
+- **Wazuh Detection**: Rules `5710` / `5712` (Multiple authentication failures).
+- **ZeroRespond Reaction**: Auto-opens Case, assigns **SSH/RDP Brute Force Playbook**, and dynamically interpolates firewall command:  
+  `sudo iptables -I INPUT 1 -s <ATTACKER_IP> -j DROP`
+
+##### Scenario 2: Privilege Escalation (`privilege_escalation`)
+- **Target**: Linux VM (`srv-lab-ssh01`)
+- **Action on Target VM**:
+  ```bash
+  # Simulate unexpected sudo or sudoers file tampering:
+  sudo su -c "echo 'guest ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers.d/99-backdoor"
+  ```
+- **Wazuh Detection**: Rules `5402` / `5406` (Unauthorized sudo modification).
+- **ZeroRespond Reaction**: Auto-opens Case, assigns **Privilege Escalation Playbook**, generates account lock command `sudo passwd -l <TARGET_USER>`, and prompts auditing `/etc/sudoers`.
+
+##### Scenario 3: Ransomware Behavior Simulation (`ransomware`)
+- **Target**: Windows VM (`KCTLAB-WIN01`)
+- **Action on Target VM**:
+  ```powershell
+  # Simulate shadow copy deletion (standard precursor to ransomware):
+  vssadmin delete shadows /all /quiet
+  
+  # Or simulate rapid file renaming:
+  1..100 | ForEach-Object { Set-Content "C:\test_$_.txt" "sample data"; Rename-Item "C:\test_$_.txt" "C:\test_$_.locked" }
+  ```
+- **Wazuh Detection**: Rule `5801` / `5802` / `100001` (Shadow copy deletion or mass rename).
+- **ZeroRespond Reaction**: Auto-opens Critical Ransomware Case, starts **CERT-In 6-Hour Countdown Clock**, isolates host network via `netsh advfirewall`, and prepares Section 8(6) disclosure.
+
+##### Scenario 4: Critical File Integrity Tampering (`file_integrity`)
+- **Target**: Linux VM (`srv-lab-ssh01`)
+- **Action on Target VM**:
+  ```bash
+  # Tamper with critical system files monitored by syscheck:
+  sudo touch -a /etc/shadow
+  sudo echo "# backdoor" >> /etc/passwd
+  ```
+- **Wazuh Detection**: Syscheck Rule `550` / `554` (Integrity checksum changed).
+- **ZeroRespond Reaction**: Auto-opens Case, displays FIM remediation playbook, and preserves SHA-256 evidence.
+
+---
+
+#### Step 4: End-to-End Verification Flow
+
+1. **Fire the attack** on the monitored VM.
+2. **Watch Wazuh alerts**:
+   ```bash
+   sudo tail -f /var/ossec/logs/alerts/alerts.json
+   ```
+3. **Verify ZeroRespond Case Ingestion**:
+   ```bash
+   curl -s http://localhost:8000/api/v1/cases | jq '.[0]'
+   ```
+4. **Open ZeroDashboard**:
+   Navigate to `http://localhost:5173/incidents` — the new incident appears instantly in the queue.
+5. **Execute Playbook Steps**:
+   Click the incident, click the **Linux / Windows** command toggle, click **Copy**, paste command into VM terminal, and click **Done — Next Step**.
+6. **Compile Statutory Compliance Report**:
+   Click **Generate Report** or run:
+   ```bash
+   curl -s -X POST http://localhost:8000/reports/generate/<CASE_ID>
+   ```
+   Download court-admissible PDF at `http://localhost:8000/reports/<CASE_ID>/download` or preview CERT-In email dispatch at `http://localhost:8000/reports/<CASE_ID>/cert-in-email`.
 
 ---
 
