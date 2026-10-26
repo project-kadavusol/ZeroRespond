@@ -108,7 +108,10 @@ def parse_datetime(dt_val):
         # Clean common ISO string variants
         clean_str = dt_val.replace('Z', '+00:00')
         try:
-            return datetime.fromisoformat(clean_str)
+            dt = datetime.fromisoformat(clean_str)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
         except Exception:
             for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M'):
                 try:
