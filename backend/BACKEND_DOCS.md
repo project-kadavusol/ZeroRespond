@@ -498,3 +498,151 @@ curl -s -X POST http://localhost:8000/reports/generate/IR-08 | jq
 # 6. Preview Statutory Plain Text CERT-In Email
 curl -s http://localhost:8000/reports/IR-08/cert-in-email
 ```
+
+---
+
+## 11. Wazuh SIEM & Detection Integration Guide (Module 1: Naveen)
+
+This section serves as the definitive reference manual for **Naveen Kumar (Module 1)** to configure Wazuh 4.7 Manager, deploy integration scripts, author correlation rules, and test end-to-end alert delivery into Ragul's backend.
+
+### 11.1. Ingestion Architecture & Modes
+
+ZeroRespond supports **two ingestion pipelines**:
+
+```
+[ Attack on VM ] ──► [ Wazuh Agent ] ──► [ Wazuh Manager SIEM ]
+                                                  │
+                                                  │ integratord daemon
+                                                  ▼
+                         /var/ossec/integrations/custom-fapi-flask.py
+                                          │
+            ┌─────────────────────────────┴─────────────────────────────┐
+            ▼                                                           ▼
+     [ PATH A: Direct Push (Recommended) ]              [ PATH B: Via Alert Processor ]
+     POST http://<ZERO_RESPOND>:8000/api/v1/webhook/wazuh  POST http://localhost:5000/webhook
+                    │                                                   │
+                    ▼                                                   ▼
+     [ FastAPI Case Engine (case_service.py) ]          [ Flask Buffer (webhook.py) ]
+     - 5-Min Deduplication Window                                       │
+     - Auto-opens Case (IR-XX)                                          ▼ Pull Sync
+     - Dynamic Command Interpolation                    POST /api/v1/sync-alerts (to :8000)
+```
+
+1. **Path A — Direct Push (Recommended & Production)**:
+   The Wazuh integration script sends the alert payload directly to the FastAPI backend at `POST http://<ZERO_RESPOND_HOST>:8000/api/v1/webhook/wazuh` (or `/alerts`). This immediately triggers case creation and playbook interpolation.
+2. **Path B — Buffered via Alert Processor**:
+   The integration script posts to the Flask alert processor (`detection/alert_processor/webhook.py`) on port 5000. It retains the last 50 alerts in memory and serves a lightweight HTML dashboard (`http://localhost:5000/`). The FastAPI backend can periodically or manually pull these alerts via `POST http://localhost:8000/api/v1/sync-alerts`.
+
+---
+
+### 11.2. Alert Payload Field Extraction Matrix
+
+The backend normalizer (`parse_wazuh_alert()` in `app/case_service.py`) automatically maps either **raw nested Wazuh 4.7 JSON** or **flattened JSON** into case fields:
+
+| Extracted Field | Raw Wazuh JSON Path (Priority Order) | Flattened JSON Key | Target Case Model Attribute |
+|---|---|---|---|
+| **Agent / Computer** | `agent.name` → `agent.id` → `data.computer` | `agent` or `computer` | `Case.computer` |
+| **Agent IP** | `agent.ip` | `agent_ip` | Used for fallback source IP |
+| **Attacker / Source IP** | `data.win.eventdata.ipAddress` → `data.srcip` → `data.src_ip` → `agent.ip` | `source_ip` or `attacker_ip` | `Case.attacker_ip` & `Case.source_ip` |
+| **Target User** | `data.win.eventdata.targetUserName` → `data.win.eventdata.subjectUserName` → `data.dstuser` → `data.srcuser` | `target_user` | `Case.target_user` |
+| **Modified File / FIM** | `syscheck.path` → `data.win.eventdata.targetFilename` → `data.file` | `modified_file` | `Case.modified_file` |
+| **Suspect PID** | `data.win.eventdata.processId` → `data.pid` | `suspect_pid` | `Case.suspect_pid` |
+| **Rule ID & Level** | `rule.id`, `rule.level` (0–16 scale) | `rule_id`, `level` | `Alert.rule_id`, `Alert.level` |
+| **Threat Description** | `rule.description` | `description` | `Case.desc`, `Alert.description` |
+| **MITRE Tactic / Technique** | `rule.mitre.id[0]`, `rule.mitre.tactic[0]` | `mitre_id`, `threat_type` | `Alert.mitre_id`, Playbook Selection |
+
+---
+
+### 11.3. Playbook Mapping & Classification Logic
+
+When an alert has `level >= 8` (or custom rules `100001`–`100007`), `case_service.py` evaluates the description, rule groups, and MITRE tactics to bind the incident to a specific playbook:
+
+| Detected Indicator in Wazuh Alert | Assigned Playbook (`pb`) | Case Severity (`sev`) | Assigned SOP Template |
+|---|---|---|---|
+| Description/threat contains `ransomware`, `encrypt`, `vssadmin`, or rule `100001`/`100005` | `ransomware` | `critical` | Ransomware Containment & Recovery SOP |
+| Description/threat contains `brute`, `credential`, `authentication_failed`, `4625`, `ssh`, or rule `100002`/`100006` | `bruteforce` | `high` | SSH / RDP Brute Force Mitigation SOP |
+| Description/threat contains `privilege`, `sudo`, `4672`, `4728`, `/etc/sudoers`, or rule `100003`/`100007` | `privilege` | `high` | Privilege Escalation Remediation SOP |
+| Description/threat contains `syscheck`, `integrity`, `/etc/shadow`, or rule `100004` | `fileintegrity` | `high` | Critical File Integrity Compromise SOP |
+| *Fallback Rule* | Level $\ge 12 \rightarrow$ `ransomware`; Level $< 12 \rightarrow$ `bruteforce` | Based on level | Automatic Default |
+
+---
+
+### 11.4. Wazuh Manager Configuration (`/var/ossec/etc/ossec.conf`)
+
+Add the `<integration>` block inside `/var/ossec/etc/ossec.conf` on the Wazuh Manager:
+
+```xml
+<ossec_config>
+  <!-- ZeroRespond Ingestion Integration -->
+  <integration>
+    <name>custom-fapi-flask.py</name>
+    <hook_url>http://<ZERO_RESPOND_HOST>:8000/api/v1/webhook/wazuh</hook_url>
+    <level>8</level>
+    <alert_format>json</alert_format>
+  </integration>
+</ossec_config>
+```
+
+> **Note on Script Location & Permissions**:
+> 1. Copy `detection/wazuh/custom-fapi-flask.py` to `/var/ossec/integrations/custom-fapi-flask.py`.
+> 2. Set ownership: `sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py`
+> 3. Set executable mode: `sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py`
+> 4. Ensure line 1 contains the Wazuh embedded Python shebang: `#!/var/ossec/framework/python/bin/python3`
+> 5. Restart manager: `sudo systemctl restart wazuh-manager`
+
+---
+
+### 11.5. Custom Rules Deployment & Testing
+
+Naveen writes custom correlation rules in `/var/ossec/etc/rules/local_rules.xml` (or custom rule XML files).
+Always verify rule syntax with the Wazuh analysis daemon before restarting the service:
+
+```bash
+# Test rule syntax to catch any XML or regex errors:
+sudo /var/ossec/bin/wazuh-analysisd -t
+
+# Once syntax passes, restart the Wazuh Manager:
+sudo systemctl restart wazuh-manager
+```
+
+---
+
+### 11.6. Simulation & Testing Commands for Naveen
+
+Naveen can test whether the backend correctly accepts alerts without waiting for live VM attacks:
+
+```bash
+# 1. Test Direct Webhook (Simulating Ransomware Shadow Copy Deletion)
+curl -s -X POST http://localhost:8000/api/v1/webhook/wazuh \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rule": {
+      "id": "100001",
+      "level": 14,
+      "description": "ZeroRespond: Ransomware precursor detected - Volume Shadow Copy deletion attempted",
+      "mitre": {"id": ["T1490"], "tactic": ["Impact"]}
+    },
+    "agent": {"name": "KCTLAB-WIN01", "ip": "192.168.1.50"},
+    "data": {
+      "win": {
+        "eventdata": {
+          "ipAddress": "185.220.101.44",
+          "processId": "4812",
+          "targetUserName": "Administrator"
+        }
+      }
+    }
+  }' | jq
+
+# 2. Test 5-Minute Deduplication (Send exact same alert within 5 mins)
+# Expected result: Returns the same case_id, adds timeline event, does NOT create a duplicate case.
+
+# 3. Test Module 1 Alert Processor Ingestion (if using Path B)
+curl -s -X POST http://localhost:5000/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"rule": {"id": "100002", "level": 10, "description": "SSH Brute Force"}, "agent": {"name": "srv-lab-ssh01", "ip": "192.168.1.120"}}' | jq
+
+# 4. Trigger Backend Pull Sync from Module 1
+curl -s -X POST http://localhost:8000/api/v1/sync-alerts | jq
+```
+

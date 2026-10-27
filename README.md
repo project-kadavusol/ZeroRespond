@@ -289,6 +289,16 @@ The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to e
    sudo systemctl restart wazuh-manager
    ```
 
+> **Ingestion Architecture Note (Path A vs Path B)**:
+> - **Path A (Direct Push — Recommended)**: Wazuh pushes directly to `http://<ZERO_RESPOND_IP>:8000/api/v1/webhook/wazuh`. FastAPI deduplicates and creates cases immediately.
+> - **Path B (Alert Processor Buffer)**: Wazuh pushes to `http://localhost:5000/webhook` running `detection/alert_processor/webhook.py`. The last 50 alerts are kept in memory and viewable at `http://localhost:5000/`. The backend synchronizes with it via `POST http://localhost:8000/api/v1/sync-alerts`.
+
+> **Custom Rule Verification**: Whenever Naveen adds or updates custom correlation rules in `/var/ossec/etc/rules/local_rules.xml`, verify the syntax before restarting:
+> ```bash
+> sudo /var/ossec/bin/wazuh-analysisd -t
+> sudo systemctl restart wazuh-manager
+> ```
+
 ---
 
 #### Step 2: Deploying Wazuh Agents on Target Monitored VMs
