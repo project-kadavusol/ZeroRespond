@@ -46,7 +46,7 @@ export function AuditLogPage() {
       <div className="card">
         <div className="card-hd">
           <span className="card-title">Recent Activity</span>
-          <span className="status-chip demo">Immutable audit trail</span>
+          <span className="status-chip" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>Immutable Audit Trail</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
@@ -118,7 +118,7 @@ export function AuditLogPage() {
                   <span>Case {r.caseId}</span>
                   <span>{r.type}</span>
                   <span>{r.generated}</span>
-                  <span className="status-chip demo">{r.status}</span>
+                  <span className="status-chip" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>{r.status}</span>
                 </div>
               ))
             ) : (

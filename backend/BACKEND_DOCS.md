@@ -368,6 +368,9 @@ All endpoints are hosted at `http://localhost:8000` (Swagger UI at `/docs`).
 ### 7.1. Detection & SIEM Ingestion
 | Method | Path | Summary | Parameters | Response |
 |---|---|---|---|---|
+| `GET` | `/api/v1/wazuh/status` | Wazuh Manager API connectivity, latency, & agent overview | None | `{"connected": true, "latency_ms": 160, ...}` |
+| `POST` | `/api/v1/wazuh/test-connection` | Test custom Wazuh Manager URL & credentials | Body: `WazuhConnectionTestRequest` | `{"connected": true, ...}` |
+| `GET` | `/api/v1/wazuh/agents` | Live list of enrolled Wazuh agents & OS status | None | `{"count": 3, "agents": [...]}` |
 | `POST` | `/api/v1/webhook/wazuh` | Direct push webhook for Wazuh Manager (`integratord`) | Body: Raw or flat alert JSON | `{"status": "success", "alert_id": 4, "case_id": "IR-10"}` |
 | `POST` | `/alerts` | Backward-compatible alias for Wazuh webhook | Body: Alert JSON | `{"status": "success", ...}` |
 | `POST` | `/api/v1/sync-alerts` | Pull sync from Module 1 Flask service | Query: `module1_url` (optional) | `SyncResult` |
@@ -576,7 +579,7 @@ Add the `<integration>` block inside `/var/ossec/etc/ossec.conf` on the Wazuh Ma
   <!-- ZeroRespond Ingestion Integration -->
   <integration>
     <name>custom-fapi-flask.py</name>
-    <hook_url>http://<ZERO_RESPOND_HOST>:8000/api/v1/webhook/wazuh</hook_url>
+    <hook_url>http://172.17.0.1:8000/api/v1/webhook/wazuh</hook_url>
     <level>8</level>
     <alert_format>json</alert_format>
   </integration>
@@ -588,13 +591,14 @@ Add the `<integration>` block inside `/var/ossec/etc/ossec.conf` on the Wazuh Ma
 > 2. Set ownership: `sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py`
 > 3. Set executable mode: `sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py`
 > 4. Ensure line 1 contains the Wazuh embedded Python shebang: `#!/var/ossec/framework/python/bin/python3`
-> 5. Restart manager: `sudo systemctl restart wazuh-manager`
+> 5. Restart manager: `sudo /var/ossec/bin/wazuh-control restart` (or `sudo systemctl restart wazuh-manager`)
+> 6. Verify integratord startup: `Started wazuh-integratord...`
 
 ---
 
 ### 11.5. Custom Rules Deployment & Testing
 
-Naveen writes custom correlation rules in `/var/ossec/etc/rules/local_rules.xml` (or custom rule XML files).
+Naveen writes and manages his custom correlation rules directly in `/var/ossec/etc/rules/local_rules.xml` on the Wazuh Manager.
 Always verify rule syntax with the Wazuh analysis daemon before restarting the service:
 
 ```bash
@@ -602,7 +606,9 @@ Always verify rule syntax with the Wazuh analysis daemon before restarting the s
 sudo /var/ossec/bin/wazuh-analysisd -t
 
 # Once syntax passes, restart the Wazuh Manager:
-sudo systemctl restart wazuh-manager
+sudo /var/ossec/bin/wazuh-control restart
+# Or via systemctl if installed natively:
+# sudo systemctl restart wazuh-manager
 ```
 
 ---

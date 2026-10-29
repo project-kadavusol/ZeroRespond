@@ -52,9 +52,11 @@ from app.schemas import (
     PlaybookOut, PlaybookStepOut,
     EvidenceItemOut, TimelineEventOut,
     AlertOut, WazuhWebhookPayload, AlertItem, Module1AlertResponse, SyncResult,
+    WazuhConnectionTestRequest,
     OrgProfileOut, OrgProfileUpdate,
     MetricsSummaryOut
 )
+from app.wazuh_service import check_wazuh_status
 from app.case_service import (
     ingest_wazuh_alert,
     update_case_variables,
@@ -188,6 +190,9 @@ def root():
     """
     Platform root providing system overview and API documentation links.
     """
+    wazuh_url = os.getenv("WAZUH_API_URL", "https://host.docker.internal:55000")
+    wazuh_user = os.getenv("WAZUH_API_USER", "wazuh-wui")
+
     return {
         "platform": "ZeroRespond",
         "tagline": "Detect · Respond · Report · Repeat",
@@ -207,12 +212,23 @@ def root():
             "health": "/health",
             "cases": "/api/v1/cases",
             "playbooks": "/api/v1/playbooks",
+            "wazuh_status": "GET /api/v1/wazuh/status",
+            "wazuh_test_connection": "POST /api/v1/wazuh/test-connection",
+            "wazuh_agents": "GET /api/v1/wazuh/agents",
             "wazuh_webhook": "POST /api/v1/webhook/wazuh",
             "reports": "/reports",
             "generate_report": "POST /reports/generate/{case_id}",
             "preview_report": "GET /reports/{case_id}/preview",
             "download_report": "GET /reports/{case_id}/download",
             "cert_in_dispatch": "GET /reports/{case_id}/cert-in-email"
+        },
+        "wazuh_siem": {
+            "manager_api_url": wazuh_url,
+            "api_user": wazuh_user,
+            "status_endpoint": "/api/v1/wazuh/status",
+            "test_connection_endpoint": "/api/v1/wazuh/test-connection",
+            "agents_endpoint": "/api/v1/wazuh/agents",
+            "webhook_ingestion": "POST /api/v1/webhook/wazuh"
         }
     }
 
@@ -244,11 +260,18 @@ def health_check(db: Session = Depends(get_db)):
     except (ImportError, OSError):
         weasyprint_available = False
 
+    wazuh_configured_url = os.getenv("WAZUH_API_URL", "https://host.docker.internal:55000")
+
     return {
         "status": "healthy" if db_connected else "degraded",
         "database": "CONNECTED" if db_connected else "DISCONNECTED",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "ist_time": datetime.now(IST).strftime("%Y-%m-%d %H:%M:%S IST"),
+        "wazuh_siem": {
+            "configured_url": wazuh_configured_url,
+            "status_endpoint": "/api/v1/wazuh/status",
+            "agents_endpoint": "/api/v1/wazuh/agents"
+        },
         "compliance_engine": {
             "dpdp_section_8_6": "ACTIVE",
             "cert_in_6hr_sla_timer": "ACTIVE",
@@ -543,6 +566,65 @@ def get_case_evidence(case_id: str, db: Session = Depends(get_db)):
 # ==============================================================================
 # 5. WAZUH SIEM INGESTION & WEBHOOKS (Module 1 - Naveen)
 # ==============================================================================
+
+@app.get("/api/v1/wazuh/status", tags=["Detection"])
+def get_wazuh_status(db: Session = Depends(get_db)):
+    """
+    Transparently reports connection status to Wazuh Manager API,
+    including manager version, active endpoints count, latency, and registered agents
+    with live alert counts from the ZeroRespond database.
+    """
+    res = check_wazuh_status()
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    for ag in res.get("agents", []):
+        agent_name = ag.get("name")
+        agent_alerts = db.query(Alert).filter(Alert.agent == agent_name, Alert.created_at >= today_start).all()
+        ag["alerts_today"] = len(agent_alerts)
+        if agent_alerts:
+            max_lvl = max(a.level for a in agent_alerts)
+            ag["alert_max"] = "critical" if max_lvl >= 12 else "high" if max_lvl >= 8 else "medium"
+        else:
+            ag["alert_max"] = "none"
+    return res
+
+
+@app.post("/api/v1/wazuh/test-connection", tags=["Detection"])
+def test_wazuh_connection_endpoint(req: Optional[WazuhConnectionTestRequest] = None, db: Session = Depends(get_db)):
+    """
+    Tests Wazuh Manager API connectivity on demand with provided or default credentials.
+    Returns transparent diagnostic output with latency and registered agents.
+    """
+    url = req.url if req else None
+    user = req.user if req else None
+    password = req.password if req else None
+    res = check_wazuh_status(custom_url=url, custom_user=user, custom_pass=password)
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    for ag in res.get("agents", []):
+        agent_name = ag.get("name")
+        agent_alerts = db.query(Alert).filter(Alert.agent == agent_name, Alert.created_at >= today_start).all()
+        ag["alerts_today"] = len(agent_alerts)
+        if agent_alerts:
+            max_lvl = max(a.level for a in agent_alerts)
+            ag["alert_max"] = "critical" if max_lvl >= 12 else "high" if max_lvl >= 8 else "medium"
+        else:
+            ag["alert_max"] = "none"
+    return res
+
+
+@app.get("/api/v1/wazuh/agents", tags=["Detection"])
+def list_wazuh_agents():
+    """
+    Returns live agent list and connection telemetry from Wazuh SIEM.
+    """
+    status = check_wazuh_status()
+    return {
+        "status": status["status"],
+        "connected": status["connected"],
+        "error": status["error"],
+        "agents_summary": status["agents_summary"],
+        "agents": status["agents"]
+    }
+
 
 @app.post("/api/v1/webhook/wazuh", tags=["Detection"])
 @app.post("/alerts", tags=["Detection"])

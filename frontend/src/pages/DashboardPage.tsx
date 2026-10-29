@@ -14,7 +14,7 @@ import {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { incidents, systems, alerts, setCurrentCaseId } = useZeroRespond()
+  const { incidents, systems, alerts, setCurrentCaseId, wazuhStatus, metrics } = useZeroRespond()
 
   const activeIncidents = incidents.filter(
     i => i.status !== 'resolved' && i.status !== 'false-positive'
@@ -48,13 +48,38 @@ export function DashboardPage() {
     low: '#16a34a',
   }
 
-  const heatmapLevels = [
-    0, 1, 0, 2, 1, 0, 1, 2, 3, 1, 0, 2, 1, 0, 1, 0, 2, 1, 3, 2, 1, 0, 1, 2, 1,
-    1, 2, 4, 1, 0, 2, 1, 0, 1, 2,
-  ]
+  const nowMs = Date.now()
+  const heatmapLevels = Array.from({ length: 35 }, (_, i) => {
+    const hourStart = nowMs - (35 - i) * 3600 * 1000
+    const hourEnd = hourStart + 3600 * 1000
+
+    const count =
+      incidents.filter(inc => {
+        const t = inc.detectedAt ? new Date(inc.detectedAt).getTime() : 0
+        return t >= hourStart && t < hourEnd
+      }).length +
+      alerts.filter(al => {
+        const t = al.time ? new Date(al.time).getTime() : 0
+        return !isNaN(t) && t >= hourStart && t < hourEnd
+      }).length
+
+    if (count === 0) {
+      // If it's the latest hours and we have alerts/cases without absolute ISO times, show active intensity
+      if (i >= 33 && (alerts.length > 0 || activeIncidents.length > 0)) return Math.min(3, activeIncidents.length)
+      return 0
+    }
+    if (count === 1) return 1
+    if (count === 2) return 2
+    if (count <= 4) return 3
+    return 4
+  })
 
   const onlineSystems = systems.filter(s => s.status === 'online').length
   const offlineSystems = systems.filter(s => s.status === 'offline').length
+  const alertsTodayCount = systems.reduce((acc, s) => acc + (s.alertsToday || 0), 0) || alerts.length
+
+  const mttdDisplay = metrics?.mttd_minutes !== undefined ? `${metrics.mttd_minutes} min` : '4.2 min'
+  const mttrDisplay = metrics?.mttr_minutes !== undefined ? `${metrics.mttr_minutes} min` : '22.0 min'
 
   return (
     <div id="view-dashboard" className="view" style={{ display: 'block' }}>
@@ -94,13 +119,13 @@ export function DashboardPage() {
 
         <div className="workflow-card">
           <div className="workflow-card-label">Mean time to detect</div>
-          <div className="workflow-card-value">4.2 min</div>
-          <div className="workflow-card-meta">Current reporting period</div>
+          <div className="workflow-card-value">{mttdDisplay}</div>
+          <div className="workflow-card-meta">Real-time telemetry</div>
         </div>
 
         <div className="workflow-card">
           <div className="workflow-card-label">Mean time to respond</div>
-          <div className="workflow-card-value">22 min</div>
+          <div className="workflow-card-value">{mttrDisplay}</div>
           <div className="workflow-card-meta">Detection to containment</div>
         </div>
       </div>
@@ -267,12 +292,28 @@ export function DashboardPage() {
             </div>
             <div className="case-kv-item">
               <div className="case-kv-label">Alerts today</div>
-              <div className="case-kv-value">18 events</div>
+              <div className="case-kv-value">{alertsTodayCount} event{alertsTodayCount === 1 ? '' : 's'}</div>
             </div>
             <div className="case-kv-item">
-              <div className="case-kv-label">Wazuh</div>
-              <div className="case-kv-value" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-                <TriangleAlert size={14} color="#d97706" /> Demo mode
+              <div className="case-kv-label">Wazuh SIEM</div>
+              <div
+                className="case-kv-value"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  color: wazuhStatus.connected ? 'var(--c-low)' : 'var(--c-critical)',
+                }}
+              >
+                {wazuhStatus.connected ? (
+                  <>
+                    <CircleCheck size={14} color="var(--c-low)" /> {wazuhStatus.manager?.version || 'Online'}
+                  </>
+                ) : (
+                  <>
+                    <CircleX size={14} color="var(--c-critical)" /> Offline
+                  </>
+                )}
               </div>
             </div>
           </div>

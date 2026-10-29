@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import {
   INITIAL_INCIDENTS,
   INITIAL_SYSTEMS,
-  INITIAL_ALERTS,
   INITIAL_RULES,
   INITIAL_AUDIT_LOG,
   INITIAL_REPORT_HISTORY,
@@ -28,6 +27,46 @@ interface NotificationToast {
   sev: string
 }
 
+export interface WazuhLiveStatus {
+  connected: boolean
+  status: 'connected' | 'disconnected' | 'auth_failed' | 'unreachable' | 'checking'
+  url: string
+  user: string
+  latencyMs?: number
+  error?: string | null
+  manager?: {
+    version?: string
+    name?: string
+    type?: string
+    tz?: string
+  } | null
+  agentsSummary?: {
+    total: number
+    active: number
+    disconnected: number
+  }
+  agents?: Array<{
+    id: string
+    name: string
+    ip: string
+    os: string
+    status: string
+    last_keep_alive?: string
+  }>
+  lastChecked?: string
+}
+
+export interface MetricsSummary {
+  total_cases: number
+  active_cases: number
+  contained_cases: number
+  resolved_cases: number
+  mttd_minutes: number
+  mttr_minutes: number
+  severity_breakdown: Record<string, number>
+  attack_type_breakdown: Record<string, number>
+}
+
 interface ZeroRespondContextType {
   incidents: Incident[]
   systems: SystemItem[]
@@ -36,6 +75,7 @@ interface ZeroRespondContextType {
   auditLog: AuditItem[]
   reportHistory: ReportHistoryItem[]
   settings: SettingsData
+  metrics: MetricsSummary | null
   stepNotes: Record<string, Record<number, string>>
   currentCaseId: string | null
   setCurrentCaseId: (id: string | null) => void
@@ -79,6 +119,8 @@ interface ZeroRespondContextType {
   saveSettings: (newSettings: Partial<SettingsData>) => void
   addReportHistory: (item: ReportHistoryItem) => void
   addAudit: (action: string, ref: string, detail: string, user?: string) => void
+  wazuhStatus: WazuhLiveStatus
+  checkWazuhConnection: (custom?: { url?: string; user?: string; password?: string }) => Promise<WazuhLiveStatus>
 }
 
 const DEFAULT_SETTINGS: SettingsData = {
@@ -92,10 +134,10 @@ const DEFAULT_SETTINGS: SettingsData = {
   certInEmail: 'incident@cert-in.org.in',
   dpdpId: 'DPDP-KCT-2026-A1',
   autoReport: 'Yes — prompt to generate',
-  wazuhUrl: 'https://wazuh-manager.local:55000',
-  wazuhVersion: '4.7',
-  wazuhUser: 'zerorespond',
-  wazuhPass: 'demo-password',
+  wazuhUrl: 'https://host.docker.internal:55000',
+  wazuhVersion: '4.14',
+  wazuhUser: 'wazuh-wui',
+  wazuhPass: 'MyS3cr37P450r.*-',
 }
 
 const ZeroRespondContext = createContext<ZeroRespondContextType | undefined>(undefined)
@@ -111,10 +153,7 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : INITIAL_SYSTEMS
   })
 
-  const [alerts, setAlerts] = useState<AlertItem[]>(() => {
-    const saved = localStorage.getItem('zr_alerts')
-    return saved ? JSON.parse(saved) : INITIAL_ALERTS
-  })
+  const [alerts, setAlerts] = useState<AlertItem[]>([])
 
   const [rules, setRules] = useState<RuleItem[]>(() => {
     const saved = localStorage.getItem('zr_rules')
@@ -135,6 +174,8 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('zr-settings')
     return saved ? { ...DEFAULT_SETTINGS, ...JSON.parse(saved) } : DEFAULT_SETTINGS
   })
+
+  const [metrics, setMetrics] = useState<MetricsSummary | null>(null)
 
   const [stepNotes, setStepNotes] = useState<Record<string, Record<number, string>>>({})
   const [currentCaseId, setCurrentCaseId] = useState<string | null>('IR-08')
@@ -265,6 +306,14 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
     )
     addAudit('Case status changed', id, `Status set to ${statusLbl}`)
     showNotif('Status Updated', `Case ${id} marked as ${statusLbl}.`, 'low')
+
+    // Persist to FastAPI backend
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    fetch(`${apiBase}/api/v1/cases/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, status_lbl: statusLbl }),
+    }).catch(err => console.warn('Failed to persist case status to backend:', err))
   }, [addAudit, showNotif])
 
   const updateIncidentDetails = useCallback((id: string, updates: Partial<Incident>) => {
@@ -277,6 +326,20 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
       })
     )
     addAudit('Case details updated', id, Object.keys(updates).join(', '))
+
+    // Persist to FastAPI backend
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    fetch(`${apiBase}/api/v1/cases/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        attacker_ip: updates.attackerIp,
+        suspect_pid: updates.suspectPid,
+        target_user: updates.targetUser,
+        modified_file: updates.modifiedFile,
+        c2_ip: updates.c2Ip,
+      }),
+    }).catch(err => console.warn('Failed to persist case variables to backend:', err))
   }, [addAudit])
 
   const completeStep = useCallback((id: string, stepIdx: number, executedCmd?: string) => {
@@ -322,6 +385,18 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
         }
       })
     )
+
+    // Persist to FastAPI backend (step_order is 1-indexed: stepIdx + 1)
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    fetch(`${apiBase}/api/v1/cases/${id}/steps/${stepIdx + 1}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        is_completed: true,
+        notes: executedCmd ? `Executed: ${executedCmd}` : 'Completed from UI playbook runner',
+        completed_by: 'Naveen Kumar',
+      }),
+    }).catch(err => console.warn('Failed to persist step completion to backend:', err))
   }, [addAudit, showNotif])
 
   const skipStep = useCallback((id: string, stepIdx: number) => {
@@ -463,6 +538,28 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
     setCurrentCaseId(id)
     addAudit('Incident manually reported', id, `${data.type} on ${data.computer}`)
     showNotif('New Incident Opened', `${id} created — ${data.type} on ${data.computer}. Response guide ready.`, data.sev)
+
+    // Persist case to FastAPI backend
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    fetch(`${apiBase}/api/v1/cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id,
+        title: data.desc || `${data.type} incident on ${data.computer}`,
+        type: data.type,
+        sev: data.sev,
+        computer: data.computer,
+        desc: data.desc || `Manually reported ${data.type} incident on ${data.computer}.`,
+        attacker_ip: data.attackerIp || null,
+        source_ip: data.sourceIp || null,
+        assigned_to: 'Naveen Kumar',
+        persons: data.persons || 0,
+        data_categories: categoriesStr,
+        pb: pbMap[data.type] || 'ransomware',
+      }),
+    }).catch(err => console.warn('Failed to persist new case to backend:', err))
+
     return id
   }, [addAudit, showNotif])
 
@@ -477,6 +574,23 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
     )
     addAudit('Evidence attached', caseId, `${files.length} file(s) hashed & attached (§65B Attested)`)
     showNotif('Evidence Attached', `${files.length} file(s) cryptographically hashed and added to case ${caseId}.`, 'low')
+
+    // Persist to FastAPI backend via multipart/form-data
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    files.forEach(f => {
+      const formData = new FormData()
+      const content = `Evidence file: ${f.n}\nSHA-256: ${f.sha256 || 'N/A'}\nAttestation: ${f.attestation || 'Section 65B IT Act verified'}\nUploadedAt: ${f.uploadedAt || new Date().toISOString()}`
+      const blob = new Blob([content], { type: 'text/plain' })
+      formData.append('file', blob, f.n)
+      formData.append('category', f.category || 'Forensic Artifact')
+      formData.append('attestation', f.attestation || 'Section 65B IT Act verified')
+      formData.append('uploader', 'Naveen Kumar')
+
+      fetch(`${apiBase}/api/v1/cases/${caseId}/evidence`, {
+        method: 'POST',
+        body: formData,
+      }).catch(err => console.warn('Failed to upload evidence to backend:', err))
+    })
   }, [addAudit, showNotif])
 
   const addSystem = useCallback((sys: { host: string; type: SystemItem['type']; os: string; dept: string }) => {
@@ -549,11 +663,265 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
       return next
     })
     showNotif('Settings Saved', 'Organisation profile and settings updated successfully.', 'low')
+
+    // Persist profile to backend
+    const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+    fetch(`${apiBase}/api/v1/org-profile`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_name: newSettings.orgName,
+        org_type: newSettings.orgType,
+        city: newSettings.city,
+        state: newSettings.state,
+        registration_id: newSettings.dpdpId,
+        dpo_name: newSettings.dpoName,
+        dpo_email: newSettings.dpoEmail,
+        dpo_phone: newSettings.dpoPhone,
+        cert_in_contact: newSettings.certInEmail,
+      }),
+    }).catch(err => console.warn('Failed to update org profile on backend:', err))
   }, [showNotif])
 
   const addReportHistory = useCallback((item: ReportHistoryItem) => {
     setReportHistory(prev => [item, ...prev])
   }, [])
+
+  const [wazuhStatus, setWazuhStatus] = useState<WazuhLiveStatus>({
+    connected: false,
+    status: 'checking',
+    url: settings.wazuhUrl,
+    user: settings.wazuhUser,
+    error: null,
+  })
+
+  const checkWazuhConnection = useCallback(
+    async (custom?: { url?: string; user?: string; password?: string }): Promise<WazuhLiveStatus> => {
+      const apiBase = import.meta.env.VITE_API_BASE_URL || ''
+      try {
+        const endpoint = custom ? `${apiBase}/api/v1/wazuh/test-connection` : `${apiBase}/api/v1/wazuh/status`
+        const options: RequestInit = custom
+          ? {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                url: custom.url,
+                user: custom.user,
+                password: custom.password,
+              }),
+            }
+          : { method: 'GET' }
+
+        const res = await fetch(endpoint, options)
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+        }
+        const data = await res.json()
+        const updated: WazuhLiveStatus = {
+          connected: Boolean(data.connected),
+          status: data.status || (data.connected ? 'connected' : 'disconnected'),
+          url: data.url || (custom?.url || settings.wazuhUrl),
+          user: data.user || (custom?.user || settings.wazuhUser),
+          latencyMs: data.latency_ms,
+          error: data.error,
+          manager: data.manager,
+          agentsSummary: data.agents_summary,
+          agents: data.agents || [],
+          lastChecked: new Date().toLocaleTimeString(),
+        }
+        setWazuhStatus(updated)
+
+        if (data.agents && data.agents.length > 0) {
+          const liveSystems: SystemItem[] = data.agents.map((ag: any) => {
+            const isWin = ag.os?.toLowerCase().includes('windows')
+            const isManager = ag.id === '000'
+            const alertsCount = typeof ag.alerts_today === 'number' ? ag.alerts_today : 0
+            const maxSeverity = ag.alert_max && ag.alert_max !== 'none' ? ag.alert_max : ''
+            return {
+              host: ag.name || `agent-${ag.id}`,
+              type: (isManager ? 'server' : isWin ? 'endpoint' : 'server') as any,
+              typeLbl: isManager ? 'SIEM Server' : isWin ? 'Workstation' : 'Linux Host',
+              os: ag.os || 'Linux',
+              dept: isManager ? 'SOC Infrastructure' : 'Core IT',
+              status: (ag.status === 'active' ? 'online' : 'offline') as any,
+              lastLog: ag.status === 'active' ? 2 : 120,
+              alertsToday: alertsCount,
+              alertMax: maxSeverity,
+            }
+          })
+          setSystems(liveSystems)
+        }
+
+        // Fetch live alerts from backend to populate Detection Feed
+        try {
+          const alertRes = await fetch(`${apiBase}/api/v1/alerts?limit=50`)
+          if (alertRes.ok) {
+            const rawAlerts = await alertRes.json()
+            if (Array.isArray(rawAlerts) && rawAlerts.length > 0) {
+              const liveAlerts: AlertItem[] = rawAlerts.map((a: any) => {
+                const descLower = (a.description || '').toLowerCase()
+                let category: AlertItem['category'] = 'bf'
+                if (descLower.includes('ransomware') || a.rule_id === '100001' || a.rule_id === '100005') {
+                  category = 'ra'
+                } else if (descLower.includes('privilege') || descLower.includes('sudo') || a.rule_id === '100003' || a.rule_id === '100007') {
+                  category = 'pe'
+                } else if (descLower.includes('integrity') || descLower.includes('syscheck') || a.rule_id === '100004') {
+                  category = 'fim'
+                } else {
+                  category = 'bf'
+                }
+
+                let sev: Severity = 'medium'
+                const lvl = typeof a.level === 'number' ? a.level : 10
+                if (lvl >= 12) sev = 'critical'
+                else if (lvl >= 8) sev = 'high'
+                else if (lvl >= 4) sev = 'medium'
+                else sev = 'low'
+
+                let timeStr = 'Just now'
+                if (a.time) {
+                  try {
+                    timeStr = new Date(a.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                  } catch {
+                    timeStr = String(a.time).substring(11, 16)
+                  }
+                }
+
+                const isRealAttackerIp = Boolean(
+                  a.source_ip &&
+                  a.source_ip !== '127.0.0.1' &&
+                  a.source_ip !== 'localhost' &&
+                  a.source_ip !== 'N/A' &&
+                  a.source_ip !== a.agent_ip &&
+                  a.source_ip !== '10.0.0.22'
+                )
+                const attackerSegment = isRealAttackerIp ? ` from ${a.source_ip}` : ''
+                const targetSegment = a.target_user ? ` (Target: ${a.target_user})` : ''
+
+                return {
+                  id: String(a.id),
+                  name: a.description || 'Wazuh Detection',
+                  category,
+                  sev,
+                  desc: `${a.description || 'Wazuh Detection'}${attackerSegment}${targetSegment}`,
+                  computer: a.agent || a.agent_ip || 'Endpoint',
+                  ruleId: String(a.rule_id || ''),
+                  time: timeStr,
+                  linkedCase: a.linked_case_id || undefined,
+                }
+              })
+              setAlerts(liveAlerts)
+            }
+          }
+        } catch (e) {
+          console.warn('Could not sync live alerts:', e)
+        }
+
+        // Fetch live incident cases from backend
+        try {
+          const casesRes = await fetch(`${apiBase}/api/v1/cases?limit=50`)
+          if (casesRes.ok) {
+            const rawCases = await casesRes.json()
+            if (Array.isArray(rawCases) && rawCases.length > 0) {
+              const liveCases: Incident[] = rawCases.map((c: any) => ({
+                id: c.id,
+                type: c.type || 'Cyber Incident',
+                sev: (c.sev || 'high') as Severity,
+                sevLbl: c.sev_lbl || c.sev || 'High',
+                computer: c.computer || 'Unknown Host',
+                sourceIp: c.source_ip,
+                attackerIp: c.attacker_ip,
+                suspectPid: c.suspect_pid,
+                targetUser: c.target_user,
+                modifiedFile: c.modified_file,
+                c2Ip: c.c2_ip,
+                assignedTo: c.assigned_to || 'SOC Team',
+                openedTime: c.opened_time || '12:00',
+                openedFull: c.opened_full || new Date().toLocaleString(),
+                detectedAt: c.detected_at,
+                breachEstAt: c.breach_est_at,
+                containedAt: c.contained_at,
+                resolvedAt: c.resolved_at,
+                status: (c.status || 'open') as any,
+                statusLbl: c.status_lbl || c.status || 'Open',
+                curStep: typeof c.cur_step === 'number' ? c.cur_step : 0,
+                pb: c.pb || 'bruteforce',
+                dataCategories: c.data_categories || '',
+                dataCategoriesList: c.data_categories ? c.data_categories.split(',').map((s: string) => s.trim()) : [],
+                persons: typeof c.persons === 'number' ? c.persons : 0,
+                desc: c.desc || '',
+                timeline: Array.isArray(c.timeline) ? c.timeline.map((t: any) => ({
+                  t: t.t || '12:00',
+                  a: t.a || '',
+                  type: (t.type || 'done') as any,
+                  user: t.user
+                })) : [],
+                evidence: Array.isArray(c.evidence) ? c.evidence : []
+              }))
+              setIncidents(liveCases)
+            }
+          }
+        } catch (e) {
+          console.warn('Could not sync live cases:', e)
+        }
+
+        // Fetch real-time aggregated metrics summary
+        try {
+          const metRes = await fetch(`${apiBase}/api/v1/metrics/summary`)
+          if (metRes.ok) {
+            const metData = await metRes.json()
+            setMetrics(metData)
+          }
+        } catch (e) {
+          console.warn('Could not sync metrics summary:', e)
+        }
+
+        // Fetch registered organisation profile
+        try {
+          const orgRes = await fetch(`${apiBase}/api/v1/org-profile`)
+          if (orgRes.ok) {
+            const orgData = await orgRes.json()
+            setSettingsState(prev => ({
+              ...prev,
+              orgName: orgData.org_name || prev.orgName,
+              orgType: orgData.org_type || prev.orgType,
+              city: orgData.city || prev.city,
+              state: orgData.state || prev.state,
+              dpoName: orgData.dpo_name || prev.dpoName,
+              dpoEmail: orgData.dpo_email || prev.dpoEmail,
+              dpoPhone: orgData.dpo_phone || prev.dpoPhone,
+              certInEmail: orgData.cert_in_contact || prev.certInEmail,
+              dpdpId: orgData.registration_id || prev.dpdpId,
+            }))
+          }
+        } catch (e) {
+          console.warn('Could not sync org profile:', e)
+        }
+
+        return updated
+      } catch (err: any) {
+        const failed: WazuhLiveStatus = {
+          connected: false,
+          status: 'unreachable',
+          url: custom?.url || settings.wazuhUrl,
+          user: custom?.user || settings.wazuhUser,
+          error: err.message || 'Cannot reach ZeroRespond backend',
+          lastChecked: new Date().toLocaleTimeString(),
+        }
+        setWazuhStatus(failed)
+        return failed
+      }
+    },
+    [settings.wazuhUrl, settings.wazuhUser]
+  )
+
+  useEffect(() => {
+    checkWazuhConnection()
+    const pollInterval = setInterval(() => {
+      checkWazuhConnection()
+    }, 5000)
+    return () => clearInterval(pollInterval)
+  }, [checkWazuhConnection])
 
   return (
     <ZeroRespondContext.Provider
@@ -565,6 +933,7 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
         auditLog,
         reportHistory,
         settings,
+        metrics,
         stepNotes,
         currentCaseId,
         setCurrentCaseId,
@@ -598,6 +967,8 @@ export function ZeroRespondProvider({ children }: { children: ReactNode }) {
         saveSettings,
         addReportHistory,
         addAudit,
+        wazuhStatus,
+        checkWazuhConnection,
       }}
     >
       {children}

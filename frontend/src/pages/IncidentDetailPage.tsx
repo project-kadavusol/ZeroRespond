@@ -53,23 +53,23 @@ export function IncidentDetailPage() {
   const [timerCls, setTimerCls] = useState<'safe' | 'warn' | 'urgent' | 'expired'>('safe')
   const [isVariablesOpen, setIsVariablesOpen] = useState(true)
 
-  // Live playbook dynamic variables state
-  const [attackerIp, setAttackerIp] = useState(inc?.attackerIp || '185.220.101.44')
-  const [suspectPid, setSuspectPid] = useState(inc?.suspectPid || '4192')
-  const [targetUser, setTargetUser] = useState(inc?.targetUser || 'faculty_admin')
-  const [modifiedFile, setModifiedFile] = useState(inc?.modifiedFile || '/etc/shadow')
-  const [c2Ip, setC2Ip] = useState(inc?.c2Ip || '198.51.100.23')
+  // Live playbook dynamic variables state (empty if not identified)
+  const [attackerIp, setAttackerIp] = useState(inc?.attackerIp || '')
+  const [suspectPid, setSuspectPid] = useState(inc?.suspectPid || '')
+  const [targetUser, setTargetUser] = useState(inc?.targetUser || '')
+  const [modifiedFile, setModifiedFile] = useState(inc?.modifiedFile || '')
+  const [c2Ip, setC2Ip] = useState(inc?.c2Ip || '')
 
   // Sync variables if incident changes
   useEffect(() => {
     if (inc) {
-      setAttackerIp(inc.attackerIp || '185.220.101.44')
-      setSuspectPid(inc.suspectPid || '4192')
-      setTargetUser(inc.targetUser || 'faculty_admin')
-      setModifiedFile(inc.modifiedFile || '/etc/shadow')
-      setC2Ip(inc.c2Ip || '198.51.100.23')
+      setAttackerIp(inc.attackerIp || '')
+      setSuspectPid(inc.suspectPid || '')
+      setTargetUser(inc.targetUser || '')
+      setModifiedFile(inc.modifiedFile || '')
+      setC2Ip(inc.c2Ip || '')
     }
-  }, [inc?.id])
+  }, [inc?.id, inc?.attackerIp, inc?.suspectPid, inc?.targetUser, inc?.modifiedFile, inc?.c2Ip])
 
   // Live CERT-In 6-hour deadline countdown timer
   useEffect(() => {
@@ -148,23 +148,28 @@ export function IncidentDetailPage() {
 
   // Interpolate command using active variables
   const getInterpolatedCmd = (rawCmd: string) => {
-    const curAttackerIp = attackerIp.trim() || '185.220.101.44'
-    const curC2Ip = c2Ip.trim() || '198.51.100.23'
-    const curPid = suspectPid.trim() || '4192'
-    const curUser = targetUser.trim() || 'faculty_admin'
-    const curFile = modifiedFile.trim() || '/etc/shadow'
-    const fileNameOnly = curFile.split('/').pop() || 'shadow'
+    const curAttackerIp = attackerIp.trim()
+    const curC2Ip = c2Ip.trim()
+    const curPid = suspectPid.trim()
+    const curUser = targetUser.trim()
+    const curFile = modifiedFile.trim()
+    const fileNameOnly = curFile ? curFile.split('/').pop() || '[FILE]' : '[FILE]'
 
-    return rawCmd
-      .replace(/\[ATTACKER_IP\]/g, curAttackerIp)
-      .replace(/\[C2_IP\]/g, curC2Ip)
-      .replace(/\[SUSPECT_PID\]/g, curPid)
-      .replace(/\[PID\]/g, curPid)
-      .replace(/\[TARGET_USER\]/g, curUser)
-      .replace(/\[SUSPECT_USER\]/g, curUser)
-      .replace(/\[MODIFIED_FILE\]/g, curFile)
-      .replace(/\[TARGET_PATH\]/g, curFile)
-      .replace(/\[FILE\]/g, fileNameOnly)
+    let cmd = rawCmd
+    if (curAttackerIp) cmd = cmd.replace(/\[ATTACKER_IP\]/g, curAttackerIp)
+    if (curC2Ip) cmd = cmd.replace(/\[C2_IP\]/g, curC2Ip)
+    if (curPid) {
+      cmd = cmd.replace(/\[SUSPECT_PID\]/g, curPid).replace(/\[PID\]/g, curPid)
+    }
+    if (curUser) {
+      cmd = cmd.replace(/\[TARGET_USER\]/g, curUser).replace(/\[SUSPECT_USER\]/g, curUser)
+    }
+    if (curFile) {
+      cmd = cmd.replace(/\[MODIFIED_FILE\]/g, curFile)
+               .replace(/\[TARGET_PATH\]/g, curFile)
+               .replace(/\[FILE\]/g, fileNameOnly)
+    }
+    return cmd
   }
 
   const handleCopyCmd = (stepIdx: number, cmd: string) => {
@@ -431,7 +436,7 @@ export function IncidentDetailPage() {
                       style={{ width: '100%', height: '32px', fontSize: '12px', fontFamily: 'monospace' }}
                       value={attackerIp}
                       onChange={e => setAttackerIp(e.target.value)}
-                      placeholder="185.220.101.44"
+                      placeholder="e.g. 192.168.1.100 (leave empty if unknown)"
                     />
                   </div>
                   <div>
@@ -443,7 +448,7 @@ export function IncidentDetailPage() {
                       style={{ width: '100%', height: '32px', fontSize: '12px', fontFamily: 'monospace' }}
                       value={suspectPid}
                       onChange={e => setSuspectPid(e.target.value)}
-                      placeholder="4192"
+                      placeholder="e.g. 4192 (leave empty if unknown)"
                     />
                   </div>
                   <div>
@@ -455,7 +460,7 @@ export function IncidentDetailPage() {
                       style={{ width: '100%', height: '32px', fontSize: '12px', fontFamily: 'monospace' }}
                       value={targetUser}
                       onChange={e => setTargetUser(e.target.value)}
-                      placeholder="faculty_admin"
+                      placeholder="e.g. root or user account"
                     />
                   </div>
                   <div>
@@ -467,7 +472,7 @@ export function IncidentDetailPage() {
                       style={{ width: '100%', height: '32px', fontSize: '12px', fontFamily: 'monospace' }}
                       value={modifiedFile}
                       onChange={e => setModifiedFile(e.target.value)}
-                      placeholder="/etc/shadow"
+                      placeholder="e.g. /etc/shadow or file path"
                     />
                   </div>
                   <div>
@@ -479,7 +484,7 @@ export function IncidentDetailPage() {
                       style={{ width: '100%', height: '32px', fontSize: '12px', fontFamily: 'monospace' }}
                       value={c2Ip}
                       onChange={e => setC2Ip(e.target.value)}
-                      placeholder="198.51.100.23"
+                      placeholder="e.g. evil.domain.com (if known)"
                     />
                   </div>
                 </div>

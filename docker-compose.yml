@@ -69,6 +69,7 @@ services:
         condition: service_healthy
     volumes:
       - ./data:/app/data
+      - ./backend/app:/app/app
     ports:
       - "8000:8000"
     healthcheck:
@@ -77,6 +78,8 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - zerorespond
 

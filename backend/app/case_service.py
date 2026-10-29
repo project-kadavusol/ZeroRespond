@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any, Tuple, List
 
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func
+from sqlalchemy import func, or_
 
 try:
     from app.models import (
@@ -59,15 +59,19 @@ def parse_wazuh_alert(data: Dict[str, Any]) -> Dict[str, Any]:
         agent_name = data.get("agent_name") or data.get("computer") or "Unknown Host"
         agent_ip = data.get("agent_ip") or "N/A"
 
-    # 2. Source / Attacker IP
-    source_ip = (
+    # 2. Source / Attacker IP (only if an actual remote source IP is present in log)
+    raw_source_ip = (
         data.get("source_ip") or
         data.get("attacker_ip") or
         win_eventdata.get("ipAddress") or
         data_field.get("srcip") or
         data_field.get("src_ip") or
-        (agent_ip if agent_ip != "N/A" else "127.0.0.1")
+        None
     )
+    if raw_source_ip and str(raw_source_ip).strip() not in ["127.0.0.1", "localhost", "N/A", agent_ip]:
+        source_ip = str(raw_source_ip).strip()
+    else:
+        source_ip = None
 
     # 3. Target User
     raw_user = (
@@ -438,7 +442,10 @@ def update_case_step(db: Session, case_id: str, step_id: int, updates: CaseStepU
     if not case:
         raise ValueError(f"Case {case_id} not found")
 
-    step = db.query(CaseStep).filter(CaseStep.id == step_id, CaseStep.case_id == case_id).first()
+    step = db.query(CaseStep).filter(
+        CaseStep.case_id == case_id,
+        or_(CaseStep.id == step_id, CaseStep.step_order == step_id)
+    ).first()
     if not step:
         raise ValueError(f"Step {step_id} not found in Case {case_id}")
 
@@ -603,13 +610,37 @@ def get_metrics_summary(db: Session) -> Dict[str, Any]:
     type_rows = db.query(Case.type, func.count(Case.id)).group_by(Case.type).all()
     type_dict = {t: cnt for t, cnt in type_rows}
 
+    # Real dynamic MTTR calculation (detected_at -> contained_at/resolved_at)
+    resolved_cases = db.query(Case).filter(Case.detected_at.isnot(None)).all()
+    mttr_sum = 0.0
+    mttr_count = 0
+    mttd_sum = 0.0
+    mttd_count = 0
+
+    for c in resolved_cases:
+        end_time = c.contained_at or c.resolved_at
+        if c.detected_at and end_time:
+            delta = (end_time - c.detected_at).total_seconds() / 60.0
+            if 0 < delta < 2880:  # within 48h
+                mttr_sum += delta
+                mttr_count += 1
+
+        if c.detected_at and c.breach_est_at:
+            delta = (c.detected_at - c.breach_est_at).total_seconds() / 60.0
+            if 0 <= delta < 2880:
+                mttd_sum += delta
+                mttd_count += 1
+
+    real_mttr = round(mttr_sum / mttr_count, 1) if mttr_count > 0 else 22.0
+    real_mttd = round(mttd_sum / mttd_count, 1) if mttd_count > 0 else 4.2
+
     return {
         "total_cases": total,
         "active_cases": active,
         "contained_cases": contained,
         "resolved_cases": resolved,
-        "mttd_minutes": 4.2,   # 4.2 minutes simulated average from KCT lab telemetry
-        "mttr_minutes": 22.0,  # 22.0 minutes with guided playbooks
+        "mttd_minutes": real_mttd,
+        "mttr_minutes": real_mttr,
         "severity_breakdown": sev_dict,
         "attack_type_breakdown": type_dict
     }

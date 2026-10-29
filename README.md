@@ -266,38 +266,41 @@ The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to e
    ```bash
    sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask.py
    ```
+   *(If Wazuh Manager runs in Docker container `single-node-wazuh.manager-1`:)*
+   ```bash
+   docker cp detection/wazuh/custom-fapi-flask.py single-node-wazuh.manager-1:/var/ossec/integrations/custom-fapi-flask.py
+   ```
+
 2. Set ownership and executable permissions:
    ```bash
    sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py
    sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py
    ```
+
 3. Configure the integration in `/var/ossec/etc/ossec.conf` inside the `<ossec_config>` section:
    ```xml
    <ossec_config>
      <!-- ZeroRespond SOAR Ingestion Integration -->
      <integration>
        <name>custom-fapi-flask.py</name>
-       <hook_url>http://<ZERO_RESPOND_IP>:8000/api/v1/webhook/wazuh</hook_url>
+       <hook_url>http://172.17.0.1:8000/api/v1/webhook/wazuh</hook_url>
        <level>8</level>
        <alert_format>json</alert_format>
      </integration>
    </ossec_config>
    ```
-   *(Note: Replace `<ZERO_RESPOND_IP>` with your backend host machine IP, e.g., `192.168.1.100` or `localhost` if on same host).*
-4. Restart the Wazuh Manager to apply changes:
+   *Network routing note:*
+   - If Wazuh Manager runs in Docker: use the Docker bridge gateway `http://172.17.0.1:8000/api/v1/webhook/wazuh` to reach the FastAPI backend on the host.
+   - If Wazuh Manager runs directly on the host or external VM: use `http://<ZERO_RESPOND_HOST_IP>:8000/api/v1/webhook/wazuh`.
+
+4. Test configuration syntax and restart the Wazuh Manager:
    ```bash
-   sudo systemctl restart wazuh-manager
+   sudo /var/ossec/bin/wazuh-analysisd -t
+   sudo /var/ossec/bin/wazuh-control restart
+   # Or via systemd if installed natively:
+   # sudo systemctl restart wazuh-manager
    ```
-
-> **Ingestion Architecture Note (Path A vs Path B)**:
-> - **Path A (Direct Push — Recommended)**: Wazuh pushes directly to `http://<ZERO_RESPOND_IP>:8000/api/v1/webhook/wazuh`. FastAPI deduplicates and creates cases immediately.
-> - **Path B (Alert Processor Buffer)**: Wazuh pushes to `http://localhost:5000/webhook` running `detection/alert_processor/webhook.py`. The last 50 alerts are kept in memory and viewable at `http://localhost:5000/`. The backend synchronizes with it via `POST http://localhost:8000/api/v1/sync-alerts`.
-
-> **Custom Rule Verification**: Whenever Naveen adds or updates custom correlation rules in `/var/ossec/etc/rules/local_rules.xml`, verify the syntax before restarting:
-> ```bash
-> sudo /var/ossec/bin/wazuh-analysisd -t
-> sudo systemctl restart wazuh-manager
-> ```
+   *Verify integratord daemon started:* The output will confirm `Started wazuh-integratord...`.
 
 ---
 
@@ -305,7 +308,7 @@ The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to e
 
 To simulate real-world attacks, install the Wazuh Agent on the test virtual machines.
 
-##### A. Linux Target VM (Ubuntu/Debian Server — e.g. `srv-lab-ssh01`)
+##### A. Linux Target VM (Ubuntu/Debian Server — e.g. `Ubuntu_agent`)
 ```bash
 # 1. Add Wazuh repository key and source
 curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | sudo gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && sudo chmod 644 /usr/share/keyrings/wazuh.gpg
@@ -313,7 +316,7 @@ echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4
 sudo apt-get update
 
 # 2. Install agent pointing to your Wazuh Manager IP
-sudo WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="srv-lab-ssh01" apt-get install wazuh-agent
+sudo WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="Ubuntu_agent" apt-get install wazuh-agent
 
 # 3. Start the agent daemon
 sudo systemctl daemon-reload
@@ -321,20 +324,35 @@ sudo systemctl enable wazuh-agent
 sudo systemctl start wazuh-agent
 ```
 
-##### B. Windows Target VM (Windows Server / 10 / 11 — e.g. `KCTLAB-WIN01`)
+##### B. Windows Target VM (Windows Server / 10 / 11 — e.g. `Windows_agent`)
 Open an administrative PowerShell console:
 ```powershell
+# 1. Download and install the Wazuh MSI package
 Invoke-WebRequest -Uri https://packages.wazuh.com/4.x/windows/wazuh-agent-4.7.5-1.msi -OutFile wazuh-agent.msi
-.\wazuh-agent.msi /q WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="KCTLAB-WIN01"
-NET START Wazuh
+.\wazuh-agent.msi /q WAZUH_MANAGER="<WAZUH_MANAGER_IP>" WAZUH_AGENT_NAME="Windows_agent"
+
+# 2. Verify and start the Windows service
+Get-Service -Name "WazuhSvc"
+Start-Service -Name "WazuhSvc"
+
+# Or using command prompt / net:
+net start WazuhSvc
 ```
 
 ##### C. Verify Connected Agents on Wazuh Manager
 Run on the Wazuh Manager server:
 ```bash
 sudo /var/ossec/bin/agent_control -l
+# Or inside docker container:
+# docker exec single-node-wazuh.manager-1 /var/ossec/bin/agent_control -l
 ```
-*Expected: Monitored agents should show as `Active`.*
+*Expected output:*
+```
+Wazuh agent_control. List of available agents:
+   ID: 000, Name: wazuh.manager (server), IP: 127.0.0.1, Active/Local
+   ID: 001, Name: Ubuntu_agent, IP: 192.168.122.164, Active
+   ID: 002, Name: Windows_agent, IP: any, Active
+```
 
 ---
 

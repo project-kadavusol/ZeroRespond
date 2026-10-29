@@ -16,7 +16,7 @@ import {
 
 export function SettingsPage() {
   const navigate = useNavigate()
-  const { settings, saveSettings } = useZeroRespond()
+  const { settings, saveSettings, wazuhStatus } = useZeroRespond()
 
   const [formData, setFormData] = useState({ ...settings })
   const [showSavedConfirm, setShowSavedConfirm] = useState(false)
@@ -218,32 +218,40 @@ export function SettingsPage() {
         <div className="backend-row">
           <span className="backend-lbl">ZeroRespond Version</span>
           <span className="backend-val">
-            v2.0 (Production / Prototype) <span className="status-chip demo">Active</span>
+            v2.0 (Production) <span className="status-chip active" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>Active</span>
           </span>
         </div>
         <div className="backend-row">
           <span className="backend-lbl">Wazuh Detection Engine</span>
           <span className="backend-val">
-            <span className="status-chip demo">Ready</span>{' '}
-            <span style={{ fontSize: '12.5px', color: 'var(--text-3)' }}>Wazuh 4.7 REST API integration</span>
+            <span
+              className="status-chip"
+              style={{
+                background: wazuhStatus.connected ? 'var(--c-low-bg)' : 'rgba(239, 68, 68, 0.1)',
+                color: wazuhStatus.connected ? 'var(--c-low)' : '#dc2626',
+              }}
+            >
+              {wazuhStatus.connected ? `Connected (${wazuhStatus.manager?.version || 'v4.14'})` : 'Offline'}
+            </span>{' '}
+            <span style={{ fontSize: '12.5px', color: 'var(--text-3)' }}>Wazuh SIEM REST API</span>
           </span>
         </div>
         <div className="backend-row">
           <span className="backend-lbl">FastAPI Backend</span>
           <span className="backend-val">
-            <span className="status-chip demo">Ready / Port 8000</span>
+            <span className="status-chip active" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>Ready / Port 8000</span>
           </span>
         </div>
         <div className="backend-row">
           <span className="backend-lbl">PostgreSQL Database</span>
           <span className="backend-val">
-            <span className="status-chip demo">Ready / Port 5432</span>
+            <span className="status-chip active" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>Ready / Port 5432</span>
           </span>
         </div>
         <div className="backend-row">
           <span className="backend-lbl">Report Generator (WeasyPrint)</span>
           <span className="backend-val">
-            <span className="status-chip demo">Online</span>
+            <span className="status-chip active" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>Ready</span>
           </span>
         </div>
         <div className="backend-row">

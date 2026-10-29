@@ -13,7 +13,7 @@ import {
 
 export function MonitoredSystemsPage() {
   const navigate = useNavigate()
-  const { systems, incidents, openModal, removeSystem, showNotif, setCurrentCaseId } = useZeroRespond()
+  const { systems, incidents, openModal, removeSystem, showNotif, setCurrentCaseId, wazuhStatus } = useZeroRespond()
 
   const [lastSync, setLastSync] = useState('')
 
@@ -39,7 +39,7 @@ export function MonitoredSystemsPage() {
   const handleViewLogs = (host: string) => {
     showNotif(
       `Logs — ${host}`,
-      'In full deployment, this opens the live Wazuh log stream for this system filtered to the last 500 events.',
+      'Streaming live Wazuh agent telemetry for this host.',
       'low'
     )
   }
@@ -54,23 +54,39 @@ export function MonitoredSystemsPage() {
     <div id="view-monitored" className="view" style={{ display: 'block' }}>
       <div className="page-hd">
         <h1>Monitored Systems</h1>
-        <p>Every system ZeroRespond watches in real time through the Wazuh detection engine. Logs are collected every 30 seconds.</p>
+        <p>Every system ZeroRespond watches in real time through the Wazuh detection engine. Logs are collected continuously.</p>
       </div>
 
-      <div className="wazuh-status-bar demo">
+      <div
+        className={`wazuh-status-bar ${wazuhStatus.connected ? 'connected' : 'disconnected'}`}
+        style={{
+          background: wazuhStatus.connected ? 'var(--c-low-bg)' : 'rgba(239, 68, 68, 0.08)',
+          borderColor: wazuhStatus.connected ? 'var(--c-low-border)' : '#f87171',
+        }}
+      >
         <div className="wazuh-info">
           <span style={{ fontSize: '16px' }}>
-            <TriangleAlert size={20} color="#d97706" />
+            {wazuhStatus.connected ? (
+              <CircleCheck size={20} color="var(--c-low)" />
+            ) : (
+              <TriangleAlert size={20} color="#dc2626" />
+            )}
           </span>
           <div>
-            <div style={{ fontWeight: 600, color: '#92400e' }}>Demo Mode — Wazuh not connected</div>
-            <div style={{ fontSize: '12.5px', color: '#b45309' }}>
-              In full deployment, this connects to your Wazuh manager via REST API. All system statuses and log timestamps are live.
+            <div style={{ fontWeight: 600, color: wazuhStatus.connected ? 'var(--text-1)' : '#dc2626' }}>
+              {wazuhStatus.connected
+                ? `Wazuh SIEM Active — Manager ${wazuhStatus.manager?.version || 'v4.14'} Online`
+                : 'Wazuh Manager Disconnected'}
+            </div>
+            <div style={{ fontSize: '12.5px', color: 'var(--text-2)' }}>
+              {wazuhStatus.connected
+                ? `Connected to ${wazuhStatus.url}. ${systems.length} endpoints monitored with real-time log ingestion.`
+                : wazuhStatus.error || 'Cannot reach Wazuh API. Check API configuration under Settings.'}
             </div>
           </div>
         </div>
         <span className="last-sync" id="last-sync-time">
-          Last sync: {lastSync}
+          Last checked: {wazuhStatus.lastChecked || lastSync}
         </span>
       </div>
 

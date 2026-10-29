@@ -250,6 +250,12 @@ class SyncResult(BaseModel):
     case_ids: List[str]
 
 
+class WazuhConnectionTestRequest(BaseModel):
+    url: Optional[str] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+
+
 # ── Organization Profile & Metrics ───────────────────────────────────────────
 
 class OrgProfileOut(BaseModel):

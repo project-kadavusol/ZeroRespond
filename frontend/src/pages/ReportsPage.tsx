@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useZeroRespond } from '../context/ZeroRespondContext'
-import { RPT_STATIC_DATA, PLAYBOOKS } from '../mock/fixtures'
+import { PLAYBOOKS } from '../mock/fixtures'
 import {
   Info,
   CircleCheck,
@@ -43,17 +43,6 @@ export function ReportsPage() {
   }, [searchParams])
 
   const selectedInc = incidents.find(i => i.id === selectedCaseId)
-  const staticData = selectedCaseId
-    ? RPT_STATIC_DATA[selectedCaseId] || {
-        type: selectedInc?.type || 'Ransomware',
-        computer: selectedInc?.computer || 'KCTLAB-WIN01',
-        cats: selectedInc?.dataCategories || 'Student Records, Staff Information',
-        persons: selectedInc?.persons || 850,
-        discovered: selectedInc?.openedFull || '08 Oct 2026, 02:13 IST',
-        breachStart: selectedInc?.breachEstAt || '08 Oct 2026, 01:45 IST',
-        actions: selectedInc?.timeline.map(t => ({ t: t.t, a: t.a })) || [],
-      }
-    : null
 
   const handleCaseChange = (val: string) => {
     setSelectedCaseId(val)
@@ -83,7 +72,7 @@ export function ReportsPage() {
   }
 
   // 1. CERT-In 6-Hour Emergency Email Template (Directions 2022 under IT Act §70B)
-  const certEmailText = selectedInc && staticData
+  const certEmailText = selectedInc
     ? `To: ${settings.certInEmail}
 Subject: URGENT: Cybersecurity Incident Notice (6-Hour SLA) — ${settings.orgName} — Ref: ${selectedInc.id}
 
@@ -108,12 +97,12 @@ Pursuant to the CERT-In Directions under Section 70B(6) of the Information Techn
    - Affected Asset / Host: ${selectedInc.computer} ${selectedInc.sourceIp ? `(${selectedInc.sourceIp})` : ''}
    - Attacker / C2 Indicator: ${selectedInc.attackerIp || 'Under active reverse analysis'}
    - Time of Detection: ${selectedInc.openedFull}
-   - Estimated Breach Inception: ${selectedInc.breachEstAt || staticData.breachStart}
+   - Estimated Breach Inception: ${selectedInc.breachEstAt || selectedInc.openedFull}
    - Statutory 6-Hour Window Status: FILED TIMELY
 
 3. IMPACT ON PERSONAL DATA (DPDP Act §8(6)):
-   - Compromised Categories: ${selectedInc.dataCategories || staticData.cats}
-   - Estimated Data Principals Impacted: ~${selectedInc.persons || staticData.persons} individuals
+   - Compromised Categories: ${selectedInc.dataCategories || 'Under active analysis'}
+   - Estimated Data Principals Impacted: ~${selectedInc.persons || 0} individuals
 
 4. IMMEDIATE CONTAINMENT & MITIGATION ACTIONS EXECUTED:
 ${selectedInc.timeline.map((a, i) => `   ${i + 1}. [${a.t} IST] ${a.a}`).join('\n')}
@@ -134,7 +123,7 @@ Data Protection Officer, ${settings.orgName}`
     : ''
 
   // 2. DPDP Act 2023 §8(6) Data Principal Breach Notice (Plain Language for Impacted Individuals)
-  const dataPrincipalNoticeText = selectedInc && staticData
+  const dataPrincipalNoticeText = selectedInc
     ? `NOTICE OF PERSONAL DATA SECURITY INCIDENT
 Statutory Intimation under Section 8(6), Digital Personal Data Protection Act, 2023
 
@@ -147,9 +136,9 @@ On ${selectedInc.openedFull}, our cybersecurity monitoring systems detected susp
 
 WHAT DATA WAS INVOLVED?
 Our forensic review indicates that the affected system contained records involving:
-• ${selectedInc.dataCategories || staticData.cats}
+• ${selectedInc.dataCategories || 'Under active analysis'}
 
-Approximately ~${selectedInc.persons || staticData.persons} individuals may be affected. Note: There is currently NO evidence of financial passwords, PIN numbers, or bank account credentials being decrypted or exfiltrated.
+Approximately ~${selectedInc.persons || 0} individuals may be affected. Note: There is currently NO evidence of financial passwords, PIN numbers, or bank account credentials being decrypted or exfiltrated.
 
 WHAT WE HAVE DONE:
 1. Isolated the compromised host and revoked all compromised service tokens.
@@ -266,7 +255,7 @@ ${settings.orgName}`
         </div>
 
         {/* Step 2 */}
-        {selectedCaseId && staticData && (
+        {selectedInc && (
           <div className="rpt-step" id="rpt-s2">
             <div className="rpt-step-hd">
               <div className="rpt-step-num">2</div>
@@ -279,7 +268,7 @@ ${settings.orgName}`
                 </span>
                 <div>
                   <div className="confirm-lbl">Attack Type</div>
-                  <div className="confirm-val">{selectedInc?.type || staticData.type}</div>
+                  <div className="confirm-val">{selectedInc.type}</div>
                 </div>
               </div>
               <div className="confirm-item">
@@ -288,7 +277,7 @@ ${settings.orgName}`
                 </span>
                 <div>
                   <div className="confirm-lbl">Data Categories</div>
-                  <div className="confirm-val">{selectedInc?.dataCategories || staticData.cats}</div>
+                  <div className="confirm-val">{selectedInc.dataCategories || 'Under active analysis'}</div>
                 </div>
               </div>
               <div className="confirm-item">
@@ -297,7 +286,7 @@ ${settings.orgName}`
                 </span>
                 <div>
                   <div className="confirm-lbl">Data Principals</div>
-                  <div className="confirm-val">~{selectedInc?.persons || staticData.persons} individuals</div>
+                  <div className="confirm-val">~{selectedInc.persons || 0} individuals</div>
                 </div>
               </div>
               <div className="confirm-item">
@@ -333,7 +322,7 @@ ${settings.orgName}`
       </div>
 
       {/* Report Preview */}
-      {isGenerated && selectedInc && staticData && (
+      {isGenerated && selectedInc && (
         <div id="rpt-preview-wrap" style={{ display: 'block', maxWidth: '880px', marginTop: '24px' }}>
           {/* Dispatch Mode Selector Tabs */}
           <div className="no-print" style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
@@ -546,11 +535,11 @@ ${settings.orgName}`
                   </tr>
                   <tr>
                     <td style={{ padding: '6px 8px', border: '1px solid var(--border)', background: 'var(--bg-base)', fontWeight: 'bold', color: 'var(--text-1)' }}>Data Categories Compromised</td>
-                    <td style={{ padding: '6px 8px', border: '1px solid var(--border)', color: 'var(--text-2)' }}><strong>{selectedInc.dataCategories || staticData.cats}</strong></td>
+                    <td style={{ padding: '6px 8px', border: '1px solid var(--border)', color: 'var(--text-2)' }}><strong>{selectedInc.dataCategories || 'Under active analysis'}</strong></td>
                   </tr>
                   <tr>
                     <td style={{ padding: '6px 8px', border: '1px solid var(--border)', background: 'var(--bg-base)', fontWeight: 'bold', color: 'var(--text-1)' }}>Estimated Data Principals Impacted</td>
-                    <td style={{ padding: '6px 8px', border: '1px solid var(--border)', color: 'var(--text-2)' }}><strong>~{selectedInc.persons || staticData.persons} individuals</strong></td>
+                    <td style={{ padding: '6px 8px', border: '1px solid var(--border)', color: 'var(--text-2)' }}><strong>~{selectedInc.persons || 0} individuals</strong></td>
                   </tr>
                   <tr>
                     <td style={{ padding: '6px 8px', border: '1px solid var(--border)', background: 'var(--bg-base)', fontWeight: 'bold', color: 'var(--text-1)' }}>Mitigation &amp; Containment State</td>
@@ -697,7 +686,7 @@ ${settings.orgName}`
                   <span>Case {r.caseId}</span>
                   <span>{r.type}</span>
                   <span>{r.generated}</span>
-                  <span className="status-chip demo">{r.status}</span>
+                  <span className="status-chip" style={{ background: 'var(--c-low-bg)', color: 'var(--c-low)' }}>{r.status}</span>
                 </div>
               ))
             ) : (
