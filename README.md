@@ -262,19 +262,21 @@ This section provides the end-to-end instructions for deploying Wazuh Manager, c
 
 The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to external webhooks.
 
-1. Copy the integration script to the Wazuh Manager:
+1. Copy the integration script to the Wazuh Manager integrations directory (copying both with and without `.py` ensures compatibility across all Wazuh daemon versions):
    ```bash
+   sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask
    sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask.py
    ```
    *(If Wazuh Manager runs in Docker container `single-node-wazuh.manager-1`:)*
    ```bash
+   docker cp detection/wazuh/custom-fapi-flask.py single-node-wazuh.manager-1:/var/ossec/integrations/custom-fapi-flask
    docker cp detection/wazuh/custom-fapi-flask.py single-node-wazuh.manager-1:/var/ossec/integrations/custom-fapi-flask.py
    ```
 
 2. Set ownership and executable permissions:
    ```bash
-   sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py
-   sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py
+   sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask*
+   sudo chmod 750 /var/ossec/integrations/custom-fapi-flask*
    ```
 
 3. Configure the integration in `/var/ossec/etc/ossec.conf` inside the `<ossec_config>` section:
@@ -282,7 +284,7 @@ The Wazuh Manager uses its `integratord` daemon to push alert JSON payloads to e
    <ossec_config>
      <!-- ZeroRespond SOAR Ingestion Integration -->
      <integration>
-       <name>custom-fapi-flask.py</name>
+       <name>custom-fapi-flask</name>
        <hook_url>http://172.17.0.1:8000/api/v1/webhook/wazuh</hook_url>
        <level>8</level>
        <alert_format>json</alert_format>
@@ -444,6 +446,75 @@ Naveen can execute any of these 4 attack scenarios from an attacker machine (Kal
    curl -s -X POST http://localhost:8000/reports/generate/<CASE_ID>
    ```
    Download court-admissible PDF at `http://localhost:8000/reports/<CASE_ID>/download` or preview CERT-In email dispatch at `http://localhost:8000/reports/<CASE_ID>/cert-in-email`.
+
+---
+
+#### Step 5: Troubleshooting & Edge-Case Checklist (For Different Laptops & Environments)
+
+When setting up or verifying Wazuh on a teammate's laptop, home network, or different VM environment, note that **ZeroRespond interacts with Wazuh across two distinct channels**:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TWO CONNECTION CHANNELS                         │
+├────────────────────────────────────────────────────────────────────────┤
+│ 1. PUSH WEBHOOK (Wazuh ➔ ZeroRespond)                                  │
+│    Wazuh `integratord` fires alerts ➔ POST :8000/api/v1/webhook/wazuh  │
+│    Controlled by: /var/ossec/etc/ossec.conf + custom-fapi-flask        │
+│                                                                        │
+│ 2. PULL MANAGER API (ZeroRespond ➔ Wazuh)                              │
+│    ZeroRespond backend polls agents ➔ GET :55000/agents                │
+│    Controlled by: .env (WAZUH_API_URL, WAZUH_API_USER, PASSWORD)       │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+##### Pre-Flight Sanity Checks (Run These First!)
+
+Before running attack simulations, execute these two fast 10-second checks to isolate any networking or credential issues:
+
+**1. Test the Ingestion Webhook (Push Channel):**  
+Run from the machine/container running Wazuh Manager:
+```bash
+curl -i -X POST http://<ZERO_RESPOND_IP>:8000/api/v1/webhook/wazuh \
+  -H "Content-Type: application/json" \
+  -d '{"rule":{"id":"100002","description":"Preflight Test Alert","level":10},"agent":{"id":"001","name":"Ubuntu_agent","ip":"192.168.1.120"},"data":{"srcip":"203.0.113.88","dstuser":"root"}}'
+```
+*Expected Response:* `HTTP/1.1 200 OK` with JSON `{"status": "success", "alert_id": ..., "case_id": "IR-..."}`.  
+*If this succeeds:* The ZeroRespond backend is 100% operational. Any subsequent issue is in Wazuh's daemon or rule trigger.
+
+**2. Test the Wazuh Manager API (Pull Channel):**  
+Run from the machine running ZeroRespond backend:
+```bash
+curl -k -u wazuh-wui:MyS3cr37P450r.*- https://<WAZUH_MANAGER_IP>:55000/security/user/authenticate
+```
+*Expected Response:* `{"data":{"token":"..."}}` with HTTP 200.  
+*Verify in ZeroDashboard:* Visit `http://localhost:5173/monitored-systems` to see connected agents.
+
+---
+
+##### Troubleshooting Matrix: Common Failure Modes & Fixes
+
+| Issue | Root Cause | Exact Solution |
+|---|---|---|
+| **Wazuh triggers rule, but ZeroRespond shows nothing** | Integrator daemon is not pushing to webhook, or network hook URL is unreachable. | 1. Check logs: `sudo grep -E "integrat|custom-fapi" /var/ossec/logs/ossec.log`<br>2. Verify `<hook_url>` reachability (see Network Matrix below).<br>3. Verify rule level is $\ge 8$ (integrator filters out levels $< 8$). |
+| **`integratord: error: Permission denied`** | Incorrect file permissions or ownership on `/var/ossec/integrations/custom-fapi-flask`. | Run:<br>`sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask*`<br>`sudo chmod 750 /var/ossec/integrations/custom-fapi-flask*` |
+| **`ModuleNotFoundError: No module named 'requests'`** | Python shebang points to system python (`/usr/bin/python3`) without `requests`. | Ensure line 1 of script is:<br>`#!/var/ossec/framework/python/bin/python3`<br>*(Wazuh's embedded Python always includes `requests`).* |
+| **`wazuh-integratord: INFO: Remote integrations not configured. Clean exit.`** | `<integration>` block missing or placed outside `<ossec_config>` tags in `/var/ossec/etc/ossec.conf`. | Verify the `<integration>` block is inside `<ossec_config>...</ossec_config>` and run `sudo /var/ossec/bin/wazuh-analysisd -t` to validate XML syntax before restarting. |
+| **Agent status is `Disconnected` or `Never connected`** | Firewall blocking port `1514` (agent communication) or `1515` (registration). | On Linux agent: `nc -zv <MANAGER_IP> 1514`<br>On Windows agent: `Test-NetConnection -ComputerName <MANAGER_IP> -Port 1514`<br>Ensure Manager host allows inbound TCP/UDP on `1514` and TCP on `1515`. |
+| **Windows Agent service fails to start** | Windows agent service stopped or named differently. | In admin PowerShell:<br>`Get-Service -Name "WazuhSvc"`<br>`Start-Service -Name "WazuhSvc"`<br>*(Note: Windows service is `WazuhSvc`, not `wazuh-agent`).* |
+| **Monitored Systems page shows `Wazuh API: Disconnected`** | `.env` has incorrect `WAZUH_API_URL` or credentials. | Check `.env`: Ensure `WAZUH_API_URL=https://<MANAGER_IP>:55000`, `WAZUH_API_USER=wazuh-wui`, and password match the manager's API credentials. |
+
+---
+
+##### Network Matrix for `<hook_url>`:
+Inside `/var/ossec/etc/ossec.conf`:
+- **Wazuh Manager running in Docker container (`single-node-wazuh.manager-1`)**:  
+  Use `http://172.17.0.1:8000/api/v1/webhook/wazuh` *(Docker default bridge gateway to reach host).*
+- **Wazuh Manager running natively on the host (systemd)**:  
+  Use `http://localhost:8000/api/v1/webhook/wazuh`.
+- **Wazuh Manager running in a VirtualBox / VMware VM**:  
+  Use `http://<HOST_IP>:8000/api/v1/webhook/wazuh` *(e.g. `http://192.168.56.1:8000/...` or `10.0.2.2:8000`)*.
+- **Wazuh Manager and ZeroRespond on separate laptops over Wi-Fi/LAN**:  
+  Use `http://<ZERO_RESPOND_LAPTOP_IP>:8000/api/v1/webhook/wazuh` *(e.g. `http://192.168.1.150:8000/...`)*.
 
 ---
 

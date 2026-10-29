@@ -14,9 +14,11 @@ def main():
         with open(alert_file_path, 'r') as alert_file:
             alert_data = json.load(alert_file)
         headers = {'Content-Type': 'application/json'}
-        requests.post(webhook_url, json=alert_data, headers=headers, timeout=10)
-        
+        response = requests.post(webhook_url, json=alert_data, headers=headers, timeout=10)
+        if response.status_code >= 400:
+            sys.stderr.write(f"ZeroRespond Webhook returned HTTP {response.status_code}: {response.text}\n")
     except Exception as e:
+        sys.stderr.write(f"ZeroRespond Integration Error: {e}\n")
         sys.exit(1)
 
 if __name__ == "__main__":

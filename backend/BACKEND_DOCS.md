@@ -578,7 +578,7 @@ Add the `<integration>` block inside `/var/ossec/etc/ossec.conf` on the Wazuh Ma
 <ossec_config>
   <!-- ZeroRespond Ingestion Integration -->
   <integration>
-    <name>custom-fapi-flask.py</name>
+    <name>custom-fapi-flask</name>
     <hook_url>http://172.17.0.1:8000/api/v1/webhook/wazuh</hook_url>
     <level>8</level>
     <alert_format>json</alert_format>
@@ -587,12 +587,16 @@ Add the `<integration>` block inside `/var/ossec/etc/ossec.conf` on the Wazuh Ma
 ```
 
 > **Note on Script Location & Permissions**:
-> 1. Copy `detection/wazuh/custom-fapi-flask.py` to `/var/ossec/integrations/custom-fapi-flask.py`.
-> 2. Set ownership: `sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask.py`
-> 3. Set executable mode: `sudo chmod 750 /var/ossec/integrations/custom-fapi-flask.py`
-> 4. Ensure line 1 contains the Wazuh embedded Python shebang: `#!/var/ossec/framework/python/bin/python3`
-> 5. Restart manager: `sudo /var/ossec/bin/wazuh-control restart` (or `sudo systemctl restart wazuh-manager`)
-> 6. Verify integratord startup: `Started wazuh-integratord...`
+> 1. Copy `detection/wazuh/custom-fapi-flask.py` to `/var/ossec/integrations/` (copying both with and without `.py` ensures compatibility across all Wazuh daemon versions):
+>    ```bash
+>    sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask
+>    sudo cp detection/wazuh/custom-fapi-flask.py /var/ossec/integrations/custom-fapi-flask.py
+>    sudo chown root:wazuh /var/ossec/integrations/custom-fapi-flask*
+>    sudo chmod 750 /var/ossec/integrations/custom-fapi-flask*
+>    ```
+> 2. Ensure line 1 contains the Wazuh embedded Python shebang: `#!/var/ossec/framework/python/bin/python3`
+> 3. Restart manager: `sudo /var/ossec/bin/wazuh-control restart` (or `sudo systemctl restart wazuh-manager`)
+> 4. Verify integratord startup: `sudo grep "integrat" /var/ossec/logs/ossec.log` (should say `Enabling integration for: 'custom-fapi-flask'`)
 
 ---
 
